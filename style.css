@@ -93,7 +93,7 @@ body::after {
 /* App shell */
 #app {
   height: 100dvh;
-  max-width: 480px;
+  max-width: 520px;
   margin: 0 auto;
   background: var(--surface);
   backdrop-filter: var(--blur);
@@ -106,6 +106,38 @@ body::after {
   box-shadow: var(--glass-shadow);
   position: relative;
   z-index: 1;
+}
+
+/* ── Desktop layout ─────────────────────────────────────── */
+@media (min-width: 700px) {
+  #app {
+    max-width: 100%;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+  }
+
+  header {
+    padding-left: max(32px, calc(50% - 420px));
+    padding-right: max(32px, calc(50% - 420px));
+  }
+
+  main#messages {
+    padding-left: max(32px, calc(50% - 420px));
+    padding-right: max(32px, calc(50% - 420px));
+    padding-top: 28px;
+    padding-bottom: 20px;
+  }
+
+  footer {
+    padding-left: max(32px, calc(50% - 420px));
+    padding-right: max(32px, calc(50% - 420px));
+    padding-top: 14px;
+    padding-bottom: 20px;
+  }
+
+  .message { max-width: 72%; }
 }
 
 /* Header */
