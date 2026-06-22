@@ -93,31 +93,217 @@ body::after {
 /* App shell */
 #app {
   height: 100dvh;
-  max-width: 520px;
-  margin: 0 auto;
-  background: var(--surface);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border-left: 1px solid var(--glass-border);
-  border-right: 1px solid var(--glass-border);
-  overflow: hidden;
+  width: 100%;
   display: flex;
-  flex-direction: column;
-  box-shadow: var(--glass-shadow);
+  flex-direction: row;
+  overflow: hidden;
   position: relative;
   z-index: 1;
 }
 
-/* ── Desktop layout ─────────────────────────────────────── */
-@media (min-width: 700px) {
-  #app {
-    max-width: 100%;
-    border-radius: 0;
-    border-left: none;
-    border-right: none;
-    box-shadow: none;
-  }
+/* ── Sidebar ─────────────────────────────────────────────── */
+#sidebar {
+  width: 264px;
+  flex-shrink: 0;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.28);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 12px;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 50;
+}
 
+.light #sidebar { background: rgba(255, 255, 255, 0.45); }
+
+/* Collapsed state: slide the sidebar out of view */
+#app:not(.sidebar-open) #sidebar { margin-left: -264px; }
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 6px 16px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand h2 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light .brand h2 {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.logo-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  display: grid;
+  place-items: center;
+  color: white;
+  box-shadow: 0 2px 12px var(--accent-glow);
+  flex-shrink: 0;
+}
+
+#sidebarClose {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+#sidebarClose:hover { color: var(--text); background: var(--surface-hover); }
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.sidebar-footer {
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.nav-item svg { color: var(--text-secondary); flex-shrink: 0; transition: color 0.15s; }
+
+.nav-item:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.nav-item:hover svg { color: var(--accent); }
+
+#resetChatBtn:hover { background: rgba(99, 102, 241, 0.1); }
+#logoutBtn:hover { background: rgba(248, 113, 113, 0.1); }
+#logoutBtn:hover svg { color: #f87171; }
+
+/* ── Chat area ───────────────────────────────────────────── */
+.chat-main {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  background: var(--surface);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Backdrop only used on mobile overlay */
+#sidebarBackdrop {
+  display: none;
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 40;
+}
+
+/* Header */
+header {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(0, 0, 0, 0.12);
+  backdrop-filter: var(--blur);
+  flex-shrink: 0;
+}
+
+.light header { background: rgba(255, 255, 255, 0.3); }
+
+#sidebarToggle {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-hover);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+#sidebarToggle:hover {
+  color: var(--text);
+  border-color: rgba(99, 102, 241, 0.3);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Hide the toggle when the sidebar is open on desktop */
+@media (min-width: 900px) {
+  #app.sidebar-open #sidebarToggle { display: none; }
+}
+
+.header-title {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.light .header-title {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+/* ── Centered content column on wide screens ─────────────── */
+@media (min-width: 700px) {
   header {
     padding-left: max(32px, calc(50% - 420px));
     padding-right: max(32px, calc(50% - 420px));
@@ -140,82 +326,17 @@ body::after {
   .message { max-width: 72%; }
 }
 
-/* Header */
-header {
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: rgba(0, 0, 0, 0.12);
-  backdrop-filter: var(--blur);
-  flex-shrink: 0;
+/* ── Mobile: sidebar overlays the chat ───────────────────── */
+@media (max-width: 899px) {
+  #sidebar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    box-shadow: var(--glass-shadow);
+  }
+
+  #app.sidebar-open #sidebarBackdrop { display: block; }
 }
-
-.light header { background: rgba(255, 255, 255, 0.3); }
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.logo-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6366f1, #7c3aed);
-  display: grid;
-  place-items: center;
-  color: white;
-  box-shadow: 0 2px 12px var(--accent-glow);
-  flex-shrink: 0;
-}
-
-.header-left h2 {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: -0.4px;
-  background: linear-gradient(135deg, #a5b4fc 0%, #c084fc 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.light .header-left h2 {
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-}
-
-.actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.actions button {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  background: var(--surface-hover);
-  border: 1px solid var(--glass-border);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.18s ease;
-}
-
-.actions button:hover {
-  color: var(--text);
-  border-color: rgba(99, 102, 241, 0.3);
-  background: rgba(99, 102, 241, 0.1);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-#resetChatBtn:hover { border-color: rgba(248, 113, 113, 0.3); background: rgba(248, 113, 113, 0.08); }
 
 /* Messages */
 main#messages {

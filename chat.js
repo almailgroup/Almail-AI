@@ -42,24 +42,50 @@ const themeBtn      = document.getElementById("themeBtn");
 const resetBtn      = document.getElementById("resetChatBtn");
 const deleteModal   = document.getElementById("deleteModal");
 
+// Sidebar
+const sidebarToggle   = document.getElementById("sidebarToggle");
+const sidebarClose    = document.getElementById("sidebarClose");
+const sidebarBackdrop = document.getElementById("sidebarBackdrop");
+
+const isDesktop = () => window.matchMedia("(min-width: 900px)").matches;
+
+function openSidebar()  { appEl.classList.add("sidebar-open"); localStorage.setItem("sidebar", "open"); }
+function closeSidebar() { appEl.classList.remove("sidebar-open"); localStorage.setItem("sidebar", "closed"); }
+
+// Restore last state on desktop; always start collapsed on mobile
+if (isDesktop()) {
+  appEl.classList.toggle("sidebar-open", localStorage.getItem("sidebar") !== "closed");
+} else {
+  appEl.classList.remove("sidebar-open");
+}
+
+sidebarToggle.onclick   = openSidebar;
+sidebarClose.onclick    = closeSidebar;
+sidebarBackdrop.onclick = closeSidebar;
+
 // Safety reset
 deleteModal.style.display = "none";
 deleteId = null;
 
 // Theme
-const moonIcon = document.getElementById("moonIcon");
-const sunIcon  = document.getElementById("sunIcon");
+const moonIcon   = document.getElementById("moonIcon");
+const sunIcon    = document.getElementById("sunIcon");
+const themeLabel = document.getElementById("themeLabel");
+
+function applyThemeUI() {
+  moonIcon.style.display = isLight ? "none" : "block";
+  sunIcon.style.display  = isLight ? "block" : "none";
+  themeLabel.textContent = isLight ? "Light mode" : "Dark mode";
+}
 
 let isLight = localStorage.getItem("theme") === "light";
 document.body.classList.toggle("light", isLight);
-moonIcon.style.display = isLight ? "none" : "block";
-sunIcon.style.display  = isLight ? "block" : "none";
+applyThemeUI();
 
 themeBtn.onclick = () => {
   isLight = document.body.classList.toggle("light");
   localStorage.setItem("theme", isLight ? "light" : "dark");
-  moonIcon.style.display = isLight ? "none" : "block";
-  sunIcon.style.display  = isLight ? "block" : "none";
+  applyThemeUI();
 };
 
 // Reset chat
