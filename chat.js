@@ -139,6 +139,7 @@ function closeAuthModal() {
 }
 
 openAuthBtn.onclick  = openAuthModal;
+document.getElementById("authClose").onclick = closeAuthModal;
 toggleMode.onclick   = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
 
 // Close modal when clicking the backdrop
