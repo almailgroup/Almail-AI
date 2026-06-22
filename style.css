@@ -288,7 +288,7 @@ main#messages {
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 3px;
 }
 
 #messages::-webkit-scrollbar { width: 3px; }
@@ -311,7 +311,7 @@ main#messages {
   align-self: flex-end;
   background: var(--msg-self-bg);
   color: var(--msg-self-text);
-  border-bottom-right-radius: 5px;
+  border-bottom-right-radius: var(--radius-lg); /* overridden by .group-tail */
   box-shadow: var(--shadow-md);
 }
 
@@ -321,10 +321,21 @@ main#messages {
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--border-mid);
-  border-bottom-left-radius: 5px;
+  border-bottom-left-radius: var(--radius-lg); /* overridden by .group-tail */
   box-shadow: var(--shadow-inset), var(--shadow-sm);
   color: var(--text);
 }
+
+/* Tail corner only on the last message of a sender run */
+.self.group-tail  { border-bottom-right-radius: 5px; }
+.other.group-tail { border-bottom-left-radius: 5px; }
+
+/* Consecutive same-sender: tighten gap + flatten the joining corner */
+.self.grouped  { margin-top: 2px; border-top-right-radius: 8px; }
+.other.grouped { margin-top: 2px; border-top-left-radius: 8px; }
+
+/* First message of a new sender run gets breathing room */
+.self:not(.grouped), .other:not(.grouped) { margin-top: 12px; }
 
 .meta {
   font-size: 0.70rem;
@@ -683,25 +694,10 @@ footer {
 
 /* ── Wide screen layout ─────────────────────────────────── */
 @media (min-width: 700px) {
-  header {
-    padding-left: max(66px, calc(50% - 420px));
-    padding-right: max(24px, calc(50% - 420px));
-  }
-
-  main#messages {
-    padding-left: max(24px, calc(50% - 420px));
-    padding-right: max(24px, calc(50% - 420px));
-    padding-top: 32px;
-    padding-bottom: 12px;
-  }
-
-  footer {
-    padding-left: max(20px, calc(50% - 420px));
-    padding-right: max(20px, calc(50% - 420px));
-    padding-bottom: 22px;
-  }
-
-  .message { max-width: 70%; }
+  header        { padding-left: 66px; padding-right: 32px; }
+  main#messages { padding: 28px 32px 12px; }
+  footer        { padding: 12px 28px 22px; }
+  .message      { max-width: 62%; }
 }
 
 /* ── Mobile: sidebar overlays ───────────────────────────── */

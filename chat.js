@@ -198,12 +198,26 @@ function startListening() {
     deleteId = null;
     messagesEl.innerHTML = "";
 
-    snapshot.forEach(docSnap => {
+    // Collect into array first so we can compute grouping
+    const docs = [];
+    snapshot.forEach(d => docs.push(d));
+
+    docs.forEach((docSnap, i) => {
       const msg = docSnap.data();
       const isOwn = msg.role === "user";
+      const prevRole = i > 0 ? docs[i - 1].data().role : null;
+      const nextRole = i < docs.length - 1 ? docs[i + 1].data().role : null;
+
+      const grouped   = prevRole === msg.role;   // same sender as above → smaller gap
+      const groupTail = nextRole !== msg.role;   // last in its run → show the tail corner
 
       const div = document.createElement("div");
-      div.className = `message ${isOwn ? "self" : "other"}`;
+      div.className = [
+        "message",
+        isOwn ? "self" : "other",
+        grouped   ? "grouped"    : "",
+        groupTail ? "group-tail" : "",
+      ].filter(Boolean).join(" ");
 
       // Render markdown + links
       let rawText = msg.content || "";
