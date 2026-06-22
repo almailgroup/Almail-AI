@@ -75,7 +75,7 @@ const themeLabel = document.getElementById("themeLabel");
 function applyThemeUI() {
   moonIcon.style.display = isLight ? "none" : "block";
   sunIcon.style.display  = isLight ? "block" : "none";
-  themeLabel.textContent = isLight ? "Light mode" : "Dark mode";
+  themeLabel.textContent = isLight ? "Dark mode" : "Light mode";
 }
 
 let isLight = localStorage.getItem("theme") === "light";
