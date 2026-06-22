@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>AZSCO AI</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- Marked.js for rendering markdown (bold, italic, lists, etc.) -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+
+<div id="app" class="hidden">
+
+  <header>
+    <div class="header-left">
+      <h2>AZSO. AI</h2>
+      <span class="status"></span>
+    </div>
+    <div class="actions">
+      <button id="resetChatBtn" title="Reset chat">♻️</button>
+      <button id="themeBtn">🌙</button>
+      <button id="logoutBtn" title="Log out">↩️</button>
+    </div>
+  </header>
+
+  <main id="messages"></main>
+
+  <div id="typingIndicator"></div>
+
+  <footer>
+    <textarea id="messageInput" placeholder="Ask anything..."></textarea>
+    <button id="sendBtn">➤</button>
+  </footer>
+
+</div>
+
+<!-- Auth Modal -->
+<div class="modal" id="authModal">
+  <div class="modal-box">
+    <h3 id="authTitle">Welcome to AZSCO AI</h3>
+    
+    <input id="emailInput" type="email" placeholder="Email" required autocomplete="email"/>
+    <input id="passwordInput" type="password" placeholder="Password" required autocomplete="current-password"/>
+    
+    <div class="row">
+      <button id="loginBtn">Log In</button>
+      <button id="registerBtn">Register</button>
+    </div>
+    
+    <p id="authError"></p>
+    
+    <button id="toggleAuthMode">
+      Don't have an account? Register
+    </button>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" id="deleteModal">
+  <div class="modal-box">
+    <h3>Delete message?</h3>
+    <p>This action cannot be undone.</p>
+    <div class="row">
+      <button id="cancelDelete">Cancel</button>
+      <button id="confirmDelete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="js/firebase.js"></script>
+<script type="module" src="js/chat.js"></script>
+
+</body>
+</html>
