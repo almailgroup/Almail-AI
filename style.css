@@ -312,10 +312,20 @@ body::before {
   position: relative;
 }
 
+/* Transparent bridge so hover isn't lost crossing the gap */
+.settings-item-wrap::after {
+  content: '';
+  position: absolute;
+  right: -10px;
+  top: 0;
+  width: 10px;
+  height: 100%;
+}
+
 .settings-submenu {
   display: none;
   position: absolute;
-  left: calc(100% + 6px);
+  left: calc(100% + 10px);
   top: 0;
   min-width: 150px;
   background: var(--surface);
