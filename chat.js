@@ -25,13 +25,14 @@ let deleteId = null;
 
 // Elements
 const appEl         = document.getElementById("app");
+const authModal     = document.getElementById("authModal");
 const emailInput    = document.getElementById("emailInput");
 const passInput     = document.getElementById("passwordInput");
 const loginBtn      = document.getElementById("loginBtn");
 const registerBtn   = document.getElementById("registerBtn");
 const toggleMode    = document.getElementById("toggleAuthMode");
 const errorEl       = document.getElementById("authError");
-const sidebarAuth   = document.getElementById("sidebarAuth");
+const openAuthBtn   = document.getElementById("openAuthBtn");
 const messagesEl    = document.getElementById("messages");
 const inputEl       = document.getElementById("messageInput");
 const sendBtn       = document.getElementById("sendBtn");
@@ -112,20 +113,36 @@ resetBtn.onclick = async () => {
   }
 };
 
-// Auth UI (sidebar inline form)
+// Auth modal
 let isLoginMode = true;
 
 function updateAuthUI() {
-  loginBtn.style.display   = isLoginMode ? "flex" : "none";
-  registerBtn.style.display = isLoginMode ? "none" : "flex";
-  toggleMode.textContent   = isLoginMode
+  const authTitle = document.getElementById("authTitle");
+  authTitle.textContent     = isLoginMode ? "Welcome back" : "Create account";
+  loginBtn.style.display    = isLoginMode ? "block" : "none";
+  registerBtn.style.display = isLoginMode ? "none"  : "block";
+  toggleMode.textContent    = isLoginMode
     ? "Don't have an account? Register"
     : "Already have an account? Log in";
   errorEl.textContent = "";
 }
 
-toggleMode.onclick = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
-updateAuthUI();
+function openAuthModal() {
+  updateAuthUI();
+  authModal.style.display = "flex";
+  emailInput.focus();
+}
+
+function closeAuthModal() {
+  authModal.style.display = "none";
+  errorEl.textContent = "";
+}
+
+openAuthBtn.onclick  = openAuthModal;
+toggleMode.onclick   = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
+
+// Close modal when clicking the backdrop
+authModal.addEventListener("click", e => { if (e.target === authModal) closeAuthModal(); });
 
 // Authentication
 async function handleAuth(isRegister = false) {
@@ -167,14 +184,15 @@ onAuthStateChanged(auth, user => {
   currentUser = user;
 
   if (user) {
-    sidebarAuth.style.display  = "none";
+    closeAuthModal();
+    openAuthBtn.style.display  = "none";
     logoutBtn.style.display    = "flex";
     inputEl.placeholder        = "Ask anything…";
     inputEl.disabled           = false;
     sendBtn.disabled           = false;
     startListening();
   } else {
-    sidebarAuth.style.display  = "block";
+    openAuthBtn.style.display  = "flex";
     logoutBtn.style.display    = "none";
     inputEl.placeholder        = "Log in to start chatting…";
     inputEl.disabled           = true;
