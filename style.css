@@ -136,6 +136,7 @@ body::before {
 
 #sidebarToggle:hover { background: var(--glass-3); color: var(--text); transform: scale(1.04); }
 #app.sidebar-open #sidebarToggle { display: none; }
+#sidebarClose { transition: background 0.14s ease, color 0.14s ease; }
 
 /* ── Sidebar ────────────────────────────────────────────── */
 #sidebar {
@@ -149,11 +150,41 @@ body::before {
   display: flex;
   flex-direction: column;
   padding: 0;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 50;
 }
 
-#app:not(.sidebar-open) #sidebar { margin-left: -260px; }
+/* Desktop collapsed: show mini strip */
+@media (min-width: 900px) {
+  #app:not(.sidebar-open) #sidebar { width: 60px; }
+
+  #app:not(.sidebar-open) .brand,
+  #app:not(.sidebar-open) .sidebar-nav,
+  #app:not(.sidebar-open) .sidebar-footer {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+
+  #app:not(.sidebar-open) .sidebar-header {
+    justify-content: center;
+    padding: 14px 0 12px;
+  }
+
+  /* Flip icon to point right when collapsed */
+  #app:not(.sidebar-open) #sidebarClose svg {
+    transform: scaleX(-1);
+  }
+
+  /* Hide fixed toggle on desktop — mini strip handles it */
+  #sidebarToggle { display: none !important; }
+}
+
+/* Mobile: fully hide sidebar */
+@media (max-width: 899px) {
+  #app:not(.sidebar-open) #sidebar { margin-left: -260px; }
+}
 
 /* Sidebar inner padding wrapper */
 .sidebar-header {

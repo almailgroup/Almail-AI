@@ -60,7 +60,7 @@ if (isDesktop()) {
 }
 
 sidebarToggle.onclick   = openSidebar;
-sidebarClose.onclick    = closeSidebar;
+sidebarClose.onclick    = () => appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
 sidebarBackdrop.onclick = closeSidebar;
 
 // Safety reset
