@@ -47,14 +47,19 @@ deleteModal.style.display = "none";
 deleteId = null;
 
 // Theme
+const moonIcon = document.getElementById("moonIcon");
+const sunIcon  = document.getElementById("sunIcon");
+
 let isLight = localStorage.getItem("theme") === "light";
 document.body.classList.toggle("light", isLight);
-themeBtn.textContent = isLight ? "☀️" : "🌙";
+moonIcon.style.display = isLight ? "none" : "block";
+sunIcon.style.display  = isLight ? "block" : "none";
 
 themeBtn.onclick = () => {
   isLight = document.body.classList.toggle("light");
   localStorage.setItem("theme", isLight ? "light" : "dark");
-  themeBtn.textContent = isLight ? "☀️" : "🌙";
+  moonIcon.style.display = isLight ? "none" : "block";
+  sunIcon.style.display  = isLight ? "block" : "none";
 };
 
 // Reset chat
@@ -63,7 +68,8 @@ resetBtn.onclick = async () => {
   if (!confirm("Reset entire chat?\nAll messages will be permanently deleted.")) return;
 
   try {
-    typingEl.textContent = "Clearing chat...";
+    typingEl.dataset.status = "Clearing chat…";
+    typingEl.classList.add("status-only");
     const messagesRef = collection(db, "users", currentUser.uid, "messages");
     const snapshot = await getDocs(messagesRef);
 
@@ -72,12 +78,12 @@ resetBtn.onclick = async () => {
     await batch.commit();
 
     messagesEl.innerHTML = "";
-    typingEl.textContent = "Chat has been reset";
-    setTimeout(() => typingEl.textContent = "", 2000);
+    typingEl.dataset.status = "Chat has been reset";
+    setTimeout(() => { typingEl.dataset.status = ""; typingEl.classList.remove("status-only"); }, 2000);
   } catch (err) {
     console.error("Reset failed:", err);
-    typingEl.textContent = "Failed to reset chat";
-    setTimeout(() => typingEl.textContent = "", 3000);
+    typingEl.dataset.status = "Failed to reset chat";
+    setTimeout(() => { typingEl.dataset.status = ""; typingEl.classList.remove("status-only"); }, 3000);
   }
 };
 
@@ -243,7 +249,7 @@ async function sendMessage() {
   });
 
   inputEl.value = "";
-  typingEl.textContent = "AZSCO AI is thinking...";
+  typingEl.classList.add("active");
 
   try {
     const recent = query(messagesRef, orderBy("timestamp", "desc"), limit(12));
@@ -267,7 +273,7 @@ async function sendMessage() {
     });
   }
 
-  typingEl.textContent = "";
+  typingEl.classList.remove("active");
 }
 
 sendBtn.onclick = sendMessage;
