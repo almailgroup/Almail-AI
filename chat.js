@@ -10,7 +10,8 @@ import {
   doc,
   getDocs,
   limit,
-  writeBatch
+  writeBatch,
+  updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -106,6 +107,92 @@ function setTheme(light) {
 
 document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
+
+// Model picker
+const MODELS = {
+  "1.0": "gemini-2.0-flash",
+  "1.1": "gemini-2.5-flash"
+};
+let currentModelVersion = localStorage.getItem("modelVersion") || "1.0";
+const modelPickerBtn    = document.getElementById("modelPickerBtn");
+const modelPickerLabel  = document.getElementById("modelPickerLabel");
+const modelPickerPopup  = document.getElementById("modelPickerPopup");
+
+function applyModelUI() {
+  modelPickerLabel.textContent = `Almail AI ${currentModelVersion}`;
+  document.getElementById("check10").classList.toggle("visible", currentModelVersion === "1.0");
+  document.getElementById("check11").classList.toggle("visible", currentModelVersion === "1.1");
+}
+applyModelUI();
+
+modelPickerBtn.onclick = (e) => {
+  e.stopPropagation();
+  const rect = modelPickerBtn.getBoundingClientRect();
+  modelPickerPopup.style.left   = `${rect.left}px`;
+  modelPickerPopup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+  modelPickerPopup.classList.toggle("open");
+};
+
+document.getElementById("model10Btn").onclick = () => {
+  currentModelVersion = "1.0";
+  localStorage.setItem("modelVersion", "1.0");
+  applyModelUI();
+  modelPickerPopup.classList.remove("open");
+};
+
+document.getElementById("model11Btn").onclick = () => {
+  currentModelVersion = "1.1";
+  localStorage.setItem("modelVersion", "1.1");
+  applyModelUI();
+  modelPickerPopup.classList.remove("open");
+};
+
+document.addEventListener("click", (e) => {
+  if (!modelPickerPopup.contains(e.target) && e.target !== modelPickerBtn)
+    modelPickerPopup.classList.remove("open");
+});
+
+// File attachment
+const attachBtn      = document.getElementById("attachBtn");
+const fileInput      = document.getElementById("fileInput");
+const filePreview    = document.getElementById("filePreview");
+const filePreviewName = document.getElementById("filePreviewName");
+let pendingAttachment = null;
+
+attachBtn.onclick = () => fileInput.click();
+
+fileInput.onchange = async () => {
+  const file = fileInput.files[0];
+  if (!file) return;
+  fileInput.value = "";
+
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.onload = () => {
+      pendingAttachment = { type: "image", data: reader.result.split(",")[1], mimeType: file.type, name: file.name };
+      filePreviewName.textContent = file.name;
+      filePreview.style.display = "flex";
+    };
+    reader.readAsDataURL(file);
+  } else {
+    const text = await file.text();
+    pendingAttachment = { type: "text", content: text, name: file.name };
+    filePreviewName.textContent = file.name;
+    filePreview.style.display = "flex";
+  }
+};
+
+document.getElementById("fileRemoveBtn").onclick = () => {
+  pendingAttachment = null;
+  filePreview.style.display = "none";
+};
+
+// Global menu close handler
+document.addEventListener("click", (e) => {
+  if (!e.target.closest(".menu-btn") && !e.target.closest(".menu")) {
+    document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+  }
+});
 
 // Reset chat
 resetBtn.onclick = async () => {
@@ -210,6 +297,7 @@ onAuthStateChanged(auth, user => {
     inputEl.placeholder        = "Ask anything…";
     inputEl.disabled           = false;
     sendBtn.disabled           = false;
+    attachBtn.disabled         = false;
     startListening();
   } else {
     openAuthBtn.style.display  = "flex";
@@ -217,6 +305,7 @@ onAuthStateChanged(auth, user => {
     inputEl.placeholder        = "Log in to start chatting…";
     inputEl.disabled           = true;
     sendBtn.disabled           = true;
+    attachBtn.disabled         = true;
     messagesEl.innerHTML       = "";
     deleteModal.style.display  = "none";
     deleteId = null;
@@ -260,27 +349,68 @@ function startListening() {
       let rawText = msg.content || "";
       let htmlText = marked.parse(rawText, { breaks: true, gfm: true });
       htmlText = linkify(htmlText);
-      let content = `<div>${htmlText}</div>`;
-      content += `<div class="meta">${isOwn ? "You" : "AZSCO AI"} · ${formatTime(msg.timestamp)}</div>`;
+      const textDiv = document.createElement("div");
+      textDiv.innerHTML = htmlText;
 
-      div.innerHTML = content;
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${formatTime(msg.timestamp)}`;
+
+      div.append(textDiv, meta);
+
+      // Context menu (both user and AI)
+      const menuBtn = document.createElement("button");
+      menuBtn.className = "menu-btn";
+      menuBtn.innerHTML = "⋯";
+
+      const menu = document.createElement("div");
+      menu.className = "menu";
+
+      // Copy button for all messages
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy";
+      copyBtn.textContent = "Copy";
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(msg.content || "");
+        menu.classList.remove("open");
+      };
+      menu.appendChild(copyBtn);
 
       if (isOwn) {
-        const menuBtn = document.createElement("button");
-        menuBtn.className = "menu-btn";
-        menuBtn.textContent = "⋯";
-
-        const menu = document.createElement("div");
-        menu.className = "menu";
-        menu.innerHTML = `<button class="delete">Delete</button>`;
-
-        menuBtn.onclick = e => {
+        // Edit button
+        const editBtn = document.createElement("button");
+        editBtn.className = "edit";
+        editBtn.textContent = "Edit";
+        editBtn.onclick = (e) => {
           e.stopPropagation();
-          document.querySelectorAll('.menu').forEach(m => m.style.display = 'none');
-          menu.style.display = 'block';
+          menu.classList.remove("open");
+          const editArea = document.createElement("textarea");
+          editArea.className = "edit-textarea";
+          editArea.value = msg.content || "";
+          textDiv.replaceWith(editArea);
+          editArea.focus();
+          editArea.addEventListener("keydown", async (ev) => {
+            if (ev.key === "Enter" && !ev.shiftKey) {
+              ev.preventDefault();
+              const newText = editArea.value.trim();
+              if (newText && newText !== msg.content) {
+                await updateDoc(doc(db, "users", currentUser.uid, "messages", docSnap.id), { content: newText });
+              }
+            }
+            if (ev.key === "Escape") {
+              editArea.replaceWith(textDiv);
+            }
+          });
         };
 
-        menu.querySelector(".delete").onclick = () => {
+        // Delete button
+        const delBtn = document.createElement("button");
+        delBtn.className = "delete";
+        delBtn.textContent = "Delete";
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          menu.classList.remove("open");
           div.classList.add("wobbly-strong");
           setTimeout(() => {
             div.classList.remove("wobbly-strong");
@@ -291,18 +421,17 @@ function startListening() {
           }, 900);
         };
 
-        div.append(menuBtn, menu);
-
-        setTimeout(() => {
-          const closeMenu = e => {
-            if (!div.contains(e.target)) {
-              menu.style.display = "none";
-              document.removeEventListener("click", closeMenu);
-            }
-          };
-          document.addEventListener("click", closeMenu);
-        }, 10);
+        menu.append(editBtn, delBtn);
       }
+
+      menuBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains("open");
+        document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+        if (!isOpen) menu.classList.add("open");
+      };
+
+      div.append(menuBtn, menu);
 
       messagesEl.appendChild(div);
     });
@@ -315,17 +444,26 @@ function startListening() {
 async function sendMessage() {
   if (!currentUser) return;
   const text = inputEl.value.trim();
-  if (!text) return;
+  if (!text && !pendingAttachment) return;
 
   const messagesRef = collection(db, "users", currentUser.uid, "messages");
+  const attachment = pendingAttachment;
+
+  // Clear input and attachment immediately
+  inputEl.value = "";
+  pendingAttachment = null;
+  filePreview.style.display = "none";
+
+  const userContent = attachment
+    ? `${text}${text ? "\n" : ""}[Attached: ${attachment.name}]`
+    : text;
 
   await addDoc(messagesRef, {
     role: "user",
-    content: text,
+    content: userContent,
     timestamp: serverTimestamp()
   });
 
-  inputEl.value = "";
   typingEl.classList.add("active");
 
   try {
@@ -334,7 +472,7 @@ async function sendMessage() {
     const history = snap.docs.map(d => d.data()).reverse()
       .map(m => ({ role: m.role, content: m.content }));
 
-    const aiReply = await getAIResponse(history);
+    const aiReply = await getAIResponse(history, attachment);
 
     await addDoc(messagesRef, {
       role: "assistant",
@@ -345,7 +483,7 @@ async function sendMessage() {
     console.error(err);
     await addDoc(messagesRef, {
       role: "assistant",
-      content: "Sorry, something went wrong. Try again.",
+      content: "Sorry, something went wrong. Please try again.",
       timestamp: serverTimestamp()
     });
   }
@@ -362,39 +500,46 @@ inputEl.addEventListener("keydown", e => {
   }
 });
 
-// AI API – replace with your settings
-async function getAIResponse(messages) {
+// AI API
+async function getAIResponse(messages, attachment = null) {
   const API_KEY = "AIzaSyAEeEzsi8OB8sWmb8tK3BJTyIsD9KG-bbU";
-  const MODEL   = "gemini-2.5-flash";   // or your preferred model
+  const MODEL   = MODELS[currentModelVersion] || MODELS["1.0"];
 
-  const contents = messages.map(msg => ({
-    role: msg.role === "user" ? "user" : "model",
-    parts: [{ text: msg.content }]
-  }));
-
-  contents.unshift({
-    role: "user",
-    parts: [{ text: "You are AZSCO AI, a helpful, clever and friendly assistant." }]
+  const contents = messages.map((msg, i) => {
+    const isLastUser = msg.role === "user" && i === messages.length - 1;
+    if (isLastUser && attachment) {
+      const parts = [{ text: msg.content }];
+      if (attachment.type === "image") {
+        parts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
+      } else if (attachment.type === "text") {
+        parts[0].text = `File contents of "${attachment.name}":\n${attachment.content}\n\n${msg.content}`;
+      }
+      return { role: "user", parts };
+    }
+    return { role: msg.role === "user" ? "user" : "model", parts: [{ text: msg.content }] };
   });
 
-  try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents })
-      }
-    );
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: {
+          parts: [{ text: "You are Almail AI, a helpful, clever and friendly assistant. You can analyze uploaded images and files to answer questions and provide information. Do not generate images." }]
+        }
+      })
+    }
+  );
 
-    if (!res.ok) throw new Error(`API error ${res.status}`);
-
-    const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No response received.";
-  } catch (err) {
-    console.error("AI error:", err);
-    return "Sorry — having connection issues right now.";
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`API error ${res.status}: ${err?.error?.message || ""}`);
   }
+
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No response received.";
 }
 
 // Delete handlers

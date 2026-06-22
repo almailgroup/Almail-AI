@@ -534,6 +534,21 @@ main#messages {
 .self .message code { background: rgba(0,0,0,0.1); }
 .light .other .message code { background: rgba(0,0,0,0.07); }
 
+/* edit mode */
+.edit-textarea {
+  width: 100%;
+  min-height: 60px;
+  resize: none;
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--text);
+  font-size: inherit;
+  font-family: inherit;
+  outline: none;
+}
+
 /* Context menu */
 .menu-btn {
   position: absolute;
@@ -555,10 +570,12 @@ main#messages {
   z-index: 20;
 }
 
-.self:hover .menu-btn { opacity: 1; }
+.self:hover .menu-btn,
+.other:hover .menu-btn { opacity: 1; }
 .menu-btn:hover { background: rgba(0,0,0,0.42); opacity: 1; }
 
 .menu {
+  display: none;
   position: absolute;
   top: calc(100% + 5px);
   right: 4px;
@@ -589,8 +606,10 @@ main#messages {
   transition: background 0.1s;
 }
 
+.menu.open { display: block; }
 .menu button:hover { background: var(--surface-hover); }
-.menu button.delete { color: var(--text); }
+.menu button.delete { color: #f87171; }
+.menu button.copy, .menu button.edit { color: var(--text); }
 
 /* ── Typing indicator ───────────────────────────────────── */
 #typingIndicator {
@@ -641,16 +660,111 @@ main#messages {
 
 /* ── Footer / input ─────────────────────────────────────── */
 footer {
-  padding: 12px 20px 18px;
+  padding: 8px 20px 18px;
   border-top: 1px solid var(--border);
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  flex-direction: column;
+  gap: 6px;
   background: var(--glass-1);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   flex-shrink: 0;
 }
+
+.footer-model-row { display: flex; align-items: center; padding-left: 2px; }
+
+.model-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+}
+.model-picker-btn:hover { background: var(--glass-3); color: var(--text); }
+
+.footer-input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.attach-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--glass-2);
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.14s, color 0.14s;
+  box-shadow: var(--shadow-inset), var(--shadow-sm);
+}
+.attach-btn:hover { background: var(--glass-3); color: var(--text); }
+.attach-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.file-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: var(--glass-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin: 0 2px;
+}
+.file-preview span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.file-remove { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px; }
+.file-remove:hover { color: var(--text); }
+
+/* ── Model picker popup ─────────────────────────────────── */
+.model-picker-popup {
+  display: none;
+  position: fixed;
+  z-index: 300;
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 14px;
+  padding: 6px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+}
+.model-picker-popup.open { display: block; }
+
+.model-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.13s;
+}
+.model-option:hover { background: var(--glass-3); }
+.model-info { display: flex; flex-direction: column; gap: 1px; }
+.model-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.model-desc { font-size: 11.5px; color: var(--text-muted); }
+.model-check { flex-shrink: 0; opacity: 0; color: var(--text); }
+.model-check.visible { opacity: 1; }
 
 #messageInput {
   flex: 1;
@@ -946,7 +1060,7 @@ footer {
 @media (min-width: 700px) {
   header        { padding-left: 66px; padding-right: 32px; }
   main#messages { padding: 28px 32px 12px; }
-  footer        { padding: 12px 28px 22px; }
+  footer        { padding: 8px 28px 22px; }
   .message      { max-width: 62%; }
 }
 
