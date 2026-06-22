@@ -41,6 +41,8 @@ const logoutBtn     = document.getElementById("logoutBtn");
 const themeBtn      = document.getElementById("themeBtn");
 const resetBtn      = document.getElementById("resetChatBtn");
 const deleteModal   = document.getElementById("deleteModal");
+const settingsBtn   = document.getElementById("settingsBtn");
+const settingsPopup = document.getElementById("settingsPopup");
 
 // Sidebar
 const sidebarToggle   = document.getElementById("sidebarToggle");
@@ -66,6 +68,30 @@ sidebarBackdrop.onclick = closeSidebar;
 // Safety reset
 deleteModal.style.display = "none";
 deleteId = null;
+
+// Settings popup
+function openSettingsPopup() {
+  const rect = settingsBtn.getBoundingClientRect();
+  settingsPopup.style.left   = `${rect.left}px`;
+  settingsPopup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+  settingsPopup.classList.add("open");
+}
+
+settingsBtn.onclick = (e) => {
+  e.stopPropagation();
+  settingsPopup.classList.contains("open") ? settingsPopup.classList.remove("open") : openSettingsPopup();
+};
+
+document.addEventListener("click", (e) => {
+  if (!settingsPopup.contains(e.target)) settingsPopup.classList.remove("open");
+});
+
+document.getElementById("settingsThemeBtn").onclick = () => {
+  isLight = document.body.classList.toggle("light");
+  localStorage.setItem("theme", isLight ? "light" : "dark");
+  applyThemeUI();
+  settingsPopup.classList.remove("open");
+};
 
 // Theme
 const moonIcon   = document.getElementById("moonIcon");
