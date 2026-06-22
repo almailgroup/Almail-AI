@@ -38,7 +38,6 @@ const inputEl       = document.getElementById("messageInput");
 const sendBtn       = document.getElementById("sendBtn");
 const typingEl      = document.getElementById("typingIndicator");
 const logoutBtn     = document.getElementById("logoutBtn");
-const themeBtn      = document.getElementById("themeBtn");
 const resetBtn      = document.getElementById("resetChatBtn");
 const deleteModal   = document.getElementById("deleteModal");
 const settingsBtn   = document.getElementById("settingsBtn");
@@ -86,33 +85,27 @@ document.addEventListener("click", (e) => {
   if (!settingsPopup.contains(e.target)) settingsPopup.classList.remove("open");
 });
 
-document.getElementById("settingsThemeBtn").onclick = () => {
-  isLight = document.body.classList.toggle("light");
+// Theme
+let isLight = localStorage.getItem("theme") === "light";
+document.body.classList.toggle("light", isLight);
+
+function applyThemeUI() {
+  document.getElementById("checkDark").classList.toggle("visible", !isLight);
+  document.getElementById("checkLight").classList.toggle("visible", isLight);
+}
+
+applyThemeUI();
+
+function setTheme(light) {
+  isLight = light;
+  document.body.classList.toggle("light", isLight);
   localStorage.setItem("theme", isLight ? "light" : "dark");
   applyThemeUI();
   settingsPopup.classList.remove("open");
-};
-
-// Theme
-const moonIcon   = document.getElementById("moonIcon");
-const sunIcon    = document.getElementById("sunIcon");
-const themeLabel = document.getElementById("themeLabel");
-
-function applyThemeUI() {
-  moonIcon.style.display = isLight ? "none" : "block";
-  sunIcon.style.display  = isLight ? "block" : "none";
-  themeLabel.textContent = isLight ? "Dark mode" : "Light mode";
 }
 
-let isLight = localStorage.getItem("theme") === "light";
-document.body.classList.toggle("light", isLight);
-applyThemeUI();
-
-themeBtn.onclick = () => {
-  isLight = document.body.classList.toggle("light");
-  localStorage.setItem("theme", isLight ? "light" : "dark");
-  applyThemeUI();
-};
+document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
+document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
 // Reset chat
 resetBtn.onclick = async () => {
