@@ -1,8 +1,7 @@
 import { db, auth } from "./firebase.js";
 import {
   collection, addDoc, query, orderBy, onSnapshot,
-  serverTimestamp, deleteDoc, doc, getDocs, limit,
-  updateDoc, writeBatch
+  serverTimestamp, deleteDoc, doc, getDocs, limit, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -10,38 +9,96 @@ import {
   signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-// ── State ────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────
 let currentUser      = null;
 let currentChatId    = null;
 let deleteId         = null;
 let msgUnsubscribe   = null;
-let chatListUnsub    = null;
 let pendingAttachment = null;
 
-// ── Elements ─────────────────────────────────────────────
-const appEl          = document.getElementById("app");
-const authModal      = document.getElementById("authModal");
-const emailInput     = document.getElementById("emailInput");
-const passInput      = document.getElementById("passwordInput");
-const loginBtn       = document.getElementById("loginBtn");
-const registerBtn    = document.getElementById("registerBtn");
-const toggleMode     = document.getElementById("toggleAuthMode");
-const errorEl        = document.getElementById("authError");
-const openAuthBtn    = document.getElementById("openAuthBtn");
-const messagesEl     = document.getElementById("messages");
-const inputEl        = document.getElementById("messageInput");
-const sendBtn        = document.getElementById("sendBtn");
-const typingEl       = document.getElementById("typingIndicator");
-const logoutBtn      = document.getElementById("logoutBtn");
-const resetBtn       = document.getElementById("resetChatBtn");
-const deleteModal    = document.getElementById("deleteModal");
-const settingsBtn    = document.getElementById("settingsBtn");
-const settingsPopup  = document.getElementById("settingsPopup");
-const attachBtn      = document.getElementById("attachBtn");
-const fileInput      = document.getElementById("fileInput");
-const filePreview    = document.getElementById("filePreview");
+// ── Chat metadata stored in localStorage (no extra Firestore collection needed)
+function loadChats()        { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
+function saveChats(chats)   { localStorage.setItem("chats_v2", JSON.stringify(chats)); }
+function genId()            { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function createChat() {
+  const id = genId();
+  const chats = loadChats();
+  chats.unshift({ id, title: "New chat", ts: Date.now() });
+  saveChats(chats);
+  return id;
+}
+
+function setChatTitle(chatId, title) {
+  const chats = loadChats();
+  const c = chats.find(c => c.id === chatId);
+  if (c && c.title === "New chat") { c.title = title; saveChats(chats); }
+  renderChatList();
+}
+
+function renderChatList() {
+  const chatList = document.getElementById("chatList");
+  if (!chatList) return;
+  chatList.innerHTML = "";
+  loadChats().forEach(chat => {
+    const btn = document.createElement("button");
+    btn.className = `chat-item${chat.id === currentChatId ? " active" : ""}`;
+    btn.dataset.chatId = chat.id;
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${chat.title}</span>`;
+    btn.onclick = () => switchToChat(chat.id);
+    chatList.appendChild(btn);
+  });
+}
+
+function switchToChat(chatId) {
+  currentChatId = chatId;
+  localStorage.setItem("currentChatId", chatId);
+  document.querySelectorAll(".chat-item").forEach(el =>
+    el.classList.toggle("active", el.dataset.chatId === chatId)
+  );
+  startMsgListener();
+}
+
+function initChats() {
+  let chats = loadChats();
+  // First-ever launch: create a default chat
+  if (chats.length === 0) {
+    const id = createChat();
+    currentChatId = id;
+  } else {
+    const savedId = localStorage.getItem("currentChatId");
+    const exists  = chats.some(c => c.id === savedId);
+    currentChatId = (savedId && exists) ? savedId : chats[0].id;
+  }
+  localStorage.setItem("currentChatId", currentChatId);
+  renderChatList();
+  startMsgListener();
+}
+
+// ── Elements ──────────────────────────────────────────────
+const appEl           = document.getElementById("app");
+const authModal       = document.getElementById("authModal");
+const emailInput      = document.getElementById("emailInput");
+const passInput       = document.getElementById("passwordInput");
+const loginBtn        = document.getElementById("loginBtn");
+const registerBtn     = document.getElementById("registerBtn");
+const toggleMode      = document.getElementById("toggleAuthMode");
+const errorEl         = document.getElementById("authError");
+const openAuthBtn     = document.getElementById("openAuthBtn");
+const messagesEl      = document.getElementById("messages");
+const inputEl         = document.getElementById("messageInput");
+const sendBtn         = document.getElementById("sendBtn");
+const typingEl        = document.getElementById("typingIndicator");
+const logoutBtn       = document.getElementById("logoutBtn");
+const resetBtn        = document.getElementById("resetChatBtn");
+const deleteModal     = document.getElementById("deleteModal");
+const settingsBtn     = document.getElementById("settingsBtn");
+const settingsPopup   = document.getElementById("settingsPopup");
+const attachBtn       = document.getElementById("attachBtn");
+const fileInput       = document.getElementById("fileInput");
+const filePreview     = document.getElementById("filePreview");
 const filePreviewName = document.getElementById("filePreviewName");
-const attachPopup    = document.getElementById("attachPopup");
+const attachPopup     = document.getElementById("attachPopup");
 
 // ── Sidebar ───────────────────────────────────────────────
 const sidebarToggle   = document.getElementById("sidebarToggle");
@@ -69,7 +126,6 @@ function openSettingsPopup() {
   settingsPopup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
   settingsPopup.classList.add("open");
 }
-
 settingsBtn.onclick = (e) => {
   e.stopPropagation();
   settingsPopup.classList.contains("open") ? settingsPopup.classList.remove("open") : openSettingsPopup();
@@ -117,36 +173,21 @@ modelPickerBtn.onclick = (e) => {
   modelPickerPopup.style.top  = `${rect.bottom + 8}px`;
   modelPickerPopup.classList.toggle("open");
 };
-
 document.getElementById("model10Btn").onclick = () => {
-  currentModelVersion = "1.0";
-  localStorage.setItem("modelVersion", "1.0");
-  applyModelUI();
-  modelPickerPopup.classList.remove("open");
+  currentModelVersion = "1.0"; localStorage.setItem("modelVersion", "1.0"); applyModelUI(); modelPickerPopup.classList.remove("open");
 };
 document.getElementById("model11Btn").onclick = () => {
-  currentModelVersion = "1.1";
-  localStorage.setItem("modelVersion", "1.1");
-  applyModelUI();
-  modelPickerPopup.classList.remove("open");
+  currentModelVersion = "1.1"; localStorage.setItem("modelVersion", "1.1"); applyModelUI(); modelPickerPopup.classList.remove("open");
 };
 
 // ── Attach popup ──────────────────────────────────────────
-attachBtn.onclick = (e) => {
-  e.stopPropagation();
-  attachPopup.classList.toggle("open");
-};
-
-document.getElementById("attachFilesBtn").onclick = () => {
-  attachPopup.classList.remove("open");
-  fileInput.click();
-};
+attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
+document.getElementById("attachFilesBtn").onclick = () => { attachPopup.classList.remove("open"); fileInput.click(); };
 
 fileInput.onchange = async () => {
   const file = fileInput.files[0];
   if (!file) return;
   fileInput.value = "";
-
   if (file.type.startsWith("image/")) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -162,21 +203,14 @@ fileInput.onchange = async () => {
     filePreview.style.display = "flex";
   }
 };
+document.getElementById("fileRemoveBtn").onclick = () => { pendingAttachment = null; filePreview.style.display = "none"; };
 
-document.getElementById("fileRemoveBtn").onclick = () => {
-  pendingAttachment = null;
-  filePreview.style.display = "none";
-};
-
-// ── Global close handlers ─────────────────────────────────
+// ── Global popups close on outside click ──────────────────
 document.addEventListener("click", (e) => {
-  if (!settingsPopup.contains(e.target) && e.target !== settingsBtn)
-    settingsPopup.classList.remove("open");
-  if (!modelPickerPopup.contains(e.target) && e.target !== modelPickerBtn)
-    modelPickerPopup.classList.remove("open");
-  if (!attachPopup.contains(e.target) && e.target !== attachBtn)
-    attachPopup.classList.remove("open");
-  if (!e.target.closest(".menu-btn") && !e.target.closest(".menu"))
+  if (!settingsPopup.contains(e.target)    && e.target !== settingsBtn)  settingsPopup.classList.remove("open");
+  if (!modelPickerPopup.contains(e.target) && e.target !== modelPickerBtn) modelPickerPopup.classList.remove("open");
+  if (!attachPopup.contains(e.target)      && e.target !== attachBtn)    attachPopup.classList.remove("open");
+  if (!e.target.closest(".menu-btn")       && !e.target.closest(".menu"))
     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
 });
 
@@ -187,12 +221,9 @@ function updateAuthUI() {
   document.getElementById("authTitle").textContent = isLoginMode ? "Welcome back" : "Create account";
   loginBtn.style.display    = isLoginMode ? "block" : "none";
   registerBtn.style.display = isLoginMode ? "none"  : "block";
-  toggleMode.textContent    = isLoginMode
-    ? "Don't have an account? Register"
-    : "Already have an account? Log in";
+  toggleMode.textContent    = isLoginMode ? "Don't have an account? Register" : "Already have an account? Log in";
   errorEl.textContent = "";
 }
-
 function openAuthModal()  { updateAuthUI(); authModal.style.display = "flex"; emailInput.focus(); }
 function closeAuthModal() { authModal.style.display = "none"; errorEl.textContent = ""; }
 
@@ -202,8 +233,7 @@ toggleMode.onclick  = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
 authModal.addEventListener("click", e => { if (e.target === authModal) closeAuthModal(); });
 
 async function handleAuth(isRegister = false) {
-  const email = emailInput.value.trim();
-  const password = passInput.value.trim();
+  const email = emailInput.value.trim(), password = passInput.value.trim();
   if (!email || !password) { errorEl.textContent = "Please fill in all fields"; return; }
   errorEl.textContent = "";
   try {
@@ -211,34 +241,26 @@ async function handleAuth(isRegister = false) {
     else            await signInWithEmailAndPassword(auth, email, password);
   } catch (err) {
     let msg = err.message;
-    if (msg.includes("wrong-password"))      msg = "Incorrect password";
-    if (msg.includes("user-not-found"))      msg = "No account with this email";
+    if (msg.includes("wrong-password"))       msg = "Incorrect password";
+    if (msg.includes("user-not-found"))       msg = "No account with this email";
     if (msg.includes("email-already-in-use")) msg = "Email already registered";
     errorEl.textContent = msg;
   }
 }
-
 loginBtn.onclick    = () => handleAuth(false);
 registerBtn.onclick = () => handleAuth(true);
 passInput.addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(!isLoginMode); });
 logoutBtn.onclick   = () => signOut(auth);
 
-// ── Multi-chat helpers ────────────────────────────────────
-async function createNewChat() {
-  const ref = await addDoc(collection(db, "users", currentUser.uid, "chats"), {
-    title: "New chat",
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  });
-  return ref.id;
-}
-
+// ── Message listener ──────────────────────────────────────
+// Messages are stored at users/{uid}/messages with a chatId field.
+// This keeps the original Firestore path so existing security rules work.
 function startMsgListener() {
   if (!currentUser || !currentChatId) return;
   if (msgUnsubscribe) msgUnsubscribe();
 
   const q = query(
-    collection(db, "users", currentUser.uid, "chats", currentChatId, "messages"),
+    collection(db, "users", currentUser.uid, "messages"),
     orderBy("timestamp")
   );
 
@@ -247,16 +269,19 @@ function startMsgListener() {
     deleteId = null;
     messagesEl.innerHTML = "";
 
-    const docs = [];
-    snapshot.forEach(d => docs.push(d));
+    const docs = snapshot.docs.filter(d => {
+      const data = d.data();
+      // Show messages that belong to current chat, or legacy messages (no chatId) if it's the first chat
+      return data.chatId === currentChatId;
+    });
 
     docs.forEach((docSnap, i) => {
-      const msg = docSnap.data();
-      const isOwn    = msg.role === "user";
-      const prevRole = i > 0 ? docs[i - 1].data().role : null;
-      const nextRole = i < docs.length - 1 ? docs[i + 1].data().role : null;
-      const grouped   = prevRole === msg.role;
-      const groupTail = nextRole !== msg.role;
+      const msg     = docSnap.data();
+      const isOwn   = msg.role === "user";
+      const prev    = i > 0 ? docs[i - 1].data().role : null;
+      const next    = i < docs.length - 1 ? docs[i + 1].data().role : null;
+      const grouped   = prev === msg.role;
+      const groupTail = next !== msg.role;
 
       const div = document.createElement("div");
       div.className = ["message", isOwn ? "self" : "other",
@@ -282,11 +307,7 @@ function startMsgListener() {
       const copyBtn = document.createElement("button");
       copyBtn.className = "copy";
       copyBtn.textContent = "Copy";
-      copyBtn.onclick = (e) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(msg.content || "");
-        menu.classList.remove("open");
-      };
+      copyBtn.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(msg.content || ""); menu.classList.remove("open"); };
       menu.appendChild(copyBtn);
 
       if (isOwn) {
@@ -306,7 +327,7 @@ function startMsgListener() {
               ev.preventDefault();
               const newText = editArea.value.trim();
               if (newText && newText !== msg.content)
-                await updateDoc(doc(db, "users", currentUser.uid, "chats", currentChatId, "messages", docSnap.id), { content: newText });
+                await updateDoc(doc(db, "users", currentUser.uid, "messages", docSnap.id), { content: newText });
             }
             if (ev.key === "Escape") editArea.replaceWith(textDiv);
           });
@@ -343,64 +364,8 @@ function startMsgListener() {
   });
 }
 
-function startChatListListener() {
-  if (!currentUser) return;
-  if (chatListUnsub) chatListUnsub();
-
-  const q = query(
-    collection(db, "users", currentUser.uid, "chats"),
-    orderBy("updatedAt", "desc"),
-    limit(30)
-  );
-
-  chatListUnsub = onSnapshot(q, snapshot => {
-    const chatList = document.getElementById("chatList");
-    chatList.innerHTML = "";
-    snapshot.forEach(chatDoc => {
-      const chat = chatDoc.data();
-      const btn = document.createElement("button");
-      btn.className = `chat-item${chatDoc.id === currentChatId ? " active" : ""}`;
-      btn.dataset.chatId = chatDoc.id;
-
-      const icon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
-      btn.innerHTML = `${icon}<span>${chat.title || "New chat"}</span>`;
-      btn.onclick = () => switchToChat(chatDoc.id);
-      chatList.appendChild(btn);
-    });
-  });
-}
-
-function switchToChat(chatId) {
-  currentChatId = chatId;
-  localStorage.setItem("currentChatId", chatId);
-  document.querySelectorAll(".chat-item").forEach(el =>
-    el.classList.toggle("active", el.dataset.chatId === chatId)
-  );
-  startMsgListener();
-}
-
-async function initChats() {
-  const q = query(
-    collection(db, "users", currentUser.uid, "chats"),
-    orderBy("updatedAt", "desc"),
-    limit(1)
-  );
-  const snap = await getDocs(q);
-  const savedId = localStorage.getItem("currentChatId");
-
-  if (!snap.empty) {
-    currentChatId = savedId || snap.docs[0].id;
-  } else {
-    currentChatId = await createNewChat();
-  }
-
-  localStorage.setItem("currentChatId", currentChatId);
-  startMsgListener();
-  startChatListListener();
-}
-
 // ── Auth state ────────────────────────────────────────────
-onAuthStateChanged(auth, async user => {
+onAuthStateChanged(auth, user => {
   currentUser = user;
   if (user) {
     closeAuthModal();
@@ -410,10 +375,9 @@ onAuthStateChanged(auth, async user => {
     inputEl.disabled           = false;
     sendBtn.disabled           = false;
     attachBtn.disabled         = false;
-    await initChats();
+    initChats();
   } else {
-    if (msgUnsubscribe)    { msgUnsubscribe();    msgUnsubscribe   = null; }
-    if (chatListUnsub)     { chatListUnsub();     chatListUnsub    = null; }
+    if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
     currentChatId = null;
     openAuthBtn.style.display  = "flex";
     logoutBtn.style.display    = "none";
@@ -429,63 +393,63 @@ onAuthStateChanged(auth, async user => {
 });
 
 // ── New chat button ───────────────────────────────────────
-resetBtn.onclick = async () => {
+resetBtn.onclick = () => {
   if (!currentUser) return;
-  const newId = await createNewChat();
-  switchToChat(newId);
+  const id = createChat();
+  switchToChat(id);
 };
 
 // ── Send message ──────────────────────────────────────────
 async function sendMessage() {
-  if (!currentUser) return;
+  if (!currentUser || !currentChatId) return;
   const text = inputEl.value.trim();
   if (!text && !pendingAttachment) return;
 
-  const attachment = pendingAttachment;
-  inputEl.value = "";
+  const attachment  = pendingAttachment;
+  inputEl.value     = "";
   pendingAttachment = null;
   filePreview.style.display = "none";
 
-  // Ensure we have a chat
-  if (!currentChatId) {
-    currentChatId = await createNewChat();
-    localStorage.setItem("currentChatId", currentChatId);
-    startMsgListener();
-  }
-
-  const messagesRef = collection(db, "users", currentUser.uid, "chats", currentChatId, "messages");
-  const chatRef     = doc(db, "users", currentUser.uid, "chats", currentChatId);
-
+  const messagesRef = collection(db, "users", currentUser.uid, "messages");
   const userContent = attachment
     ? `${text}${text ? "\n" : ""}[Attached: ${attachment.name}]`
     : text;
 
-  await addDoc(messagesRef, { role: "user", content: userContent, timestamp: serverTimestamp() });
+  // Save user message (same Firestore path as before, now with chatId field)
+  await addDoc(messagesRef, {
+    role: "user",
+    content: userContent,
+    chatId: currentChatId,
+    timestamp: serverTimestamp()
+  });
 
-  // Set chat title from first user message
-  const snap = await getDocs(query(messagesRef, orderBy("timestamp"), limit(2)));
-  if (snap.size <= 1 && text) {
-    await updateDoc(chatRef, { title: text.substring(0, 45), updatedAt: serverTimestamp() });
-  } else {
-    await updateDoc(chatRef, { updatedAt: serverTimestamp() });
-  }
+  // Set chat title from first message
+  setChatTitle(currentChatId, text.substring(0, 45));
 
   typingEl.classList.add("active");
 
   try {
-    const recentSnap = await getDocs(query(messagesRef, orderBy("timestamp", "desc"), limit(12)));
-    const history = recentSnap.docs.map(d => d.data()).reverse()
+    const snap = await getDocs(query(messagesRef, orderBy("timestamp", "desc"), limit(12)));
+    const history = snap.docs
+      .filter(d => d.data().chatId === currentChatId)
+      .map(d => d.data())
+      .reverse()
       .map(m => ({ role: m.role, content: m.content }));
 
     const aiReply = await getAIResponse(history, attachment);
 
-    await addDoc(messagesRef, { role: "assistant", content: aiReply, timestamp: serverTimestamp() });
-    await updateDoc(chatRef, { updatedAt: serverTimestamp() });
+    await addDoc(messagesRef, {
+      role: "assistant",
+      content: aiReply,
+      chatId: currentChatId,
+      timestamp: serverTimestamp()
+    });
   } catch (err) {
     console.error("AI error:", err);
     await addDoc(messagesRef, {
       role: "assistant",
       content: "Sorry, something went wrong. Please try again.",
+      chatId: currentChatId,
       timestamp: serverTimestamp()
     });
   }
@@ -541,15 +505,10 @@ async function getAIResponse(messages, attachment = null) {
 }
 
 // ── Delete handlers ───────────────────────────────────────
-document.getElementById("cancelDelete").onclick = () => {
-  deleteModal.style.display = "none";
-  deleteId = null;
-};
-
+document.getElementById("cancelDelete").onclick = () => { deleteModal.style.display = "none"; deleteId = null; };
 document.getElementById("confirmDelete").onclick = async () => {
-  if (deleteId && currentUser && currentChatId) {
-    await deleteDoc(doc(db, "users", currentUser.uid, "chats", currentChatId, "messages", deleteId));
-  }
+  if (deleteId && currentUser)
+    await deleteDoc(doc(db, "users", currentUser.uid, "messages", deleteId));
   deleteModal.style.display = "none";
   deleteId = null;
 };
@@ -557,8 +516,7 @@ document.getElementById("confirmDelete").onclick = async () => {
 // ── Helpers ───────────────────────────────────────────────
 function linkify(text) {
   return text.replace(/(https?:\/\/[^\s<]+)/g, url =>
-    `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
-  );
+    `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
 
 function formatTime(ts) {
