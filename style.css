@@ -423,6 +423,94 @@ body::before {
   background: transparent;
 }
 
+/* ── Chat top bar (model picker) ────────────────────────── */
+.chat-top-bar {
+  display: flex;
+  align-items: center;
+  padding: 10px 20px 0;
+  flex-shrink: 0;
+}
+
+/* ── Chat history list ──────────────────────────────────── */
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 4px;
+  overflow-y: auto;
+  max-height: calc(100vh - 220px);
+}
+
+.chat-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+  transition: background 0.13s, color 0.13s;
+  overflow: hidden;
+}
+
+.chat-item span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.chat-item:hover { background: var(--glass-3); color: var(--text); }
+.chat-item.active { background: var(--glass-3); color: var(--text); font-weight: 500; }
+
+/* hide chat list icon in collapsed sidebar */
+#app:not(.sidebar-open) .chat-list { display: none; }
+
+/* ── Attach popup ───────────────────────────────────────── */
+.attach-wrap { position: relative; flex-shrink: 0; }
+
+.attach-popup {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 12px;
+  padding: 4px;
+  min-width: 190px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  z-index: 100;
+}
+.attach-popup.open { display: block; }
+
+.attach-popup-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 9px;
+  color: var(--text);
+  font-size: 13.5px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.13s;
+}
+.attach-popup-item:hover { background: var(--glass-3); }
+
 #sidebarBackdrop {
   display: none;
   position: absolute;
@@ -671,30 +759,29 @@ footer {
   flex-shrink: 0;
 }
 
-.footer-model-row { display: flex; align-items: center; padding-left: 2px; }
-
-.model-picker-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.13s, color 0.13s;
-}
-.model-picker-btn:hover { background: var(--glass-3); color: var(--text); }
-
 .footer-input-row {
   display: flex;
   align-items: flex-end;
   gap: 10px;
 }
+
+.model-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: var(--glass-2);
+  border: 1px solid var(--border-mid);
+  border-radius: 20px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+  box-shadow: var(--shadow-sm);
+}
+.model-picker-btn:hover { background: var(--glass-3); color: var(--text); }
 
 .attach-btn {
   width: 44px;
