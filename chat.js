@@ -25,14 +25,13 @@ let deleteId = null;
 
 // Elements
 const appEl         = document.getElementById("app");
-const authModal     = document.getElementById("authModal");
 const emailInput    = document.getElementById("emailInput");
 const passInput     = document.getElementById("passwordInput");
 const loginBtn      = document.getElementById("loginBtn");
 const registerBtn   = document.getElementById("registerBtn");
 const toggleMode    = document.getElementById("toggleAuthMode");
-const authTitle     = document.getElementById("authTitle");
 const errorEl       = document.getElementById("authError");
+const sidebarAuth   = document.getElementById("sidebarAuth");
 const messagesEl    = document.getElementById("messages");
 const inputEl       = document.getElementById("messageInput");
 const sendBtn       = document.getElementById("sendBtn");
@@ -113,24 +112,19 @@ resetBtn.onclick = async () => {
   }
 };
 
-// Auth UI
+// Auth UI (sidebar inline form)
 let isLoginMode = true;
 
 function updateAuthUI() {
-  authTitle.textContent = isLoginMode ? "Log In to AZSCO AI" : "Create AZSCO AI Account";
-  loginBtn.style.display = isLoginMode ? "inline-block" : "none";
-  registerBtn.style.display = isLoginMode ? "none" : "inline-block";
-  toggleMode.textContent = isLoginMode
+  loginBtn.style.display   = isLoginMode ? "flex" : "none";
+  registerBtn.style.display = isLoginMode ? "none" : "flex";
+  toggleMode.textContent   = isLoginMode
     ? "Don't have an account? Register"
-    : "Already have an account? Log In";
+    : "Already have an account? Log in";
   errorEl.textContent = "";
 }
 
-toggleMode.onclick = () => {
-  isLoginMode = !isLoginMode;
-  updateAuthUI();
-};
-
+toggleMode.onclick = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
 updateAuthUI();
 
 // Authentication
@@ -173,15 +167,20 @@ onAuthStateChanged(auth, user => {
   currentUser = user;
 
   if (user) {
-    authModal.style.display = "none";
-    appEl.classList.remove("hidden");
-    inputEl.focus();
+    sidebarAuth.style.display  = "none";
+    logoutBtn.style.display    = "flex";
+    inputEl.placeholder        = "Ask anything…";
+    inputEl.disabled           = false;
+    sendBtn.disabled           = false;
     startListening();
   } else {
-    authModal.style.display = "flex";
-    appEl.classList.add("hidden");
-    messagesEl.innerHTML = "";
-    deleteModal.style.display = "none";
+    sidebarAuth.style.display  = "block";
+    logoutBtn.style.display    = "none";
+    inputEl.placeholder        = "Log in to start chatting…";
+    inputEl.disabled           = true;
+    sendBtn.disabled           = true;
+    messagesEl.innerHTML       = "";
+    deleteModal.style.display  = "none";
     deleteId = null;
   }
 });
