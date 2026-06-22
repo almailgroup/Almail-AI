@@ -159,17 +159,27 @@ body::before {
 @media (min-width: 900px) {
   #app:not(.sidebar-open) #sidebar { width: 60px; }
 
-  #app:not(.sidebar-open) .brand,
+  /* Hide text and nav/footer, but keep logo and button visible */
+  #app:not(.sidebar-open) .brand h2 { display: none; }
+
   #app:not(.sidebar-open) .sidebar-nav,
   #app:not(.sidebar-open) .sidebar-footer {
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.15s ease;
   }
 
+  /* Stack logo above the toggle button */
   #app:not(.sidebar-open) .sidebar-header {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 0 12px;
+    border-bottom: none;
+  }
+
+  #app:not(.sidebar-open) .brand {
     justify-content: center;
-    padding: 14px 0 12px;
   }
 
   /* Flip icon to point right when collapsed */
