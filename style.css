@@ -173,7 +173,7 @@ body::before {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    gap: 10px;
+    gap: 20px;
     padding: 12px 0 12px;
     border-bottom: none;
   }
