@@ -166,15 +166,11 @@ body::before {
 
 .brand { display: flex; align-items: center; gap: 9px; }
 
-.logo-icon {
+.brand-logo {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: var(--msg-self-bg);
-  display: grid;
-  place-items: center;
-  color: var(--msg-self-text);
-  box-shadow: var(--shadow-inset), var(--shadow-sm);
+  object-fit: contain;
   flex-shrink: 0;
 }
 
