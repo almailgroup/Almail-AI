@@ -151,7 +151,6 @@ function setTheme(light) {
 document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
-const GEMINI_MODEL = "gemini-2.5-flash";
 
 // ── Attach popup ──────────────────────────────────────────
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
@@ -434,38 +433,38 @@ inputEl.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
-// ── Gemini API ────────────────────────────────────────────
+// ── OpenRouter API ────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
-  const API_KEY = "AQ.Ab8RN6K7SBDT366d8cRyZuzk0L5opcIuj-JgkWc_n6Fq708HEw";
-  const MODEL   = GEMINI_MODEL;
+  const API_KEY = "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";
+  const MODEL   = "google/gemini-3.5-flash";
 
-  const contents = messages.map((msg, i) => {
-    const isLastUser = msg.role === "user" && i === messages.length - 1;
-    if (isLastUser && attachment) {
-      const parts = [{ text: msg.content }];
-      if (attachment.type === "image")
-        parts.push({ inlineData: { mimeType: attachment.mimeType, data: attachment.data } });
-      else if (attachment.type === "text")
-        parts[0].text = `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}`;
-      return { role: "user", parts };
-    }
-    return { role: msg.role === "user" ? "user" : "model", parts: [{ text: msg.content }] };
-  });
-
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
-      body: JSON.stringify({
-        contents,
-        systemInstruction: {
-          role: "user",
-          parts: [{ text: "You are Almail AI, a helpful, clever and friendly assistant. You can analyze uploaded images and files to answer questions. Do not generate images." }]
+  const oarMessages = [
+    { role: "system", content: "You are Almail AI, a helpful, clever and friendly assistant. You can analyze uploaded images and files to answer questions. Do not generate images." },
+    ...messages.map((msg, i) => {
+      const isLastUser = msg.role === "user" && i === messages.length - 1;
+      const role = msg.role === "user" ? "user" : "assistant";
+      if (isLastUser && attachment) {
+        if (attachment.type === "image") {
+          return { role, content: [
+            { type: "text", text: msg.content },
+            { type: "image_url", image_url: { url: `data:${attachment.mimeType};base64,${attachment.data}` } }
+          ]};
+        } else if (attachment.type === "text") {
+          return { role, content: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` };
         }
-      })
-    }
-  );
+      }
+      return { role, content: msg.content };
+    })
+  ];
+
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${API_KEY}`
+    },
+    body: JSON.stringify({ model: MODEL, messages: oarMessages })
+  });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -473,7 +472,7 @@ async function getAIResponse(messages, attachment = null) {
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "No response received.";
+  return data.choices?.[0]?.message?.content?.trim() || "No response received.";
 }
 
 // ── Delete handlers ───────────────────────────────────────
