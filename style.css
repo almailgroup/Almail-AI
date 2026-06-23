@@ -168,15 +168,17 @@ body::before {
     pointer-events: none;
   }
 
-  /* Stack logo above the toggle button */
+  /* Collapsed header: logo only, no toggle button */
   #app:not(.sidebar-open) .sidebar-header {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    gap: 6px;
-    padding: 14px 0 10px;
+    gap: 0;
+    padding: 16px 0 14px;
     border-bottom: none;
   }
+
+  #app:not(.sidebar-open) #sidebarClose { display: none; }
 
   #app:not(.sidebar-open) .brand {
     justify-content: center;

@@ -226,6 +226,7 @@ sidebarBackdrop.onclick = closeSidebar;
 // ── Collapsed icon strip ──────────────────────────────────
 document.getElementById("si-new").onclick    = () => document.getElementById("resetChatBtn").click();
 document.getElementById("si-chats").onclick  = openSidebar;
+document.getElementById("si-expand").onclick = openSidebar;
 document.getElementById("si-account").onclick = () => {
   if (currentUser) document.getElementById("logoutBtn").click();
   else document.getElementById("openAuthBtn").click();
