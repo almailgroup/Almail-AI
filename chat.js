@@ -223,6 +223,28 @@ sidebarToggle.onclick   = openSidebar;
 sidebarClose.onclick    = () => appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
 sidebarBackdrop.onclick = closeSidebar;
 
+// ── Collapsed icon strip ──────────────────────────────────
+document.getElementById("si-new").onclick    = () => document.getElementById("resetChatBtn").click();
+document.getElementById("si-chats").onclick  = openSidebar;
+document.getElementById("si-account").onclick = () => {
+  if (currentUser) document.getElementById("logoutBtn").click();
+  else document.getElementById("openAuthBtn").click();
+};
+
+function updateSiAccount(user) {
+  const btn    = document.getElementById("si-account");
+  const letter = btn.querySelector(".si-avatar-letter");
+  if (user && user.email) {
+    letter.textContent = user.email[0].toUpperCase();
+    btn.classList.add("has-avatar");
+    btn.title = user.email;
+  } else {
+    letter.textContent = "";
+    btn.classList.remove("has-avatar");
+    btn.title = "Account";
+  }
+}
+
 // ── Settings popup ────────────────────────────────────────
 function openSettingsPopup() {
   const rect = settingsBtn.getBoundingClientRect();
@@ -481,6 +503,7 @@ function startMsgListener() {
 // ── Auth state ────────────────────────────────────────────
 onAuthStateChanged(auth, user => {
   currentUser = user;
+  updateSiAccount(user);
   if (user) {
     closeAuthModal();
     openAuthBtn.style.display  = "none";

@@ -173,13 +173,20 @@ body::before {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    gap: 20px;
-    padding: 12px 0 12px;
+    gap: 6px;
+    padding: 14px 0 10px;
     border-bottom: none;
   }
 
   #app:not(.sidebar-open) .brand {
     justify-content: center;
+  }
+
+  /* Smaller logo in collapsed state */
+  #app:not(.sidebar-open) .brand-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
   }
 
   /* Flip icon to point right when collapsed */
@@ -524,6 +531,65 @@ body::before {
 
 /* hide chat list in collapsed sidebar */
 #app:not(.sidebar-open) .chat-list { display: none; }
+
+/* ── Collapsed sidebar icon strip ──────────────────────── */
+.sidebar-icon-nav,
+.sidebar-icon-account { display: none; }
+
+@media (min-width: 900px) {
+  #app:not(.sidebar-open) .sidebar-icon-nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 0 4px;
+    flex: 1;
+    border-top: 1px solid var(--border);
+  }
+
+  #app:not(.sidebar-open) .sidebar-icon-account {
+    display: flex;
+    justify-content: center;
+    padding: 0 0 4px;
+  }
+}
+
+.si-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.si-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.si-avatar-letter {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  display: none;
+}
+
+.si-btn.has-avatar .si-avatar-letter { display: block; }
+.si-btn.has-avatar #si-account-icon  { display: none; }
+.si-btn.has-avatar {
+  background: var(--glass-3);
+  border-color: var(--border-mid);
+  color: var(--text);
+  border-radius: 50%;
+}
 
 /* ── Attach popup ───────────────────────────────────────── */
 .attach-wrap { position: relative; flex-shrink: 0; }
