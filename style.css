@@ -911,6 +911,12 @@ footer {
   color: var(--text);
   outline: none;
   line-height: 1.5;
+  text-align: center;
+}
+
+#messageInput:not(:placeholder-shown),
+#messageInput:focus {
+  text-align: left;
 }
 
 #messageInput::placeholder { color: var(--text-muted); }
@@ -932,6 +938,7 @@ footer {
   -webkit-backdrop-filter: var(--blur);
   touch-action: manipulation;
   flex-shrink: 0;
+  margin-right: 2px;
 }
 
 #sendBtn:hover:not(:disabled) {
