@@ -220,7 +220,7 @@ if (isDesktop()) {
 }
 
 sidebarToggle.onclick   = openSidebar;
-sidebarClose.onclick    = () => appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
+sidebarClose.onclick    = (e) => { e.stopPropagation(); appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar(); };
 sidebarBackdrop.onclick = closeSidebar;
 
 // Click anywhere on the collapsed sidebar strip to open it
