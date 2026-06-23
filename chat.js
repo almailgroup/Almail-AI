@@ -540,7 +540,7 @@ function renderMessages(docs) {
         }, 1500);
       };
 
-      actions.append(cpBtn);
+      actions.append(regenBtn, cpBtn);
       messagesEl.appendChild(actions);
     }
   });
