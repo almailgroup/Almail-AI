@@ -1,6 +1,6 @@
 /* ── Design tokens ──────────────────────────────────────── */
 :root {
-  --bg: #0a0a0a;
+  --bg: #141413;
   --text: #f2f2f2;
   --text-muted: #6a6a6a;
   --text-faint: #353535;
@@ -41,7 +41,7 @@
 }
 
 .light {
-  --bg: #ecedf0;
+  --bg: #f0eee6;
   --text: #111111;
   --text-muted: #888888;
   --text-faint: #cccccc;
