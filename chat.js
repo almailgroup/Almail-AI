@@ -264,7 +264,7 @@ settingsBtn.onclick = (e) => {
 };
 
 // ── Theme ─────────────────────────────────────────────────
-let isLight = localStorage.getItem("theme") === "light";
+let isLight = localStorage.getItem("theme") !== "dark";
 document.body.classList.toggle("light", isLight);
 
 function applyThemeUI() {
