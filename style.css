@@ -185,9 +185,9 @@ body::before {
 
   /* Smaller logo in collapsed state */
   #app:not(.sidebar-open) .brand-logo {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
   }
 
   /* Flip icon to point right when collapsed */
@@ -216,9 +216,9 @@ body::before {
 .brand { display: flex; align-items: center; gap: 9px; }
 
 .brand-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   object-fit: contain;
   flex-shrink: 0;
 }
