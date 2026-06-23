@@ -262,19 +262,12 @@ document.getElementById("sidebar").addEventListener("click", () => {
 })();
 
 // ── Disable zoom on mobile ────────────────────────────────
-// iOS 10+ ignores user-scalable=no in viewport, so block via JS
-document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
+// iOS: block pinch zoom via gesture events
+document.addEventListener("gesturestart",  (e) => e.preventDefault(), { passive: false });
 document.addEventListener("gesturechange", (e) => e.preventDefault(), { passive: false });
+// Android + iOS: block pinch zoom via multi-touch move
 document.addEventListener("touchmove", (e) => {
   if (e.touches.length > 1) e.preventDefault();
-}, { passive: false });
-
-// Prevent double-tap zoom
-let _lastTap = 0;
-document.addEventListener("touchend", (e) => {
-  const now = Date.now();
-  if (now - _lastTap < 300) e.preventDefault();
-  _lastTap = now;
 }, { passive: false });
 
 // ── Collapsed icon strip ──────────────────────────────────
