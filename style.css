@@ -164,8 +164,7 @@ body::before {
 
   #app:not(.sidebar-open) .sidebar-nav,
   #app:not(.sidebar-open) .sidebar-footer {
-    opacity: 0;
-    pointer-events: none;
+    display: none;
   }
 
   /* Collapsed header: logo only, no toggle button */
@@ -551,8 +550,10 @@ body::before {
 
   #app:not(.sidebar-open) .sidebar-icon-account {
     display: flex;
-    justify-content: center;
-    padding: 0 0 4px;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0 0 8px;
   }
 }
 
