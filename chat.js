@@ -231,34 +231,34 @@ document.getElementById("sidebar").addEventListener("click", () => {
 
 // ── Mobile swipe gestures for sidebar ────────────────────
 (function () {
-  const EDGE_ZONE   = 32;  // px from left edge to start open-swipe
-  const MIN_SWIPE   = 55;  // px horizontal travel to trigger action
-  const MAX_VERT    = 80;  // px vertical drift allowed before cancelling
+  const EDGE_ZONE = 60;   // px from left edge to trigger open-swipe
+  const MIN_SWIPE = 45;   // px horizontal travel to fire action
+  const MAX_VERT  = 70;   // px vertical drift before cancelling
 
-  let startX = 0, startY = 0, tracking = false;
+  let startX = 0, startY = 0, active = false, done = false;
 
   document.addEventListener("touchstart", (e) => {
-    const touch = e.touches[0];
-    startX = touch.clientX;
-    startY = touch.clientY;
-    const sidebarOpen = appEl.classList.contains("sidebar-open");
-    // Track if swipe starts from left edge (open) or anywhere when open (close)
-    tracking = (!sidebarOpen && startX <= EDGE_ZONE) || sidebarOpen;
+    if (e.touches.length > 1) return;
+    const t = e.touches[0];
+    startX = t.clientX;
+    startY = t.clientY;
+    done = false;
+    const open = appEl.classList.contains("sidebar-open");
+    active = open || startX <= EDGE_ZONE;
   }, { passive: true });
 
-  document.addEventListener("touchend", (e) => {
-    if (!tracking) return;
-    const touch = e.changedTouches[0];
-    const dx = touch.clientX - startX;
-    const dy = touch.clientY - startY;
-    tracking = false;
-
-    if (Math.abs(dy) > MAX_VERT) return; // too vertical, ignore
-
-    const sidebarOpen = appEl.classList.contains("sidebar-open");
-    if (!sidebarOpen && dx >= MIN_SWIPE) openSidebar();
-    else if (sidebarOpen && dx <= -MIN_SWIPE) closeSidebar();
+  document.addEventListener("touchmove", (e) => {
+    if (!active || done || e.touches.length > 1) return;
+    const t = e.touches[0];
+    const dx = t.clientX - startX;
+    const dy = t.clientY - startY;
+    if (Math.abs(dy) > MAX_VERT) { active = false; return; }
+    const open = appEl.classList.contains("sidebar-open");
+    if (!open && dx >= MIN_SWIPE)  { done = true; openSidebar(); }
+    else if (open && dx <= -MIN_SWIPE) { done = true; closeSidebar(); }
   }, { passive: true });
+
+  document.addEventListener("touchend", () => { active = false; done = false; }, { passive: true });
 })();
 
 // ── Disable zoom on mobile ────────────────────────────────
