@@ -223,6 +223,11 @@ sidebarToggle.onclick   = openSidebar;
 sidebarClose.onclick    = () => appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
 sidebarBackdrop.onclick = closeSidebar;
 
+// Click anywhere on the collapsed sidebar strip to open it
+document.getElementById("sidebar").addEventListener("click", () => {
+  if (!appEl.classList.contains("sidebar-open")) openSidebar();
+});
+
 // ── Collapsed icon strip ──────────────────────────────────
 document.getElementById("si-new").onclick    = () => document.getElementById("resetChatBtn").click();
 document.getElementById("si-chats").onclick  = openSidebar;
