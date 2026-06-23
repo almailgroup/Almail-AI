@@ -759,13 +759,9 @@ main#messages {
   align-self: flex-start;
   gap: 2px;
   padding: 0 6px;
-  margin-top: -4px;
-  margin-bottom: 4px;
-  opacity: 0;
-  transition: opacity 0.15s ease;
+  margin-top: 4px;
+  margin-bottom: 6px;
 }
-
-.msg-actions.visible { opacity: 1; }
 
 .msg-action-btn {
   width: 28px;
@@ -978,6 +974,14 @@ footer {
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   flex-shrink: 0;
+}
+
+.footer-disclaimer {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-align: center;
+  opacity: 0.6;
+  letter-spacing: 0.01em;
 }
 
 .footer-input-row {

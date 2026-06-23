@@ -502,14 +502,6 @@ function renderMessages(docs) {
         }, 1500);
       };
 
-      // Show actions on message hover
-      div.addEventListener("mouseenter", () => actions.classList.add("visible"));
-      div.addEventListener("mouseleave", () => {
-        if (!actions.matches(":hover")) actions.classList.remove("visible");
-      });
-      actions.addEventListener("mouseleave", () => actions.classList.remove("visible"));
-      actions.addEventListener("mouseenter", () => actions.classList.add("visible"));
-
       actions.append(regenBtn, cpBtn);
       messagesEl.appendChild(actions);
     }
