@@ -467,24 +467,60 @@ body::before {
 .chat-item:hover { background: var(--glass-3); color: var(--text); }
 .chat-item.active { background: var(--glass-3); color: var(--text); font-weight: 500; }
 
-.chat-item-del {
+.chat-item-actions {
   position: absolute;
-  right: 6px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.13s;
+  background: linear-gradient(to right, transparent, var(--glass-3) 30%);
+  padding: 0 2px 0 16px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.chat-item-wrap:hover .chat-item-actions { opacity: 1; pointer-events: all; }
+
+.chat-action-btn {
   width: 22px;
   height: 22px;
-  border-radius: 6px;
+  border-radius: 5px;
   border: none;
   background: transparent;
   color: var(--text-muted);
   display: grid;
   place-items: center;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.13s, background 0.13s, color 0.13s;
+  transition: background 0.12s, color 0.12s;
   flex-shrink: 0;
 }
-.chat-item-wrap:hover .chat-item-del { opacity: 1; }
-.chat-item-del:hover { background: var(--glass-3); color: var(--text); }
+.chat-action-btn:hover { background: var(--glass-4); color: var(--text); }
+.chat-action-btn.active { color: var(--text); }
+.chat-action-btn.delete:hover { color: #f87171; }
+
+.chat-section-label {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 10px 12px 4px;
+}
+
+.chat-rename-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  padding: 0 2px;
+  min-width: 0;
+  width: 100%;
+}
 
 /* hide chat list in collapsed sidebar */
 #app:not(.sidebar-open) .chat-list { display: none; }

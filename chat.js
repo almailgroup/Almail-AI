@@ -26,7 +26,7 @@ function genId()        { return Date.now().toString(36) + Math.random().toStrin
 function createChat() {
   const id = genId();
   const chats = loadChats();
-  chats.unshift({ id, title: "New chat", ts: Date.now() });
+  chats.unshift({ id, title: "New chat", ts: Date.now(), pinned: false });
   saveChats(chats);
   return id;
 }
@@ -42,6 +42,20 @@ function deleteChat(chatId) {
   }
 }
 
+function togglePin(chatId) {
+  const chats = loadChats();
+  const c = chats.find(c => c.id === chatId);
+  if (c) { c.pinned = !c.pinned; saveChats(chats); }
+  renderChatList();
+}
+
+function renameChat(chatId, newTitle) {
+  const chats = loadChats();
+  const c = chats.find(c => c.id === chatId);
+  if (c && newTitle.trim()) { c.title = newTitle.trim(); saveChats(chats); }
+  renderChatList();
+}
+
 function setChatTitle(chatId, title) {
   const chats = loadChats();
   const c = chats.find(c => c.id === chatId);
@@ -53,25 +67,84 @@ function renderChatList() {
   const chatList = document.getElementById("chatList");
   if (!chatList) return;
   chatList.innerHTML = "";
-  loadChats().forEach(chat => {
-    const wrap = document.createElement("div");
-    wrap.className = "chat-item-wrap";
 
-    const btn = document.createElement("button");
-    btn.className = `chat-item${chat.id === currentChatId ? " active" : ""}`;
-    btn.dataset.chatId = chat.id;
-    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${chat.title}</span>`;
-    btn.onclick = () => switchToChat(chat.id);
+  const all    = loadChats();
+  const pinned = all.filter(c => c.pinned);
+  const normal = all.filter(c => !c.pinned);
 
-    const del = document.createElement("button");
-    del.className = "chat-item-del";
-    del.title = "Delete chat";
-    del.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-    del.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
+  if (pinned.length) {
+    const label = document.createElement("div");
+    label.className = "chat-section-label";
+    label.textContent = "Pinned";
+    chatList.appendChild(label);
+    pinned.forEach(chat => chatList.appendChild(buildChatItem(chat)));
 
-    wrap.append(btn, del);
-    chatList.appendChild(wrap);
-  });
+    if (normal.length) {
+      const label2 = document.createElement("div");
+      label2.className = "chat-section-label";
+      label2.textContent = "Chats";
+      chatList.appendChild(label2);
+    }
+  }
+
+  normal.forEach(chat => chatList.appendChild(buildChatItem(chat)));
+}
+
+function buildChatItem(chat) {
+  const wrap = document.createElement("div");
+  wrap.className = "chat-item-wrap";
+
+  const btn = document.createElement("button");
+  btn.className = `chat-item${chat.id === currentChatId ? " active" : ""}${chat.pinned ? " pinned" : ""}`;
+  btn.dataset.chatId = chat.id;
+
+  const titleSpan = document.createElement("span");
+  titleSpan.className = "chat-title";
+  titleSpan.textContent = chat.title;
+
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+  btn.appendChild(titleSpan);
+  btn.onclick = () => switchToChat(chat.id);
+
+  // Actions: pin, rename, delete
+  const actions = document.createElement("div");
+  actions.className = "chat-item-actions";
+
+  const pinBtn = document.createElement("button");
+  pinBtn.className = `chat-action-btn${chat.pinned ? " active" : ""}`;
+  pinBtn.title = chat.pinned ? "Unpin" : "Pin";
+  pinBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${chat.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
+  pinBtn.onclick = (e) => { e.stopPropagation(); togglePin(chat.id); };
+
+  const renBtn = document.createElement("button");
+  renBtn.className = "chat-action-btn";
+  renBtn.title = "Rename";
+  renBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  renBtn.onclick = (e) => {
+    e.stopPropagation();
+    const input = document.createElement("input");
+    input.className = "chat-rename-input";
+    input.value = chat.title;
+    titleSpan.replaceWith(input);
+    input.focus();
+    input.select();
+    const save = () => renameChat(chat.id, input.value || chat.title);
+    input.addEventListener("keydown", ev => {
+      if (ev.key === "Enter") { ev.preventDefault(); save(); }
+      if (ev.key === "Escape") renderChatList();
+    });
+    input.addEventListener("blur", save);
+  };
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "chat-action-btn delete";
+  delBtn.title = "Delete";
+  delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
+
+  actions.append(pinBtn, renBtn, delBtn);
+  wrap.append(btn, actions);
+  return wrap;
 }
 
 function switchToChat(chatId) {
