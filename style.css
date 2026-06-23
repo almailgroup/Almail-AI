@@ -831,11 +831,11 @@ main#messages {
 
 /* ── Footer / input ─────────────────────────────────────── */
 footer {
-  padding: 8px 20px 18px;
+  padding: 10px 20px 18px;
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   background: var(--glass-1);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
@@ -844,24 +844,40 @@ footer {
 
 .footer-input-row {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
+  background: var(--glass-2);
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-lg);
+  padding: 6px 6px 6px 8px;
+  box-shadow: var(--shadow-inset), var(--shadow-sm);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  transition: border-color 0.16s, box-shadow 0.16s;
+}
+
+.footer-input-row:focus-within {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-inset), 0 0 0 3px rgba(255,255,255,0.05);
+}
+
+.light .footer-input-row:focus-within {
+  box-shadow: var(--shadow-inset), 0 0 0 3px rgba(0,0,0,0.05);
 }
 
 .attach-btn {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border-radius: var(--radius-sm);
-  background: var(--glass-2);
-  border: 1px solid var(--border-mid);
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
   color: var(--text-muted);
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
   transition: background 0.14s, color 0.14s;
-  box-shadow: var(--shadow-inset), var(--shadow-sm);
 }
 .attach-btn:hover { background: var(--glass-3); color: var(--text); }
 .attach-btn:disabled { opacity: 0.35; cursor: not-allowed; }
@@ -884,53 +900,48 @@ footer {
 
 #messageInput {
   flex: 1;
-  min-height: 44px;
+  min-height: 22px;
   max-height: 130px;
   resize: none;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-mid);
-  padding: 11px 15px;
+  border: none;
+  padding: 8px 4px;
   font-size: 0.93rem;
   font-family: inherit;
-  background: var(--glass-2);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  box-shadow: var(--shadow-inset);
+  background: transparent;
   color: var(--text);
   outline: none;
-  transition: border-color 0.16s, box-shadow 0.16s;
   line-height: 1.5;
 }
 
 #messageInput::placeholder { color: var(--text-muted); }
 
-#messageInput:focus {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-inset), 0 0 0 3px rgba(255,255,255,0.05);
-}
-
-.light #messageInput:focus { box-shadow: var(--shadow-inset), 0 0 0 3px rgba(0,0,0,0.05); }
-
 #sendBtn {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  border-radius: var(--radius-sm);
-  background: var(--msg-self-bg);
-  color: var(--msg-self-text);
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: var(--glass-3);
+  color: var(--text);
   border: 1px solid var(--border-strong);
   cursor: pointer;
   display: grid;
   place-items: center;
   transition: transform 0.14s ease, box-shadow 0.14s ease, background 0.14s ease;
-  box-shadow: var(--shadow-inset), var(--shadow-md);
+  box-shadow: var(--shadow-inset), var(--shadow-sm);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
   touch-action: manipulation;
   flex-shrink: 0;
 }
 
-#sendBtn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: var(--shadow-inset), var(--shadow-lg); }
-#sendBtn:active:not(:disabled) { transform: scale(0.93) translateY(1px); box-shadow: var(--shadow-inset), var(--shadow-sm); }
-#sendBtn:disabled, #messageInput:disabled { opacity: 0.35; cursor: not-allowed; }
+#sendBtn:hover:not(:disabled) {
+  background: var(--glass-4);
+  transform: scale(1.06);
+  box-shadow: var(--shadow-inset), var(--shadow-md);
+}
+#sendBtn:active:not(:disabled) { transform: scale(0.93); box-shadow: var(--shadow-inset); }
+#sendBtn:disabled { opacity: 0.35; cursor: not-allowed; }
+#messageInput:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Modals ─────────────────────────────────────────────── */
 .modal {
