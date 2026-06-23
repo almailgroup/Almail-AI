@@ -415,27 +415,27 @@ function renderMessages(docs) {
 
     div.append(textDiv, meta);
 
-    // Context menu button
-    const menuBtn = document.createElement("button");
-    menuBtn.className = "menu-btn";
-    menuBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>`;
-
-    const menu = document.createElement("div");
-    menu.className = "menu";
-
-    const copyBtn = document.createElement("button");
-    copyBtn.className = "copy";
-    copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
-    copyBtn.onclick = (e) => {
-      e.stopPropagation();
-      navigator.clipboard.writeText(msg.content || "");
-      copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
-      setTimeout(() => { copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`; }, 1500);
-      menu.classList.remove("open");
-    };
-    menu.appendChild(copyBtn);
-
+    // Context menu button (own messages only)
     if (isOwn) {
+      const menuBtn = document.createElement("button");
+      menuBtn.className = "menu-btn";
+      menuBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>`;
+
+      const menu = document.createElement("div");
+      menu.className = "menu";
+
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "copy";
+      copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(msg.content || "");
+        copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+        setTimeout(() => { copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`; }, 1500);
+        menu.classList.remove("open");
+      };
+      menu.appendChild(copyBtn);
+
       const editBtn = document.createElement("button");
       editBtn.className = "edit";
       editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
@@ -472,16 +472,17 @@ function renderMessages(docs) {
       };
 
       menu.append(editBtn, delBtn);
+
+      menuBtn.onclick = (e) => {
+        e.stopPropagation();
+        const isOpen = menu.classList.contains("open");
+        document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+        if (!isOpen) menu.classList.add("open");
+      };
+
+      div.append(menuBtn, menu);
     }
 
-    menuBtn.onclick = (e) => {
-      e.stopPropagation();
-      const isOpen = menu.classList.contains("open");
-      document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
-      if (!isOpen) menu.classList.add("open");
-    };
-
-    div.append(menuBtn, menu);
     messagesEl.appendChild(div);
 
     // Action row below AI messages
