@@ -435,29 +435,22 @@ inputEl.addEventListener("keydown", e => {
 
 // ── OpenRouter API ────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
-  const API_KEY = "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";
-  const MODEL   = "google/gemini-3.5-flash";
+  const API_KEY = "9fJRIRAzrNEvMsciprVznKVYaCDO5gAq";
+  const MODEL   = "mistral-small-latest";
 
   const oarMessages = [
-    { role: "system", content: "You are Almail AI, a helpful, clever and friendly assistant. You can analyze uploaded images and files to answer questions. Do not generate images." },
+    { role: "system", content: "You are Almail AI, a helpful, clever and friendly assistant. You can analyze uploaded files to answer questions. Do not generate images." },
     ...messages.map((msg, i) => {
       const isLastUser = msg.role === "user" && i === messages.length - 1;
       const role = msg.role === "user" ? "user" : "assistant";
-      if (isLastUser && attachment) {
-        if (attachment.type === "image") {
-          return { role, content: [
-            { type: "text", text: msg.content },
-            { type: "image_url", image_url: { url: `data:${attachment.mimeType};base64,${attachment.data}` } }
-          ]};
-        } else if (attachment.type === "text") {
-          return { role, content: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` };
-        }
+      if (isLastUser && attachment && attachment.type === "text") {
+        return { role, content: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` };
       }
       return { role, content: msg.content };
     })
   ];
 
-  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+  const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
