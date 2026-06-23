@@ -370,6 +370,11 @@ logoutBtn.onclick   = () => signOut(auth);
 
 // ── Render messages ───────────────────────────────────────
 function renderMessages(docs) {
+  // Remember which IDs are already rendered so we don't re-animate them
+  const alreadyRendered = new Set(
+    [...messagesEl.querySelectorAll(".message[data-id]")].map(el => el.dataset.id)
+  );
+
   messagesEl.innerHTML = "";
 
   if (docs.length === 0) {
@@ -390,8 +395,10 @@ function renderMessages(docs) {
     const groupTail = nextRole !== msg.role;
 
     const div = document.createElement("div");
+    div.dataset.id = docSnap.id;
     div.className = ["message", isOwn ? "self" : "other",
       grouped ? "grouped" : "", groupTail ? "group-tail" : ""].filter(Boolean).join(" ");
+    if (alreadyRendered.has(docSnap.id)) div.style.animation = "none";
 
     const textDiv = document.createElement("div");
     textDiv.className = "message-text";
