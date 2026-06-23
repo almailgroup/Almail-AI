@@ -1196,8 +1196,47 @@ footer {
 
 .auth-switch:hover { color: var(--text); }
 
-/* Delete modal */
+/* Delete message modal */
 .delete-modal-box { max-width: 330px; padding: 32px 24px 28px; }
+
+/* Delete chat modal */
+.delete-chat-modal-box {
+  max-width: 360px;
+  padding: 36px 28px 28px;
+  text-align: center;
+}
+
+.delete-chat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);
+  display: grid;
+  place-items: center;
+  color: #f87171;
+  margin: 0 auto 20px;
+}
+
+.delete-chat-modal-box h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.delete-chat-modal-box p {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  margin-bottom: 24px;
+}
+
+.delete-chat-actions {
+  display: flex;
+  gap: 10px;
+}
 
 .delete-icon {
   width: 46px;

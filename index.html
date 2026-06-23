@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=34" />
+  <link rel="stylesheet" href="style.css?v=35" />
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
@@ -211,8 +211,26 @@
   </div>
 </div>
 
+<!-- Delete Chat Confirmation Modal -->
+<div class="modal" id="deleteChatModal">
+  <div class="modal-box delete-chat-modal-box">
+    <div class="delete-chat-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+      </svg>
+    </div>
+    <h3>Delete conversation?</h3>
+    <p>This will permanently delete this conversation. This action cannot be undone.</p>
+    <div class="delete-chat-actions">
+      <button id="cancelDeleteChat" class="btn-secondary">Cancel</button>
+      <button id="confirmDeleteChat" class="btn-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
 <script type="module" src="firebase.js"></script>
-<script type="module" src="chat.js?v=34"></script>
+<script type="module" src="chat.js?v=35"></script>
 
 </body>
 </html>

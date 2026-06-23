@@ -17,6 +17,7 @@ let msgUnsubscribe    = null;
 let pendingAttachment = null;
 let isResponding      = false;
 let currentMessages   = [];
+let pendingDeleteChatId = null;
 
 // ── Chat metadata in localStorage ─────────────────────────
 function loadChats()    { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
@@ -32,6 +33,15 @@ function createChat() {
 }
 
 function deleteChat(chatId) {
+  pendingDeleteChatId = chatId;
+  document.getElementById("deleteChatModal").style.display = "flex";
+}
+
+function confirmDeleteChat() {
+  if (!pendingDeleteChatId) return;
+  const chatId = pendingDeleteChatId;
+  pendingDeleteChatId = null;
+  document.getElementById("deleteChatModal").style.display = "none";
   saveChats(loadChats().filter(c => c.id !== chatId));
   if (currentChatId === chatId) {
     const remaining = loadChats();
@@ -598,7 +608,7 @@ async function getAIResponse(messages, attachment = null) {
   return data.choices?.[0]?.message?.content?.trim() || "No response received.";
 }
 
-// ── Delete handlers ───────────────────────────────────────
+// ── Delete message handlers ───────────────────────────────
 document.getElementById("cancelDelete").onclick = () => { deleteModal.style.display = "none"; deleteId = null; };
 document.getElementById("confirmDelete").onclick = async () => {
   if (deleteId && currentUser)
@@ -606,6 +616,15 @@ document.getElementById("confirmDelete").onclick = async () => {
   deleteModal.style.display = "none";
   deleteId = null;
 };
+
+// ── Delete chat handlers ──────────────────────────────────
+const deleteChatModal = document.getElementById("deleteChatModal");
+document.getElementById("cancelDeleteChat").onclick = () => {
+  deleteChatModal.style.display = "none";
+  pendingDeleteChatId = null;
+};
+document.getElementById("confirmDeleteChat").onclick = confirmDeleteChat;
+deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModal) { deleteChatModal.style.display = "none"; pendingDeleteChatId = null; } });
 
 // ── Helpers ───────────────────────────────────────────────
 function linkify(text) {
