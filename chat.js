@@ -478,7 +478,75 @@ function renderMessages(docs) {
 
     div.append(menuBtn, menu);
     messagesEl.appendChild(div);
+
+    // Action row below AI messages
+    if (!isOwn) {
+      const actions = document.createElement("div");
+      actions.className = "msg-actions";
+
+      const regenBtn = document.createElement("button");
+      regenBtn.className = "msg-action-btn";
+      regenBtn.title = "Regenerate response";
+      regenBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.7L1 10"/></svg>`;
+      regenBtn.onclick = () => regenerateMessage(docSnap.id);
+
+      const cpBtn = document.createElement("button");
+      cpBtn.className = "msg-action-btn";
+      cpBtn.title = "Copy response";
+      cpBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      cpBtn.onclick = () => {
+        navigator.clipboard.writeText(msg.content || "");
+        cpBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+        setTimeout(() => {
+          cpBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+        }, 1500);
+      };
+
+      // Show actions on message hover
+      div.addEventListener("mouseenter", () => actions.classList.add("visible"));
+      div.addEventListener("mouseleave", () => {
+        if (!actions.matches(":hover")) actions.classList.remove("visible");
+      });
+      actions.addEventListener("mouseleave", () => actions.classList.remove("visible"));
+      actions.addEventListener("mouseenter", () => actions.classList.add("visible"));
+
+      actions.append(regenBtn, cpBtn);
+      messagesEl.appendChild(actions);
+    }
   });
+}
+
+// ── Regenerate AI response ────────────────────────────────
+async function regenerateMessage(docId) {
+  if (isResponding) return;
+  const msgIndex = currentMessages.findIndex(m => m._id === docId);
+  if (msgIndex === -1) return;
+
+  const history = currentMessages.slice(0, msgIndex).map(m => ({ role: m.role, content: m.content }));
+
+  await deleteDoc(doc(db, "users", currentUser.uid, "messages", docId));
+
+  isResponding = true;
+  sendBtn.disabled = true;
+  inputEl.disabled = true;
+  typingEl.classList.add("active");
+  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+
+  try {
+    const aiReply = await getAIResponse(history);
+    await addDoc(collection(db, "users", currentUser.uid, "messages"), {
+      role: "assistant", content: aiReply,
+      chatId: currentChatId, timestamp: serverTimestamp()
+    });
+  } catch (err) {
+    showEphemeralError("Sorry, something went wrong. Please try again.");
+  } finally {
+    typingEl.classList.remove("active");
+    isResponding = false;
+    sendBtn.disabled = false;
+    inputEl.disabled = false;
+    inputEl.focus();
+  }
 }
 
 // ── Message listener ──────────────────────────────────────
@@ -496,7 +564,7 @@ function startMsgListener() {
     deleteId = null;
 
     const docs = snapshot.docs.filter(d => d.data().chatId === currentChatId);
-    currentMessages = docs.map(d => d.data());
+    currentMessages = docs.map(d => ({ ...d.data(), _id: d.id }));
 
     const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
     renderMessages(docs);

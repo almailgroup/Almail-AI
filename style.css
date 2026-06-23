@@ -753,6 +753,40 @@ main#messages {
   line-height: 1.55;
 }
 
+/* ── AI message action buttons ─────────────────────────── */
+.msg-actions {
+  display: flex;
+  align-self: flex-start;
+  gap: 2px;
+  padding: 0 6px;
+  margin-top: -4px;
+  margin-bottom: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.msg-actions.visible { opacity: 1; }
+
+.msg-action-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s, border-color 0.13s;
+  flex-shrink: 0;
+}
+
+.msg-action-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
 /* ── Error bubble ───────────────────────────────────────── */
 .error-msg {
   opacity: 0.75;
