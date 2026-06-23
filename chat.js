@@ -163,6 +163,7 @@ function switchToChat(chatId) {
   document.querySelectorAll(".chat-item").forEach(el =>
     el.classList.toggle("active", el.dataset.chatId === chatId)
   );
+  if (window.innerWidth < 900) closeSidebar();
   startMsgListener();
 }
 
@@ -643,6 +644,7 @@ onAuthStateChanged(auth, user => {
 resetBtn.onclick = () => {
   if (!currentUser) return;
   switchToChat(createChat());
+  if (window.innerWidth < 900) closeSidebar();
 };
 
 // ── Ephemeral error bubble ────────────────────────────────
