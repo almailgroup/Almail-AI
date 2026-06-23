@@ -435,7 +435,7 @@ inputEl.addEventListener("keydown", e => {
 
 // ── OpenRouter API ────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
-  const API_KEY = "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";
+  const API_KEY = "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";
   const MODEL   = "google/gemini-3.5-flash";
 
   const oarMessages = [
