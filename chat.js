@@ -151,34 +151,7 @@ function setTheme(light) {
 document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
-// ── Model picker ──────────────────────────────────────────
-const MODELS = { "1.0": "gemini-2.0-flash", "1.1": "gemini-2.5-flash" };
-let currentModelVersion = localStorage.getItem("modelVersion") || "1.0";
-
-const modelPickerBtn   = document.getElementById("modelPickerBtn");
-const modelPickerLabel = document.getElementById("modelPickerLabel");
-const modelPickerPopup = document.getElementById("modelPickerPopup");
-
-function applyModelUI() {
-  modelPickerLabel.textContent = `Almail AI ${currentModelVersion}`;
-  document.getElementById("check10").classList.toggle("visible", currentModelVersion === "1.0");
-  document.getElementById("check11").classList.toggle("visible", currentModelVersion === "1.1");
-}
-applyModelUI();
-
-modelPickerBtn.onclick = (e) => {
-  e.stopPropagation();
-  const rect = modelPickerBtn.getBoundingClientRect();
-  modelPickerPopup.style.left = `${rect.left}px`;
-  modelPickerPopup.style.top  = `${rect.bottom + 8}px`;
-  modelPickerPopup.classList.toggle("open");
-};
-document.getElementById("model10Btn").onclick = () => {
-  currentModelVersion = "1.0"; localStorage.setItem("modelVersion", "1.0"); applyModelUI(); modelPickerPopup.classList.remove("open");
-};
-document.getElementById("model11Btn").onclick = () => {
-  currentModelVersion = "1.1"; localStorage.setItem("modelVersion", "1.1"); applyModelUI(); modelPickerPopup.classList.remove("open");
-};
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 // ── Attach popup ──────────────────────────────────────────
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
@@ -207,9 +180,8 @@ document.getElementById("fileRemoveBtn").onclick = () => { pendingAttachment = n
 
 // ── Global popups close on outside click ──────────────────
 document.addEventListener("click", (e) => {
-  if (!settingsPopup.contains(e.target)    && e.target !== settingsBtn)  settingsPopup.classList.remove("open");
-  if (!modelPickerPopup.contains(e.target) && e.target !== modelPickerBtn) modelPickerPopup.classList.remove("open");
-  if (!attachPopup.contains(e.target)      && e.target !== attachBtn)    attachPopup.classList.remove("open");
+  if (!settingsPopup.contains(e.target) && e.target !== settingsBtn) settingsPopup.classList.remove("open");
+  if (!attachPopup.contains(e.target)   && e.target !== attachBtn)   attachPopup.classList.remove("open");
   if (!e.target.closest(".menu-btn")       && !e.target.closest(".menu"))
     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
 });
@@ -464,14 +436,8 @@ inputEl.addEventListener("keydown", e => {
 
 // ── Gemini API ────────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
-  let API_KEY = localStorage.getItem("gemini_api_key") || "";
-  if (!API_KEY) {
-    API_KEY = prompt("Enter your Gemini API key to continue:");
-    if (!API_KEY) return "Please add your Gemini API key in Settings to use Almail AI.";
-    localStorage.setItem("gemini_api_key", API_KEY.trim());
-    API_KEY = API_KEY.trim();
-  }
-  const MODEL   = MODELS[currentModelVersion] || MODELS["1.0"];
+  const API_KEY = "AQ.Ab8RN6LXvCL-Eko9p9IlDi3BuZ_Pi6KpPJ6l2ZEfA7UGw-b2Uw";
+  const MODEL   = GEMINI_MODEL;
 
   const contents = messages.map((msg, i) => {
     const isLastUser = msg.role === "user" && i === messages.length - 1;

@@ -117,14 +117,6 @@
 
   <!-- Chat area -->
   <div class="chat-main">
-    <!-- Top bar with model picker -->
-    <div class="chat-top-bar">
-      <button id="modelPickerBtn" class="model-picker-btn">
-        <span id="modelPickerLabel">Almail AI 1.0</span>
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </button>
-    </div>
-
     <main id="messages"></main>
 
     <div id="typingIndicator">
@@ -166,24 +158,6 @@
     </footer>
   </div>
 
-</div>
-
-<!-- Model picker popup -->
-<div id="modelPickerPopup" class="model-picker-popup">
-  <button class="model-option" id="model10Btn">
-    <svg id="check10" class="model-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    <div class="model-info">
-      <span class="model-name">Almail AI 1.0</span>
-      <span class="model-desc">Standard model</span>
-    </div>
-  </button>
-  <button class="model-option" id="model11Btn">
-    <svg id="check11" class="model-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-    <div class="model-info">
-      <span class="model-name">Almail AI 1.1</span>
-      <span class="model-desc">Enhanced model</span>
-    </div>
-  </button>
 </div>
 
 <!-- Auth Modal -->
@@ -238,7 +212,7 @@
 </div>
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="chat.js?v=21"></script>
+<script type="module" src="chat.js?v=22"></script>
 
 </body>
 </html>
