@@ -464,7 +464,13 @@ inputEl.addEventListener("keydown", e => {
 
 // ── Gemini API ────────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
-  const API_KEY = "AIzaSyAEeEzsi8OB8sWmb8tK3BJTyIsD9KG-bbU";
+  let API_KEY = localStorage.getItem("gemini_api_key") || "";
+  if (!API_KEY) {
+    API_KEY = prompt("Enter your Gemini API key to continue:");
+    if (!API_KEY) return "Please add your Gemini API key in Settings to use Almail AI.";
+    localStorage.setItem("gemini_api_key", API_KEY.trim());
+    API_KEY = API_KEY.trim();
+  }
   const MODEL   = MODELS[currentModelVersion] || MODELS["1.0"];
 
   const contents = messages.map((msg, i) => {
