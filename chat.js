@@ -436,7 +436,7 @@ inputEl.addEventListener("keydown", e => {
 
 // ── Gemini API ────────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
-  const API_KEY = "AQ.Ab8RN6LXvCL-Eko9p9IlDi3BuZ_Pi6KpPJ6l2ZEfA7UGw-b2Uw";
+  const API_KEY = "AQ.Ab8RN6K7SBDT366d8cRyZuzk0L5opcIuj-JgkWc_n6Fq708HEw";
   const MODEL   = GEMINI_MODEL;
 
   const contents = messages.map((msg, i) => {
@@ -453,10 +453,10 @@ async function getAIResponse(messages, attachment = null) {
   });
 
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
       body: JSON.stringify({
         contents,
         systemInstruction: {
