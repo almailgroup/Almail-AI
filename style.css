@@ -900,9 +900,10 @@ footer {
 
 #messageInput {
   flex: 1;
-  min-height: 22px;
+  height: 24px;
   max-height: 130px;
   resize: none;
+  overflow-y: hidden;
   border: none;
   padding: 0 4px;
   font-size: 0.93rem;
@@ -910,10 +911,7 @@ footer {
   background: transparent;
   color: var(--text);
   outline: none;
-  line-height: 1.5;
-  text-align: left;
-  display: block;
-  align-self: center;
+  line-height: 24px;
 }
 
 #messageInput::placeholder { color: var(--text-muted); }

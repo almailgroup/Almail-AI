@@ -174,8 +174,10 @@ document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
 // ── Textarea auto-resize ──────────────────────────────────
 function autoResize() {
-  inputEl.style.height = "auto";
+  inputEl.style.height = "24px";
   inputEl.style.height = Math.min(inputEl.scrollHeight, 130) + "px";
+  inputEl.style.lineHeight = inputEl.scrollHeight > 24 ? "1.5" : "24px";
+  inputEl.style.overflowY = inputEl.scrollHeight >= 130 ? "auto" : "hidden";
 }
 inputEl.addEventListener("input", autoResize);
 
@@ -437,7 +439,9 @@ async function sendMessage() {
 
   const attachment  = pendingAttachment;
   inputEl.value     = "";
-  inputEl.style.height = "auto";
+  inputEl.style.height = "24px";
+  inputEl.style.lineHeight = "24px";
+  inputEl.style.overflowY = "hidden";
   pendingAttachment = null;
   filePreview.style.display = "none";
 
