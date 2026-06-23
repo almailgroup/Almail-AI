@@ -1322,7 +1322,19 @@ footer {
 
 .delete-modal-box h3 { font-size: 1.15rem; margin-bottom: 7px; }
 .delete-modal-box p { color: var(--text-muted); font-size: 0.88rem; }
-.delete-modal-box .row { flex-direction: row; gap: 8px; }
+.delete-modal-box .row { display: flex; flex-direction: row; gap: 10px; margin-top: 24px; }
+
+.btn-secondary,
+.btn-danger {
+  flex: 1;
+  padding: 13px 20px;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
 
 .btn-secondary {
   background: var(--glass-2) !important;
@@ -1336,7 +1348,7 @@ footer {
 .btn-danger {
   background: var(--msg-self-bg) !important;
   color: var(--msg-self-text) !important;
-  border-color: var(--border-strong) !important;
+  border: 1px solid var(--border-strong) !important;
   box-shadow: var(--shadow-inset), var(--shadow-md) !important;
 }
 
