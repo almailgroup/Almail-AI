@@ -904,19 +904,16 @@ footer {
   max-height: 130px;
   resize: none;
   border: none;
-  padding: 8px 4px;
+  padding: 0 4px;
   font-size: 0.93rem;
   font-family: inherit;
   background: transparent;
   color: var(--text);
   outline: none;
   line-height: 1.5;
-  text-align: center;
-}
-
-#messageInput:not(:placeholder-shown),
-#messageInput:focus {
   text-align: left;
+  display: block;
+  align-self: center;
 }
 
 #messageInput::placeholder { color: var(--text-muted); }
