@@ -228,6 +228,38 @@ document.getElementById("sidebar").addEventListener("click", () => {
   if (!appEl.classList.contains("sidebar-open")) openSidebar();
 });
 
+// ── Mobile swipe gestures for sidebar ────────────────────
+(function () {
+  const EDGE_ZONE   = 32;  // px from left edge to start open-swipe
+  const MIN_SWIPE   = 55;  // px horizontal travel to trigger action
+  const MAX_VERT    = 80;  // px vertical drift allowed before cancelling
+
+  let startX = 0, startY = 0, tracking = false;
+
+  document.addEventListener("touchstart", (e) => {
+    const touch = e.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    const sidebarOpen = appEl.classList.contains("sidebar-open");
+    // Track if swipe starts from left edge (open) or anywhere when open (close)
+    tracking = (!sidebarOpen && startX <= EDGE_ZONE) || sidebarOpen;
+  }, { passive: true });
+
+  document.addEventListener("touchend", (e) => {
+    if (!tracking) return;
+    const touch = e.changedTouches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+    tracking = false;
+
+    if (Math.abs(dy) > MAX_VERT) return; // too vertical, ignore
+
+    const sidebarOpen = appEl.classList.contains("sidebar-open");
+    if (!sidebarOpen && dx >= MIN_SWIPE) openSidebar();
+    else if (sidebarOpen && dx <= -MIN_SWIPE) closeSidebar();
+  }, { passive: true });
+})();
+
 // ── Collapsed icon strip ──────────────────────────────────
 document.getElementById("si-new").onclick    = () => document.getElementById("resetChatBtn").click();
 document.getElementById("si-chats").onclick  = openSidebar;
