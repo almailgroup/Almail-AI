@@ -784,10 +784,17 @@ main#messages {
 
 /* ── Typing indicator ───────────────────────────────────── */
 #typingIndicator {
-  padding: 4px 24px 8px;
-  min-height: 34px;
+  padding: 0 24px;
+  height: 0;
   display: flex;
   align-items: center;
+  overflow: hidden;
+  transition: height 0.2s ease, padding 0.2s ease;
+}
+
+#typingIndicator.active {
+  height: 42px;
+  padding: 4px 24px 8px;
 }
 
 .typing-bubble {
@@ -821,6 +828,7 @@ main#messages {
 }
 
 #typingIndicator.active .typing-bubble { display: flex; }
+.typing-bubble { flex-shrink: 0; }
 
 #typingIndicator.status-only::after {
   content: attr(data-status);
