@@ -541,6 +541,7 @@ body::before {
 /* ── Collapsed sidebar icon strip ──────────────────────── */
 .sidebar-icon-nav,
 .sidebar-icon-account { display: none; }
+.sidebar-icon-profile { display: none; }
 
 @media (min-width: 900px) {
   #app:not(.sidebar-open) .sidebar-icon-nav {
@@ -554,6 +555,14 @@ body::before {
   }
 
   #app:not(.sidebar-open) .sidebar-icon-account {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 0 0 4px;
+  }
+
+  #app:not(.sidebar-open) .sidebar-icon-profile {
     display: flex;
     flex-direction: column;
     align-items: center;
