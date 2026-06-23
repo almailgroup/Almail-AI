@@ -245,13 +245,23 @@ function applyThemeUI() {
 }
 applyThemeUI();
 
+function applyLogoTheme() {
+  const logos = document.querySelectorAll(".brand-logo, .empty-logo");
+  logos.forEach(img => {
+    img.src = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
+  });
+}
+
 function setTheme(light) {
   isLight = light;
   document.body.classList.toggle("light", isLight);
   localStorage.setItem("theme", isLight ? "light" : "dark");
   applyThemeUI();
+  applyLogoTheme();
   settingsPopup.classList.remove("open");
 }
+
+applyLogoTheme();
 document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
@@ -343,7 +353,7 @@ function renderMessages(docs) {
   if (docs.length === 0) {
     messagesEl.innerHTML = `
       <div class="empty-state">
-        <img src="Almail AI Logo.png" alt="Almail AI" class="empty-logo" />
+        <img src="${isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png"}" alt="Almail AI" class="empty-logo" />
         <h2>How can I help you?</h2>
         <p>Ask me anything — I'm ready to help.</p>
       </div>`;
