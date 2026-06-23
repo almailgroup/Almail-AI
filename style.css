@@ -263,8 +263,13 @@ body::before {
 
 /* ── Settings wrap — always visible in mini strip too ───── */
 .sidebar-settings-wrap {
-  padding: 6px 10px 12px;
+  padding: 6px 10px 4px;
   margin-top: auto;
+}
+
+.sidebar-footer {
+  padding: 4px 10px 12px;
+  border-top: none;
 }
 
 /* In collapsed state: center icon only */
