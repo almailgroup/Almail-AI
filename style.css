@@ -739,27 +739,18 @@ main#messages {
   animation: appear 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
-.empty-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  object-fit: contain;
-  opacity: 0.85;
-  margin-bottom: 4px;
-}
-
 .empty-state h2 {
-  font-size: 1.4rem;
+  font-size: 2rem;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.5px;
   color: var(--text);
 }
 
 .empty-state p {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: var(--text-muted);
-  max-width: 280px;
-  line-height: 1.5;
+  max-width: 320px;
+  line-height: 1.55;
 }
 
 /* ── Error bubble ───────────────────────────────────────── */
@@ -1067,9 +1058,7 @@ footer {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.7);
-  backdrop-filter: blur(20px) saturate(120%);
-  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  background: rgba(0,0,0,0.72);
   display: none;
   align-items: center;
   justify-content: center;

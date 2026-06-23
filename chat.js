@@ -269,8 +269,7 @@ function applyThemeUI() {
 applyThemeUI();
 
 function applyLogoTheme() {
-  const logos = document.querySelectorAll(".brand-logo, .empty-logo");
-  logos.forEach(img => {
+  document.querySelectorAll(".brand-logo").forEach(img => {
     img.src = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
   });
 }
@@ -376,7 +375,6 @@ function renderMessages(docs) {
   if (docs.length === 0) {
     messagesEl.innerHTML = `
       <div class="empty-state">
-        <img src="${isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png"}" alt="Almail AI" class="empty-logo" />
         <h2>How can I help you?</h2>
         <p>Ask me anything — I'm ready to help.</p>
       </div>`;
@@ -502,7 +500,11 @@ function startMsgListener() {
 }
 
 // ── Auth state ────────────────────────────────────────────
+let lastUserId = undefined;
 onAuthStateChanged(auth, user => {
+  const uid = user ? user.uid : null;
+  if (uid === lastUserId) return;
+  lastUserId = uid;
   currentUser = user;
   updateSiAccount(user);
   if (user) {
