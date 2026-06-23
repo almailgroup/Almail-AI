@@ -114,7 +114,7 @@ function buildChatItem(chat) {
 
   btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
   btn.appendChild(titleSpan);
-  btn.onclick = () => switchToChat(chat.id);
+  btn.onclick = (e) => { e.stopPropagation(); switchToChat(chat.id); };
 
   // Actions: pin, rename, delete
   const actions = document.createElement("div");
@@ -224,9 +224,9 @@ sidebarToggle.onclick   = openSidebar;
 sidebarClose.onclick    = (e) => { e.stopPropagation(); appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar(); };
 sidebarBackdrop.onclick = closeSidebar;
 
-// Click anywhere on the collapsed sidebar strip to open it
+// Click on collapsed sidebar strip to open it (desktop only)
 document.getElementById("sidebar").addEventListener("click", () => {
-  if (!appEl.classList.contains("sidebar-open")) openSidebar();
+  if (window.innerWidth >= 900 && !appEl.classList.contains("sidebar-open")) openSidebar();
 });
 
 // ── Mobile swipe gestures for sidebar ────────────────────
@@ -260,6 +260,22 @@ document.getElementById("sidebar").addEventListener("click", () => {
     else if (sidebarOpen && dx <= -MIN_SWIPE) closeSidebar();
   }, { passive: true });
 })();
+
+// ── Disable zoom on mobile ────────────────────────────────
+// iOS 10+ ignores user-scalable=no in viewport, so block via JS
+document.addEventListener("gesturestart", (e) => e.preventDefault(), { passive: false });
+document.addEventListener("gesturechange", (e) => e.preventDefault(), { passive: false });
+document.addEventListener("touchmove", (e) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
+
+// Prevent double-tap zoom
+let _lastTap = 0;
+document.addEventListener("touchend", (e) => {
+  const now = Date.now();
+  if (now - _lastTap < 300) e.preventDefault();
+  _lastTap = now;
+}, { passive: false });
 
 // ── Collapsed icon strip ──────────────────────────────────
 document.getElementById("si-new").onclick    = () => document.getElementById("resetChatBtn").click();
