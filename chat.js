@@ -1,7 +1,7 @@
 import { db, auth } from "./firebase.js";
 import {
   collection, addDoc, query, orderBy, onSnapshot,
-  serverTimestamp, deleteDoc, doc, getDocs, limit, updateDoc
+  serverTimestamp, deleteDoc, doc, updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -10,16 +10,18 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 // ── State ─────────────────────────────────────────────────
-let currentUser      = null;
-let currentChatId    = null;
-let deleteId         = null;
-let msgUnsubscribe   = null;
+let currentUser       = null;
+let currentChatId     = null;
+let deleteId          = null;
+let msgUnsubscribe    = null;
 let pendingAttachment = null;
+let isResponding      = false;
+let currentMessages   = [];
 
-// ── Chat metadata stored in localStorage (no extra Firestore collection needed)
-function loadChats()        { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
-function saveChats(chats)   { localStorage.setItem("chats_v2", JSON.stringify(chats)); }
-function genId()            { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+// ── Chat metadata in localStorage ─────────────────────────
+function loadChats()    { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
+function saveChats(c)   { localStorage.setItem("chats_v2", JSON.stringify(c)); }
+function genId()        { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 function createChat() {
   const id = genId();
@@ -29,10 +31,21 @@ function createChat() {
   return id;
 }
 
+function deleteChat(chatId) {
+  saveChats(loadChats().filter(c => c.id !== chatId));
+  if (currentChatId === chatId) {
+    const remaining = loadChats();
+    const newId = remaining.length ? remaining[0].id : createChat();
+    switchToChat(newId);
+  } else {
+    renderChatList();
+  }
+}
+
 function setChatTitle(chatId, title) {
   const chats = loadChats();
   const c = chats.find(c => c.id === chatId);
-  if (c && c.title === "New chat") { c.title = title; saveChats(chats); }
+  if (c && c.title === "New chat" && title) { c.title = title; saveChats(chats); }
   renderChatList();
 }
 
@@ -41,12 +54,23 @@ function renderChatList() {
   if (!chatList) return;
   chatList.innerHTML = "";
   loadChats().forEach(chat => {
+    const wrap = document.createElement("div");
+    wrap.className = "chat-item-wrap";
+
     const btn = document.createElement("button");
     btn.className = `chat-item${chat.id === currentChatId ? " active" : ""}`;
     btn.dataset.chatId = chat.id;
     btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>${chat.title}</span>`;
     btn.onclick = () => switchToChat(chat.id);
-    chatList.appendChild(btn);
+
+    const del = document.createElement("button");
+    del.className = "chat-item-del";
+    del.title = "Delete chat";
+    del.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+    del.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
+
+    wrap.append(btn, del);
+    chatList.appendChild(wrap);
   });
 }
 
@@ -60,15 +84,12 @@ function switchToChat(chatId) {
 }
 
 function initChats() {
-  let chats = loadChats();
-  // First-ever launch: create a default chat
+  const chats = loadChats();
   if (chats.length === 0) {
-    const id = createChat();
-    currentChatId = id;
+    currentChatId = createChat();
   } else {
     const savedId = localStorage.getItem("currentChatId");
-    const exists  = chats.some(c => c.id === savedId);
-    currentChatId = (savedId && exists) ? savedId : chats[0].id;
+    currentChatId = (savedId && chats.some(c => c.id === savedId)) ? savedId : chats[0].id;
   }
   localStorage.setItem("currentChatId", currentChatId);
   renderChatList();
@@ -151,6 +172,12 @@ function setTheme(light) {
 document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
+// ── Textarea auto-resize ──────────────────────────────────
+function autoResize() {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 130) + "px";
+}
+inputEl.addEventListener("input", autoResize);
 
 // ── Attach popup ──────────────────────────────────────────
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
@@ -181,7 +208,7 @@ document.getElementById("fileRemoveBtn").onclick = () => { pendingAttachment = n
 document.addEventListener("click", (e) => {
   if (!settingsPopup.contains(e.target) && e.target !== settingsBtn) settingsPopup.classList.remove("open");
   if (!attachPopup.contains(e.target)   && e.target !== attachBtn)   attachPopup.classList.remove("open");
-  if (!e.target.closest(".menu-btn")       && !e.target.closest(".menu"))
+  if (!e.target.closest(".menu-btn") && !e.target.closest(".menu"))
     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
 });
 
@@ -212,9 +239,10 @@ async function handleAuth(isRegister = false) {
     else            await signInWithEmailAndPassword(auth, email, password);
   } catch (err) {
     let msg = err.message;
-    if (msg.includes("wrong-password"))       msg = "Incorrect password";
-    if (msg.includes("user-not-found"))       msg = "No account with this email";
-    if (msg.includes("email-already-in-use")) msg = "Email already registered";
+    if (msg.includes("wrong-password") || msg.includes("invalid-credential")) msg = "Incorrect email or password";
+    else if (msg.includes("user-not-found"))       msg = "No account with this email";
+    else if (msg.includes("email-already-in-use")) msg = "Email already registered";
+    else if (msg.includes("weak-password"))        msg = "Password must be at least 6 characters";
     errorEl.textContent = msg;
   }
 }
@@ -223,9 +251,114 @@ registerBtn.onclick = () => handleAuth(true);
 passInput.addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(!isLoginMode); });
 logoutBtn.onclick   = () => signOut(auth);
 
+// ── Render messages ───────────────────────────────────────
+function renderMessages(docs) {
+  messagesEl.innerHTML = "";
+
+  if (docs.length === 0) {
+    messagesEl.innerHTML = `
+      <div class="empty-state">
+        <img src="Almail AI Logo.png" alt="Almail AI" class="empty-logo" />
+        <h2>How can I help you?</h2>
+        <p>Ask me anything — I'm ready to help.</p>
+      </div>`;
+    return;
+  }
+
+  docs.forEach((docSnap, i) => {
+    const msg       = docSnap.data();
+    const isOwn     = msg.role === "user";
+    const prevRole  = i > 0 ? docs[i - 1].data().role : null;
+    const nextRole  = i < docs.length - 1 ? docs[i + 1].data().role : null;
+    const grouped   = prevRole === msg.role;
+    const groupTail = nextRole !== msg.role;
+
+    const div = document.createElement("div");
+    div.className = ["message", isOwn ? "self" : "other",
+      grouped ? "grouped" : "", groupTail ? "group-tail" : ""].filter(Boolean).join(" ");
+
+    const textDiv = document.createElement("div");
+    textDiv.className = "message-text";
+    textDiv.innerHTML = linkify(marked.parse(msg.content || "", { breaks: true, gfm: true }));
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${formatTime(msg.timestamp)}`;
+
+    div.append(textDiv, meta);
+
+    // Context menu button
+    const menuBtn = document.createElement("button");
+    menuBtn.className = "menu-btn";
+    menuBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="19" r="1.2" fill="currentColor"/></svg>`;
+
+    const menu = document.createElement("div");
+    menu.className = "menu";
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "copy";
+    copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`;
+    copyBtn.onclick = (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(msg.content || "");
+      copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+      setTimeout(() => { copyBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy`; }, 1500);
+      menu.classList.remove("open");
+    };
+    menu.appendChild(copyBtn);
+
+    if (isOwn) {
+      const editBtn = document.createElement("button");
+      editBtn.className = "edit";
+      editBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit`;
+      editBtn.onclick = (e) => {
+        e.stopPropagation();
+        menu.classList.remove("open");
+        const editArea = document.createElement("textarea");
+        editArea.className = "edit-textarea";
+        editArea.value = msg.content || "";
+        textDiv.replaceWith(editArea);
+        editArea.focus();
+        editArea.addEventListener("keydown", async (ev) => {
+          if (ev.key === "Enter" && !ev.shiftKey) {
+            ev.preventDefault();
+            const newText = editArea.value.trim();
+            if (newText && newText !== msg.content)
+              await updateDoc(doc(db, "users", currentUser.uid, "messages", docSnap.id), { content: newText });
+          }
+          if (ev.key === "Escape") editArea.replaceWith(textDiv);
+        });
+      };
+
+      const delBtn = document.createElement("button");
+      delBtn.className = "delete";
+      delBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg> Delete`;
+      delBtn.onclick = (e) => {
+        e.stopPropagation();
+        menu.classList.remove("open");
+        div.classList.add("wobbly-strong");
+        setTimeout(() => {
+          div.classList.remove("wobbly-strong");
+          setTimeout(() => { deleteId = docSnap.id; deleteModal.style.display = "flex"; }, 50);
+        }, 900);
+      };
+
+      menu.append(editBtn, delBtn);
+    }
+
+    menuBtn.onclick = (e) => {
+      e.stopPropagation();
+      const isOpen = menu.classList.contains("open");
+      document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+      if (!isOpen) menu.classList.add("open");
+    };
+
+    div.append(menuBtn, menu);
+    messagesEl.appendChild(div);
+  });
+}
+
 // ── Message listener ──────────────────────────────────────
-// Messages are stored at users/{uid}/messages with a chatId field.
-// This keeps the original Firestore path so existing security rules work.
 function startMsgListener() {
   if (!currentUser || !currentChatId) return;
   if (msgUnsubscribe) msgUnsubscribe();
@@ -238,100 +371,15 @@ function startMsgListener() {
   msgUnsubscribe = onSnapshot(q, snapshot => {
     deleteModal.style.display = "none";
     deleteId = null;
-    messagesEl.innerHTML = "";
 
-    const docs = snapshot.docs.filter(d => {
-      const data = d.data();
-      // Show messages that belong to current chat, or legacy messages (no chatId) if it's the first chat
-      return data.chatId === currentChatId;
-    });
+    const docs = snapshot.docs.filter(d => d.data().chatId === currentChatId);
+    currentMessages = docs.map(d => d.data());
 
-    docs.forEach((docSnap, i) => {
-      const msg     = docSnap.data();
-      const isOwn   = msg.role === "user";
-      const prev    = i > 0 ? docs[i - 1].data().role : null;
-      const next    = i < docs.length - 1 ? docs[i + 1].data().role : null;
-      const grouped   = prev === msg.role;
-      const groupTail = next !== msg.role;
-
-      const div = document.createElement("div");
-      div.className = ["message", isOwn ? "self" : "other",
-        grouped ? "grouped" : "", groupTail ? "group-tail" : ""].filter(Boolean).join(" ");
-
-      const textDiv = document.createElement("div");
-      textDiv.innerHTML = linkify(marked.parse(msg.content || "", { breaks: true, gfm: true }));
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${formatTime(msg.timestamp)}`;
-
-      div.append(textDiv, meta);
-
-      // Context menu
-      const menuBtn = document.createElement("button");
-      menuBtn.className = "menu-btn";
-      menuBtn.textContent = "⋯";
-
-      const menu = document.createElement("div");
-      menu.className = "menu";
-
-      const copyBtn = document.createElement("button");
-      copyBtn.className = "copy";
-      copyBtn.textContent = "Copy";
-      copyBtn.onclick = (e) => { e.stopPropagation(); navigator.clipboard.writeText(msg.content || ""); menu.classList.remove("open"); };
-      menu.appendChild(copyBtn);
-
-      if (isOwn) {
-        const editBtn = document.createElement("button");
-        editBtn.className = "edit";
-        editBtn.textContent = "Edit";
-        editBtn.onclick = (e) => {
-          e.stopPropagation();
-          menu.classList.remove("open");
-          const editArea = document.createElement("textarea");
-          editArea.className = "edit-textarea";
-          editArea.value = msg.content || "";
-          textDiv.replaceWith(editArea);
-          editArea.focus();
-          editArea.addEventListener("keydown", async (ev) => {
-            if (ev.key === "Enter" && !ev.shiftKey) {
-              ev.preventDefault();
-              const newText = editArea.value.trim();
-              if (newText && newText !== msg.content)
-                await updateDoc(doc(db, "users", currentUser.uid, "messages", docSnap.id), { content: newText });
-            }
-            if (ev.key === "Escape") editArea.replaceWith(textDiv);
-          });
-        };
-
-        const delBtn = document.createElement("button");
-        delBtn.className = "delete";
-        delBtn.textContent = "Delete";
-        delBtn.onclick = (e) => {
-          e.stopPropagation();
-          menu.classList.remove("open");
-          div.classList.add("wobbly-strong");
-          setTimeout(() => {
-            div.classList.remove("wobbly-strong");
-            setTimeout(() => { deleteId = docSnap.id; deleteModal.style.display = "flex"; }, 50);
-          }, 900);
-        };
-
-        menu.append(editBtn, delBtn);
-      }
-
-      menuBtn.onclick = (e) => {
-        e.stopPropagation();
-        const isOpen = menu.classList.contains("open");
-        document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
-        if (!isOpen) menu.classList.add("open");
-      };
-
-      div.append(menuBtn, menu);
-      messagesEl.appendChild(div);
-    });
-
-    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+    const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
+    renderMessages(docs);
+    if (nearBottom || docs.length <= 1) {
+      messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+    }
   });
 }
 
@@ -349,7 +397,9 @@ onAuthStateChanged(auth, user => {
     initChats();
   } else {
     if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
-    currentChatId = null;
+    currentChatId     = null;
+    currentMessages   = [];
+    isResponding      = false;
     openAuthBtn.style.display  = "flex";
     logoutBtn.style.display    = "none";
     inputEl.placeholder        = "Log in to start chatting…";
@@ -366,66 +416,72 @@ onAuthStateChanged(auth, user => {
 // ── New chat button ───────────────────────────────────────
 resetBtn.onclick = () => {
   if (!currentUser) return;
-  const id = createChat();
-  switchToChat(id);
+  switchToChat(createChat());
 };
+
+// ── Ephemeral error bubble ────────────────────────────────
+function showEphemeralError(msg) {
+  const div = document.createElement("div");
+  div.className = "message other error-msg group-tail";
+  div.style.marginTop = "12px";
+  div.textContent = msg;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+}
 
 // ── Send message ──────────────────────────────────────────
 async function sendMessage() {
-  if (!currentUser || !currentChatId) return;
+  if (!currentUser || !currentChatId || isResponding) return;
   const text = inputEl.value.trim();
   if (!text && !pendingAttachment) return;
 
   const attachment  = pendingAttachment;
   inputEl.value     = "";
+  inputEl.style.height = "auto";
   pendingAttachment = null;
   filePreview.style.display = "none";
+
+  isResponding     = true;
+  sendBtn.disabled = true;
+  inputEl.disabled = true;
 
   const messagesRef = collection(db, "users", currentUser.uid, "messages");
   const userContent = attachment
     ? `${text}${text ? "\n" : ""}[Attached: ${attachment.name}]`
     : text;
 
-  // Save user message (same Firestore path as before, now with chatId field)
-  await addDoc(messagesRef, {
-    role: "user",
-    content: userContent,
-    chatId: currentChatId,
-    timestamp: serverTimestamp()
-  });
-
-  // Set chat title from first message
-  setChatTitle(currentChatId, text.substring(0, 45));
-
-  typingEl.classList.add("active");
-
   try {
-    const snap = await getDocs(query(messagesRef, orderBy("timestamp", "desc"), limit(12)));
-    const history = snap.docs
-      .filter(d => d.data().chatId === currentChatId)
-      .map(d => d.data())
-      .reverse()
-      .map(m => ({ role: m.role, content: m.content }));
+    await addDoc(messagesRef, {
+      role: "user", content: userContent,
+      chatId: currentChatId, timestamp: serverTimestamp()
+    });
+
+    setChatTitle(currentChatId, text.substring(0, 45) || attachment?.name || "New chat");
+    typingEl.classList.add("active");
+    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+
+    // Use cached messages + the just-sent message as context
+    const history = [
+      ...currentMessages.slice(-14).map(m => ({ role: m.role, content: m.content })),
+      { role: "user", content: userContent }
+    ];
 
     const aiReply = await getAIResponse(history, attachment);
 
     await addDoc(messagesRef, {
-      role: "assistant",
-      content: aiReply,
-      chatId: currentChatId,
-      timestamp: serverTimestamp()
+      role: "assistant", content: aiReply,
+      chatId: currentChatId, timestamp: serverTimestamp()
     });
   } catch (err) {
     console.error("AI error:", err);
-    await addDoc(messagesRef, {
-      role: "assistant",
-      content: "Sorry, something went wrong. Please try again.",
-      chatId: currentChatId,
-      timestamp: serverTimestamp()
-    });
+    showEphemeralError("Sorry, something went wrong. Please try again.");
+  } finally {
+    typingEl.classList.remove("active");
+    isResponding     = false;
+    sendBtn.disabled = false;
+    inputEl.disabled = false;
+    inputEl.focus();
   }
-
-  typingEl.classList.remove("active");
 }
 
 sendBtn.onclick = sendMessage;
@@ -433,17 +489,17 @@ inputEl.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
-// ── OpenRouter API ────────────────────────────────────────
+// ── Mistral AI ────────────────────────────────────────────
 async function getAIResponse(messages, attachment = null) {
   const API_KEY = "9fJRIRAzrNEvMsciprVznKVYaCDO5gAq";
   const MODEL   = "mistral-small-latest";
 
-  const oarMessages = [
-    { role: "system", content: "You are Almail AI, a helpful, clever and friendly assistant. You can analyze uploaded files to answer questions. Do not generate images." },
+  const apiMessages = [
+    { role: "system", content: "You are Almail AI, a helpful, clever and friendly assistant. Answer clearly and concisely. You can analyze uploaded files to answer questions. Do not generate images." },
     ...messages.map((msg, i) => {
       const isLastUser = msg.role === "user" && i === messages.length - 1;
       const role = msg.role === "user" ? "user" : "assistant";
-      if (isLastUser && attachment && attachment.type === "text") {
+      if (isLastUser && attachment?.type === "text") {
         return { role, content: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` };
       }
       return { role, content: msg.content };
@@ -452,11 +508,8 @@ async function getAIResponse(messages, attachment = null) {
 
   const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${API_KEY}`
-    },
-    body: JSON.stringify({ model: MODEL, messages: oarMessages })
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
+    body: JSON.stringify({ model: MODEL, messages: apiMessages })
   });
 
   if (!res.ok) {
@@ -479,7 +532,7 @@ document.getElementById("confirmDelete").onclick = async () => {
 
 // ── Helpers ───────────────────────────────────────────────
 function linkify(text) {
-  return text.replace(/(https?:\/\/[^\s<]+)/g, url =>
+  return text.replace(/(https?:\/\/[^\s<"]+)/g, url =>
     `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
 }
 

@@ -423,14 +423,6 @@ body::before {
   background: transparent;
 }
 
-/* ── Chat top bar (model picker) ────────────────────────── */
-.chat-top-bar {
-  display: flex;
-  align-items: center;
-  padding: 10px 20px 0;
-  flex-shrink: 0;
-}
-
 /* ── Chat history list ──────────────────────────────────── */
 .chat-list {
   display: flex;
@@ -439,6 +431,12 @@ body::before {
   margin-top: 4px;
   overflow-y: auto;
   max-height: calc(100vh - 220px);
+}
+
+.chat-item-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .chat-item {
@@ -469,7 +467,26 @@ body::before {
 .chat-item:hover { background: var(--glass-3); color: var(--text); }
 .chat-item.active { background: var(--glass-3); color: var(--text); font-weight: 500; }
 
-/* hide chat list icon in collapsed sidebar */
+.chat-item-del {
+  position: absolute;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.13s, background 0.13s, color 0.13s;
+  flex-shrink: 0;
+}
+.chat-item-wrap:hover .chat-item-del { opacity: 1; }
+.chat-item-del:hover { background: var(--glass-3); color: var(--text); }
+
+/* hide chat list in collapsed sidebar */
 #app:not(.sidebar-open) .chat-list { display: none; }
 
 /* ── Attach popup ───────────────────────────────────────── */
@@ -604,6 +621,49 @@ main#messages {
   opacity: 0.55;
 }
 
+/* ── Empty state ────────────────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 20px;
+  text-align: center;
+  animation: appear 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.empty-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  object-fit: contain;
+  opacity: 0.85;
+  margin-bottom: 4px;
+}
+
+.empty-state h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text);
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+/* ── Error bubble ───────────────────────────────────────── */
+.error-msg {
+  opacity: 0.75;
+  font-style: italic;
+  font-size: 0.88rem;
+}
+
 /* Message markdown */
 .message ul, .message ol { list-style: none; padding-left: 0; margin: 8px 0; }
 .message li { position: relative; padding-left: 18px; margin-bottom: 5px; }
@@ -621,6 +681,29 @@ main#messages {
 }
 .self .message code { background: rgba(0,0,0,0.1); }
 .light .other .message code { background: rgba(0,0,0,0.07); }
+.message pre {
+  background: rgba(0,0,0,0.28);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.message pre code { background: transparent; padding: 0; font-size: 0.85em; }
+.self .message pre { background: rgba(0,0,0,0.18); }
+.light .other .message pre { background: rgba(0,0,0,0.05); }
+.message h1, .message h2, .message h3 { margin: 10px 0 4px; font-weight: 600; }
+.message h1 { font-size: 1.1em; }
+.message h2 { font-size: 1.0em; }
+.message h3 { font-size: 0.95em; }
+.message strong { font-weight: 600; }
+.message em { font-style: italic; }
+.message blockquote {
+  border-left: 3px solid var(--border-mid);
+  padding-left: 12px;
+  margin: 8px 0;
+  opacity: 0.8;
+}
 
 /* edit mode */
 .edit-textarea {
@@ -765,24 +848,6 @@ footer {
   gap: 10px;
 }
 
-.model-picker-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 12px;
-  background: var(--glass-2);
-  border: 1px solid var(--border-mid);
-  border-radius: 20px;
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.13s, color 0.13s;
-  box-shadow: var(--shadow-sm);
-}
-.model-picker-btn:hover { background: var(--glass-3); color: var(--text); }
-
 .attach-btn {
   width: 44px;
   height: 44px;
@@ -816,42 +881,6 @@ footer {
 .file-preview span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
 .file-remove { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px; }
 .file-remove:hover { color: var(--text); }
-
-/* ── Model picker popup ─────────────────────────────────── */
-.model-picker-popup {
-  display: none;
-  position: fixed;
-  z-index: 300;
-  min-width: 220px;
-  background: var(--surface);
-  border: 1px solid var(--border-mid);
-  border-radius: 14px;
-  padding: 6px;
-  box-shadow: var(--shadow-lg);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-}
-.model-picker-popup.open { display: block; }
-
-.model-option {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  border-radius: 9px;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.13s;
-}
-.model-option:hover { background: var(--glass-3); }
-.model-info { display: flex; flex-direction: column; gap: 1px; }
-.model-name { font-size: 13.5px; font-weight: 600; color: var(--text); }
-.model-desc { font-size: 11.5px; color: var(--text-muted); }
-.model-check { flex-shrink: 0; opacity: 0; color: var(--text); }
-.model-check.visible { opacity: 1; }
 
 #messageInput {
   flex: 1;
