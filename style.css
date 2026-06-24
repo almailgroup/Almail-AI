@@ -1944,6 +1944,50 @@ a:focus-visible,
 }
 .shortcuts-hint { font-size: 0.78rem; color: var(--text-muted); text-align: left; opacity: 0.8; }
 
+/* ── Sidebar conversation search ───────────────────────────── */
+.chat-search-wrap { position: relative; margin: 8px 10px 2px; }
+.chat-search-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--text-muted); pointer-events: none;
+}
+.chat-search {
+  width: 100%;
+  padding: 8px 10px 8px 32px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-mid);
+  background: var(--glass-2);
+  color: var(--text);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.chat-search::placeholder { color: var(--text-muted); }
+.chat-search:focus { border-color: var(--border-strong); box-shadow: 0 0 0 3px rgba(255,255,255,0.05); }
+.light .chat-search:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
+#app:not(.sidebar-open) .chat-search-wrap { display: none; }
+
+.chat-empty-hint { padding: 16px 12px; font-size: 12.5px; color: var(--text-muted); text-align: center; }
+
+/* ── Inline message edit ───────────────────────────────────── */
+.edit-wrap { display: flex; flex-direction: column; gap: 8px; }
+.self .edit-textarea { color: var(--msg-self-text); }
+.edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.edit-save, .edit-cancel {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.14s, border-color 0.14s, opacity 0.14s;
+}
+.edit-cancel { background: transparent; color: var(--msg-self-text); border-color: var(--msg-self-text); opacity: 0.55; }
+.edit-cancel:hover { opacity: 0.9; }
+.edit-save { background: var(--msg-self-text); color: var(--msg-self-bg); }
+.edit-save:hover { opacity: 0.88; }
+
 /* ── Typewriter greeting caret ─────────────────────────────── */
 .typing-caret::after {
   content: "";

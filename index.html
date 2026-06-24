@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=58" />
+  <link rel="stylesheet" href="style.css?v=59" />
   <!-- Markdown + HTML sanitizer + syntax highlighting -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -65,7 +65,13 @@
         </svg>
         <span>New chat</span>
       </button>
-      <p class="chat-section-label">Recents</p>
+      <div class="chat-search-wrap">
+        <svg class="chat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="chatSearch" class="chat-search" type="text" placeholder="Search chats" autocomplete="off" />
+      </div>
+      <p class="chat-section-label" id="recentsLabel">Recents</p>
       <!-- Chat history list populated by JS -->
       <div id="chatList" class="chat-list"></div>
     </nav>
@@ -362,7 +368,7 @@
 </div>
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="chat.js?v=61"></script>
+<script type="module" src="chat.js?v=62"></script>
 
 </body>
 </html>

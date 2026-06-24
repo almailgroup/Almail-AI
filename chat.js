@@ -91,12 +91,33 @@ function setChatTitle(chatId, title) {
   renderChatList();
 }
 
+let chatFilter = "";
+
 function renderChatList() {
   const chatList = document.getElementById("chatList");
   if (!chatList) return;
   chatList.innerHTML = "";
 
-  const all    = loadChats();
+  const all = loadChats();
+  const q   = chatFilter.trim().toLowerCase();
+
+  const recentsLabel = document.getElementById("recentsLabel");
+  if (recentsLabel) recentsLabel.style.display = q ? "none" : "";
+
+  // While searching, show a flat, filtered list (ignore pinned grouping).
+  if (q) {
+    const matches = all.filter(c => (c.title || "").toLowerCase().includes(q));
+    if (!matches.length) {
+      const empty = document.createElement("div");
+      empty.className = "chat-empty-hint";
+      empty.textContent = "No conversations found";
+      chatList.appendChild(empty);
+      return;
+    }
+    matches.forEach(chat => chatList.appendChild(buildChatItem(chat)));
+    return;
+  }
+
   const pinned = all.filter(c => c.pinned);
   const normal = all.filter(c => !c.pinned);
 
@@ -164,13 +185,19 @@ function buildChatItem(chat) {
     input.addEventListener("blur", save);
   };
 
+  const expBtn = document.createElement("button");
+  expBtn.className = "chat-action-btn";
+  expBtn.title = "Export as Markdown";
+  expBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
+  expBtn.onclick = (e) => { e.stopPropagation(); exportChat(chat.id, chat.title); };
+
   const delBtn = document.createElement("button");
   delBtn.className = "chat-action-btn delete";
   delBtn.title = "Delete";
   delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   delBtn.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
 
-  actions.append(pinBtn, renBtn, delBtn);
+  actions.append(pinBtn, renBtn, expBtn, delBtn);
   wrap.append(btn, actions);
   return wrap;
 }
@@ -423,6 +450,12 @@ function updateSendState() {
 }
 
 inputEl.addEventListener("input", () => { autoResize(); updateSendState(); });
+
+// ── Conversation search ───────────────────────────────────
+const chatSearch = document.getElementById("chatSearch");
+if (chatSearch) {
+  chatSearch.addEventListener("input", () => { chatFilter = chatSearch.value; renderChatList(); });
+}
 
 // ── Attach popup ──────────────────────────────────────────
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
@@ -677,7 +710,8 @@ function renderMessages(docs) {
 
     const meta = document.createElement("div");
     meta.className = "meta";
-    meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${formatTime(msg.timestamp)}`;
+    meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${relativeTime(msg.timestamp)}`;
+    if (msg.timestamp) meta.title = formatTime(msg.timestamp);
 
     div.append(textDiv, meta);
 
@@ -708,19 +742,38 @@ function renderMessages(docs) {
       editBtn.onclick = (e) => {
         e.stopPropagation();
         menu.classList.remove("open");
+
+        const editor = document.createElement("div");
+        editor.className = "edit-wrap";
         const editArea = document.createElement("textarea");
         editArea.className = "edit-textarea";
         editArea.value = msg.content || "";
-        textDiv.replaceWith(editArea);
+        const row = document.createElement("div");
+        row.className = "edit-actions";
+        const cancelBtn = document.createElement("button");
+        cancelBtn.className = "edit-cancel";
+        cancelBtn.textContent = "Cancel";
+        const saveBtn = document.createElement("button");
+        saveBtn.className = "edit-save";
+        saveBtn.textContent = "Save & submit";
+        row.append(cancelBtn, saveBtn);
+        editor.append(editArea, row);
+        textDiv.replaceWith(editor);
         editArea.focus();
-        editArea.addEventListener("keydown", async (ev) => {
-          if (ev.key === "Enter" && !ev.shiftKey) {
-            ev.preventDefault();
-            const newText = editArea.value.trim();
-            if (newText && newText !== msg.content)
-              await updateDoc(doc(db, "users", currentUser.uid, "messages", docSnap.id), { content: newText });
-          }
-          if (ev.key === "Escape") editArea.replaceWith(textDiv);
+        editArea.setSelectionRange(editArea.value.length, editArea.value.length);
+
+        const cancel = () => editor.replaceWith(textDiv);
+        const save = () => {
+          const newText = editArea.value.trim();
+          if (!newText) return;
+          if (newText === (msg.content || "").trim()) { cancel(); return; }
+          editAndResubmit(docSnap.id, newText);   // re-renders on snapshot
+        };
+        cancelBtn.onclick = cancel;
+        saveBtn.onclick = save;
+        editArea.addEventListener("keydown", (ev) => {
+          if (ev.key === "Enter" && !ev.shiftKey) { ev.preventDefault(); save(); }
+          if (ev.key === "Escape") cancel();
         });
       };
 
@@ -821,6 +874,46 @@ async function regenerateMessage(docId) {
     console.error("Regenerate error:", err);
     document.getElementById("streamingMsg")?.remove();
     showEphemeralError("Sorry, something went wrong. Please try again.");
+  } finally {
+    setResponding(false);
+    inputEl.focus();
+  }
+}
+
+// ── Edit a user message and regenerate from that point ────
+async function editAndResubmit(docId, newText) {
+  if (isResponding || !currentUser) return;
+  const idx = currentMessages.findIndex(m => m._id === docId);
+  if (idx === -1) return;
+
+  const targetChatId = currentChatId;
+  const history = currentMessages.slice(0, idx).map(m => ({ role: m.role, content: m.content }));
+  history.push({ role: "user", content: newText });
+  const toDelete = currentMessages.slice(idx + 1).map(m => m._id);
+
+  try {
+    await updateDoc(doc(db, "users", currentUser.uid, "messages", docId), { content: newText });
+    await Promise.all(toDelete.map(id => deleteDoc(doc(db, "users", currentUser.uid, "messages", id))));
+  } catch (err) {
+    console.error("Edit failed:", err);
+    return;
+  }
+
+  setResponding(true);
+  try {
+    const aiReply = await streamAssistantReply(history, null);
+    if (aiReply && aiReply.trim()) {
+      await addDoc(collection(db, "users", currentUser.uid, "messages"), {
+        role: "assistant", content: aiReply,
+        chatId: targetChatId, timestamp: serverTimestamp()
+      });
+    } else {
+      document.getElementById("streamingMsg")?.remove();
+    }
+  } catch (err) {
+    console.error("Edit regenerate error:", err);
+    document.getElementById("streamingMsg")?.remove();
+    showEphemeralError("Sorry, something went wrong.", () => retryReply(targetChatId));
   } finally {
     setResponding(false);
     inputEl.focus();
@@ -1319,4 +1412,52 @@ function formatTime(ts) {
   if (!ts) return "";
   const date = ts.toDate ? ts.toDate() : new Date(ts);
   return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+// Compact relative time for message meta ("just now", "5m ago", "Mar 5").
+function relativeTime(ts) {
+  if (!ts || !ts.toMillis) return "now";
+  const sec = Math.floor((Date.now() - ts.toMillis()) / 1000);
+  if (sec < 45) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 7) return `${day}d ago`;
+  return ts.toDate().toLocaleDateString([], { month: "short", day: "numeric" });
+}
+
+// Export a conversation as a Markdown file.
+async function exportChat(chatId, title) {
+  if (!currentUser) return;
+  try {
+    const snap = await getDocs(query(
+      collection(db, "users", currentUser.uid, "messages"),
+      where("chatId", "==", chatId)
+    ));
+    const msgs = snap.docs
+      .map(d => d.data())
+      .sort((a, b) => tsMillis(a.timestamp) - tsMillis(b.timestamp));
+    if (!msgs.length) { return; }
+
+    const safeTitle = (title || "Conversation").trim();
+    let md = `# ${safeTitle}\n\n*Exported from Almail AI · ${new Date().toLocaleString()}*\n\n---\n\n`;
+    for (const m of msgs) {
+      md += `**${m.role === "user" ? "You" : "Almail AI"}**\n\n${m.content || ""}\n\n`;
+    }
+
+    const filename = (safeTitle.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "chat") + ".md";
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error("Export failed:", err);
+  }
 }
