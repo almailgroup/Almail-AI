@@ -1463,3 +1463,120 @@ footer {
   75%     { transform: scale(0.97,1.03) translateY(-3px); }
   90%     { transform: scale(1.01,0.99) translateY(0); }
 }
+
+/* ── Code blocks (highlighted, with copy button) ───────────── */
+.code-block {
+  position: relative;
+  margin: 10px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(0,0,0,0.28);
+}
+.self .code-block { background: rgba(0,0,0,0.18); }
+.light .other .code-block { background: rgba(0,0,0,0.05); }
+
+.code-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px 5px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+.code-lang { text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+
+.copy-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.7rem;
+  font-family: inherit;
+  padding: 3px 7px;
+  border-radius: 6px;
+  transition: background 0.13s, color 0.13s;
+}
+.copy-code:hover { background: var(--surface-hover); color: var(--text); }
+.copy-code svg { width: 12px; height: 12px; }
+
+/* Inner <pre> sits flush inside the block wrapper */
+.code-block pre { margin: 0; border: none; border-radius: 0; background: transparent; }
+
+/* Compact highlight.js theme tuned to the monochrome glass UI */
+.hljs { color: var(--text); background: transparent; }
+.hljs-comment, .hljs-quote { color: #7c7c7c; font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-built_in, .hljs-name, .hljs-tag { color: #c79bff; }
+.hljs-string, .hljs-attr, .hljs-template-tag, .hljs-doctag, .hljs-addition { color: #86d8a6; }
+.hljs-number, .hljs-literal, .hljs-variable, .hljs-symbol, .hljs-bullet, .hljs-deletion { color: #f0a36b; }
+.hljs-title, .hljs-section, .hljs-selector-id, .hljs-selector-class { color: #88aaff; }
+.hljs-type, .hljs-params, .hljs-attribute { color: #d6d6d6; }
+.hljs-meta, .hljs-link { color: #9aa0a6; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }
+
+.light .hljs-comment, .light .hljs-quote { color: #8a8a8a; }
+.light .hljs-keyword, .light .hljs-selector-tag, .light .hljs-built_in, .light .hljs-name, .light .hljs-tag { color: #8a2fb8; }
+.light .hljs-string, .light .hljs-attr, .light .hljs-template-tag, .light .hljs-doctag, .light .hljs-addition { color: #1f8a4c; }
+.light .hljs-number, .light .hljs-literal, .light .hljs-variable, .light .hljs-symbol, .light .hljs-bullet, .light .hljs-deletion { color: #b5631a; }
+.light .hljs-title, .light .hljs-section, .light .hljs-selector-id, .light .hljs-selector-class { color: #2f5fd0; }
+.light .hljs-type, .light .hljs-params, .light .hljs-attribute { color: #444; }
+
+/* ── Streaming cursor ──────────────────────────────────────── */
+.stream-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 1em;
+  background: var(--text-muted);
+  margin-left: 1px;
+  vertical-align: -2px;
+  border-radius: 1px;
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+/* ── Send / Stop button states ─────────────────────────────── */
+#sendBtn .ico-stop { display: none; }
+#sendBtn.generating .ico-send { display: none; }
+#sendBtn.generating .ico-stop { display: block; }
+#sendBtn.generating { background: rgba(255,255,255,0.2); }
+.light #sendBtn.generating { background: rgba(0,0,0,0.14); }
+
+/* ── Empty-state suggestion chips ──────────────────────────── */
+.suggestions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 22px;
+  width: 100%;
+  max-width: 460px;
+}
+.chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  padding: 13px 15px;
+  border-radius: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  color: var(--text);
+  font-size: 0.86rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  box-shadow: var(--shadow-inset);
+}
+.chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+.chip svg { flex-shrink: 0; opacity: 0.65; }
+@media (max-width: 560px) { .suggestions { grid-template-columns: 1fr; } }

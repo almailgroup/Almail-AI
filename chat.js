@@ -1,13 +1,15 @@
 import { db, auth } from "./firebase.js";
 import {
   collection, addDoc, query, orderBy, onSnapshot,
-  serverTimestamp, deleteDoc, doc, updateDoc
+  serverTimestamp, deleteDoc, doc, updateDoc, getDocs
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
   signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+import { AI_CONFIG } from "./config.js";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
@@ -18,6 +20,8 @@ let pendingAttachment = null;
 let isResponding      = false;
 let currentMessages   = [];
 let pendingDeleteChatId = null;
+let abortController    = null;   // aborts an in-flight AI stream
+let streaming         = null;   // { text, started } while a reply streams in
 
 // ── Chat metadata in localStorage ─────────────────────────
 function loadChats()    { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
@@ -37,11 +41,24 @@ function deleteChat(chatId) {
   document.getElementById("deleteChatModal").style.display = "flex";
 }
 
-function confirmDeleteChat() {
+async function confirmDeleteChat() {
   if (!pendingDeleteChatId) return;
   const chatId = pendingDeleteChatId;
   pendingDeleteChatId = null;
   document.getElementById("deleteChatModal").style.display = "none";
+
+  // Remove this chat's messages from Firestore so they don't pile up as orphans.
+  if (currentUser) {
+    try {
+      const snap = await getDocs(collection(db, "users", currentUser.uid, "messages"));
+      await Promise.all(
+        snap.docs.filter(d => d.data().chatId === chatId).map(d => deleteDoc(d.ref))
+      );
+    } catch (err) {
+      console.error("Failed to delete chat messages:", err);
+    }
+  }
+
   saveChats(loadChats().filter(c => c.id !== chatId));
   if (currentChatId === chatId) {
     const remaining = loadChats();
@@ -415,6 +432,102 @@ registerBtn.onclick = () => handleAuth(true);
 passInput.addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(!isLoginMode); });
 logoutBtn.onclick   = () => signOut(auth);
 
+// ── Markdown, sanitizing & code highlighting ──────────────
+// Open links in a new tab safely.
+if (window.DOMPurify) {
+  DOMPurify.addHook("afterSanitizeAttributes", node => {
+    if (node.tagName === "A") {
+      node.setAttribute("target", "_blank");
+      node.setAttribute("rel", "noopener noreferrer");
+    }
+  });
+}
+
+// marked already autolinks URLs (gfm); DOMPurify strips any unsafe HTML.
+function renderMarkdown(text) {
+  const raw = marked.parse(text || "", { breaks: true, gfm: true });
+  return window.DOMPurify ? DOMPurify.sanitize(raw) : raw;
+}
+
+const COPY_SVG  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+const CHECK_SVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+// Wrap each <pre><code> in a header bar (language + copy button) and highlight.
+function enhanceCodeBlocks(container) {
+  container.querySelectorAll("pre > code").forEach(codeEl => {
+    const pre = codeEl.parentElement;
+    if (pre.parentElement?.classList.contains("code-block")) return;
+
+    const langClass = [...codeEl.classList].find(c => c.startsWith("language-"));
+    const lang = langClass ? langClass.replace("language-", "") : "";
+
+    if (window.hljs) { try { hljs.highlightElement(codeEl); } catch (_) {} }
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "code-block";
+
+    const header = document.createElement("div");
+    header.className = "code-block-header";
+    header.innerHTML = `<span class="code-lang">${lang || "code"}</span>`;
+
+    const copyBtn = document.createElement("button");
+    copyBtn.className = "copy-code";
+    copyBtn.innerHTML = `${COPY_SVG} Copy`;
+    copyBtn.onclick = () => {
+      navigator.clipboard.writeText(codeEl.innerText);
+      copyBtn.innerHTML = `${CHECK_SVG} Copied`;
+      setTimeout(() => { copyBtn.innerHTML = `${COPY_SVG} Copy`; }, 1500);
+    };
+    header.appendChild(copyBtn);
+
+    pre.replaceWith(wrapper);
+    wrapper.append(header, pre);
+  });
+}
+
+// ── Scroll helpers ────────────────────────────────────────
+function isNearBottom() {
+  return messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 120;
+}
+function scrollToBottom(smooth = true) {
+  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+}
+
+// ── Streaming reply bubble ────────────────────────────────
+// Renders/updates the transient assistant bubble while a reply streams in.
+// Survives Firestore snapshot re-renders because renderMessages re-invokes it.
+function renderStreamingBubble() {
+  if (!streaming || !streaming.started) return;
+  let div = document.getElementById("streamingMsg");
+  if (!div) {
+    div = document.createElement("div");
+    div.className = "message other group-tail";
+    div.id = "streamingMsg";
+    const textDiv = document.createElement("div");
+    textDiv.className = "message-text";
+    textDiv.id = "streamText";
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    meta.textContent = "Almail AI";
+    div.append(textDiv, meta);
+    messagesEl.appendChild(div);
+  }
+  document.getElementById("streamText").innerHTML =
+    renderMarkdown(streaming.text) + '<span class="stream-cursor"></span>';
+}
+
+let rafPending = false, rafStick = false;
+function scheduleStreamRender(stick) {
+  rafStick = rafStick || stick;
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => {
+    rafPending = false;
+    renderStreamingBubble();
+    if (rafStick) { scrollToBottom(false); rafStick = false; }
+  });
+}
+
 // ── Render messages ───────────────────────────────────────
 function renderMessages(docs) {
   // Remember which IDs are already rendered so we don't re-animate them
@@ -429,7 +542,32 @@ function renderMessages(docs) {
       <div class="empty-state">
         <h2>How can I help you?</h2>
         <p>Ask me anything — I'm ready to help.</p>
+        <div class="suggestions">
+          <button class="chip" data-prompt="Explain a complex topic in simple terms">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.66 18h4.68M12 2a7 7 0 0 1 4 12.7c-.5.4-.8 1-.8 1.6V17H8.8v-.7c0-.6-.3-1.2-.8-1.6A7 7 0 0 1 12 2z"/></svg>
+            Explain something simply
+          </button>
+          <button class="chip" data-prompt="Help me write a professional email">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg>
+            Draft a professional email
+          </button>
+          <button class="chip" data-prompt="Give me some creative ideas to brainstorm">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3z"/></svg>
+            Brainstorm creative ideas
+          </button>
+          <button class="chip" data-prompt="Write a Python function to check if a number is prime, with comments">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+            Write some code
+          </button>
+        </div>
       </div>`;
+    messagesEl.querySelectorAll(".chip").forEach(chip => {
+      chip.onclick = () => {
+        if (!currentUser || isResponding) return;
+        inputEl.value = chip.dataset.prompt;
+        sendMessage();
+      };
+    });
     return;
   }
 
@@ -449,7 +587,8 @@ function renderMessages(docs) {
 
     const textDiv = document.createElement("div");
     textDiv.className = "message-text";
-    textDiv.innerHTML = linkify(marked.parse(msg.content || "", { breaks: true, gfm: true }));
+    textDiv.innerHTML = renderMarkdown(msg.content);
+    enhanceCodeBlocks(textDiv);
 
     const meta = document.createElement("div");
     meta.className = "meta";
@@ -554,6 +693,9 @@ function renderMessages(docs) {
       messagesEl.appendChild(actions);
     }
   });
+
+  // Re-attach the live streaming bubble if a reply is in flight.
+  if (streaming && streaming.started) renderStreamingBubble();
 }
 
 // ── Regenerate AI response ────────────────────────────────
@@ -566,25 +708,23 @@ async function regenerateMessage(docId) {
 
   await deleteDoc(doc(db, "users", currentUser.uid, "messages", docId));
 
-  isResponding = true;
-  sendBtn.disabled = true;
-  inputEl.disabled = true;
-  typingEl.classList.add("active");
-  messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
-
+  setResponding(true);
   try {
-    const aiReply = await getAIResponse(history);
-    await addDoc(collection(db, "users", currentUser.uid, "messages"), {
-      role: "assistant", content: aiReply,
-      chatId: currentChatId, timestamp: serverTimestamp()
-    });
+    const aiReply = await streamAssistantReply(history, null);
+    if (aiReply && aiReply.trim()) {
+      await addDoc(collection(db, "users", currentUser.uid, "messages"), {
+        role: "assistant", content: aiReply,
+        chatId: currentChatId, timestamp: serverTimestamp()
+      });
+    } else {
+      document.getElementById("streamingMsg")?.remove();
+    }
   } catch (err) {
+    console.error("Regenerate error:", err);
+    document.getElementById("streamingMsg")?.remove();
     showEphemeralError("Sorry, something went wrong. Please try again.");
   } finally {
-    typingEl.classList.remove("active");
-    isResponding = false;
-    sendBtn.disabled = false;
-    inputEl.disabled = false;
+    setResponding(false);
     inputEl.focus();
   }
 }
@@ -680,9 +820,13 @@ async function sendMessage() {
   pendingAttachment = null;
   filePreview.style.display = "none";
 
-  isResponding     = true;
-  sendBtn.disabled = true;
-  inputEl.disabled = true;
+  // Snapshot the context BEFORE writing the new message so it isn't duplicated
+  // when the Firestore listener updates currentMessages.
+  const priorHistory = currentMessages
+    .slice(-AI_CONFIG.historyLimit)
+    .map(m => ({ role: m.role, content: m.content }));
+
+  setResponding(true);
 
   const messagesRef = collection(db, "users", currentUser.uid, "messages");
   const userContent = attachment
@@ -696,45 +840,54 @@ async function sendMessage() {
     });
 
     setChatTitle(currentChatId, text.substring(0, 45) || attachment?.name || "New chat");
-    typingEl.classList.add("active");
-    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+    scrollToBottom();
 
-    // Use cached messages + the just-sent message as context
-    const history = [
-      ...currentMessages.slice(-14).map(m => ({ role: m.role, content: m.content })),
-      { role: "user", content: userContent }
-    ];
+    const history = [...priorHistory, { role: "user", content: userContent }];
+    const aiReply = await streamAssistantReply(history, attachment);
 
-    const aiReply = await getAIResponse(history, attachment);
-
-    await addDoc(messagesRef, {
-      role: "assistant", content: aiReply,
-      chatId: currentChatId, timestamp: serverTimestamp()
-    });
+    if (aiReply && aiReply.trim()) {
+      await addDoc(messagesRef, {
+        role: "assistant", content: aiReply,
+        chatId: currentChatId, timestamp: serverTimestamp()
+      });
+    } else {
+      document.getElementById("streamingMsg")?.remove();
+    }
   } catch (err) {
     console.error("AI error:", err);
+    document.getElementById("streamingMsg")?.remove();
     showEphemeralError("Sorry, something went wrong. Please try again.");
   } finally {
-    typingEl.classList.remove("active");
-    isResponding     = false;
-    sendBtn.disabled = false;
-    inputEl.disabled = false;
+    setResponding(false);
     inputEl.focus();
   }
 }
 
-sendBtn.onclick = sendMessage;
+// Toggle UI between idle and "generating" (where the send button stops the stream).
+function setResponding(on) {
+  isResponding       = on;
+  inputEl.disabled   = on;
+  attachBtn.disabled = on;
+  sendBtn.disabled   = false;          // stays clickable so it can act as Stop
+  sendBtn.classList.toggle("generating", on);
+  sendBtn.title = on ? "Stop generating" : "Send";
+  if (!on) typingEl.classList.remove("active");
+}
+
+function stopGenerating() {
+  if (abortController) abortController.abort();
+}
+
+sendBtn.onclick = () => { if (isResponding) stopGenerating(); else sendMessage(); };
 inputEl.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
 
 // ── Mistral AI ────────────────────────────────────────────
-async function getAIResponse(messages, attachment = null) {
-  const API_KEY = "9fJRIRAzrNEvMsciprVznKVYaCDO5gAq";
-  const MODEL   = "mistral-small-latest";
-
-  const apiMessages = [
-    { role: "system", content: "You are Almail AI, a helpful, clever and friendly assistant. Answer clearly and concisely. You can analyze uploaded files to answer questions. Do not generate images." },
+// Build the OpenAI-style message array (with optional text-file context).
+function buildApiMessages(messages, attachment = null) {
+  return [
+    { role: "system", content: AI_CONFIG.systemPrompt },
     ...messages.map((msg, i) => {
       const isLastUser = msg.role === "user" && i === messages.length - 1;
       const role = msg.role === "user" ? "user" : "assistant";
@@ -744,11 +897,93 @@ async function getAIResponse(messages, attachment = null) {
       return { role, content: msg.content };
     })
   ];
+}
 
-  const res = await fetch("https://api.mistral.ai/v1/chat/completions", {
+// Drive a streamed reply: manages the live bubble, typing indicator, abort,
+// and falls back to a single request if streaming fails. Returns final text.
+async function streamAssistantReply(history, attachment) {
+  abortController = new AbortController();
+  streaming = { text: "", started: false };
+  typingEl.classList.add("active");
+  scrollToBottom();
+
+  const apiMessages = buildApiMessages(history, attachment);
+  let finalText = "";
+
+  try {
+    finalText = await streamMistral(apiMessages, abortController.signal, (full) => {
+      if (!streaming) return;
+      if (!streaming.started) {
+        streaming.started = true;
+        typingEl.classList.remove("active");
+      }
+      const stick = isNearBottom();
+      streaming.text = full;
+      scheduleStreamRender(stick);
+    });
+  } catch (err) {
+    if (err.name === "AbortError") {
+      finalText = streaming ? streaming.text : "";
+    } else {
+      console.error("Stream failed, falling back:", err);
+      typingEl.classList.add("active");
+      finalText = await getAIResponse(history, attachment); // may throw → handled by caller
+    }
+  } finally {
+    streaming = null;
+    abortController = null;
+    typingEl.classList.remove("active");
+  }
+  return finalText;
+}
+
+// SSE streaming (Mistral / OpenAI-compatible: data: {…delta…}\n\n … data: [DONE]).
+async function streamMistral(apiMessages, signal, onDelta) {
+  const res = await fetch(AI_CONFIG.endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${API_KEY}` },
-    body: JSON.stringify({ model: MODEL, messages: apiMessages })
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AI_CONFIG.apiKey}` },
+    body: JSON.stringify({ model: AI_CONFIG.model, messages: apiMessages, stream: true }),
+    signal
+  });
+
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(`API ${res.status}: ${err?.error?.message || res.statusText}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "", full = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (!payload || payload === "[DONE]") continue;
+      try {
+        const json = JSON.parse(payload);
+        const delta = json.choices?.[0]?.delta?.content || "";
+        if (delta) { full += delta; onDelta(full); }
+      } catch (_) { /* partial JSON spanning chunks — ignore */ }
+    }
+  }
+
+  if (!full) throw new Error("Empty stream response");
+  return full;
+}
+
+// Non-streaming fallback.
+async function getAIResponse(messages, attachment = null) {
+  const res = await fetch(AI_CONFIG.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AI_CONFIG.apiKey}` },
+    body: JSON.stringify({ model: AI_CONFIG.model, messages: buildApiMessages(messages, attachment) })
   });
 
   if (!res.ok) {
@@ -779,11 +1014,6 @@ document.getElementById("confirmDeleteChat").onclick = confirmDeleteChat;
 deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModal) { deleteChatModal.style.display = "none"; pendingDeleteChatId = null; } });
 
 // ── Helpers ───────────────────────────────────────────────
-function linkify(text) {
-  return text.replace(/(https?:\/\/[^\s<"]+)/g, url =>
-    `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`);
-}
-
 function formatTime(ts) {
   if (!ts) return "";
   const date = ts.toDate ? ts.toDate() : new Date(ts);
