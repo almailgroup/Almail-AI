@@ -22,6 +22,8 @@ let currentMessages   = [];
 let pendingDeleteChatId = null;
 let abortController    = null;   // aborts an in-flight AI stream
 let streaming         = null;   // { text, started } while a reply streams in
+let tempMode          = false;  // temporary chat: nothing is saved
+let prevChatId        = null;   // chat to return to when leaving temp mode
 
 // ── Chat metadata in localStorage ─────────────────────────
 function loadChats()    { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
@@ -203,6 +205,7 @@ function buildChatItem(chat) {
 }
 
 function switchToChat(chatId) {
+  if (tempMode) { tempMode = false; appEl.classList.remove("temp-mode"); }
   // Leaving a chat mid-generation: stop the stream so the reply doesn't bleed
   // into the new chat. (Re-selecting the current chat must NOT cancel it.)
   if (chatId !== currentChatId) cancelGeneration();
@@ -213,6 +216,71 @@ function switchToChat(chatId) {
   );
   if (window.innerWidth < 900) closeSidebar();
   startMsgListener();
+}
+
+// ── Temporary chat (nothing is saved) ─────────────────────
+function localTs() { const t = Date.now(); return { toMillis: () => t, toDate: () => new Date(t) }; }
+
+function enterTempChat() {
+  if (tempMode) return;
+  cancelGeneration();
+  if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
+  prevChatId = currentChatId;
+  tempMode = true;
+  currentChatId = null;
+  currentMessages = [];
+  document.querySelectorAll(".chat-item.active").forEach(el => el.classList.remove("active"));
+  appEl.classList.add("temp-mode");
+  if (window.innerWidth < 900) closeSidebar();
+  renderMessages([]);
+  inputEl.focus();
+}
+
+function exitTempChat() {
+  if (!tempMode) return;
+  tempMode = false;
+  currentMessages = [];
+  appEl.classList.remove("temp-mode");
+  const chats = loadChats();
+  const id = (prevChatId && chats.some(c => c.id === prevChatId))
+    ? prevChatId
+    : (chats[0] ? chats[0].id : createChat());
+  switchToChat(id);
+}
+
+function toggleTempChat() {
+  if (!currentUser) return;
+  tempMode ? exitTempChat() : enterTempChat();
+}
+
+// Generate an assistant reply for the in-memory temp conversation.
+async function generateTempReply(history, attachment = null) {
+  setResponding(true);
+  let ok = false;
+  try {
+    const aiReply = await streamAssistantReply(history, attachment);
+    if (aiReply && aiReply.trim()) {
+      currentMessages.push({ _id: "t" + genId(), role: "assistant", content: aiReply, timestamp: localTs() });
+      ok = true;
+    }
+  } catch (err) {
+    console.error("Temp AI error:", err);
+  }
+  setResponding(false);
+  document.getElementById("streamingMsg")?.remove();
+  renderMessages(currentMessages);
+  if (!ok) showEphemeralError("Sorry, something went wrong.");
+  inputEl.focus();
+}
+
+async function sendTempMessage(userContent, attachment) {
+  const priorHistory = currentMessages
+    .slice(-AI_CONFIG.historyLimit)
+    .map(m => ({ role: m.role, content: m.content }));
+  currentMessages.push({ _id: "t" + genId(), role: "user", content: userContent, timestamp: localTs() });
+  renderMessages(currentMessages);
+  scrollToBottom();
+  await generateTempReply([...priorHistory, { role: "user", content: userContent }], attachment);
 }
 
 // Abort an in-flight AI stream and clear its transient bubble.
@@ -724,7 +792,7 @@ function scheduleStreamRender(stick) {
 }
 
 // ── Render messages ───────────────────────────────────────
-function renderMessages(docs) {
+function renderMessages(list = currentMessages) {
   // Remember which IDs are already rendered so we don't re-animate them
   const alreadyRendered = new Set(
     [...messagesEl.querySelectorAll(".message[data-id]")].map(el => el.dataset.id)
@@ -732,7 +800,7 @@ function renderMessages(docs) {
 
   messagesEl.innerHTML = "";
 
-  if (docs.length === 0) {
+  if (list.length === 0) {
     const logoSrc = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
     const name = friendlyName(currentUser);
     const heading = name ? `${timeGreeting()}, ${name}` : timeGreeting();
@@ -771,19 +839,18 @@ function renderMessages(docs) {
     return;
   }
 
-  docs.forEach((docSnap, i) => {
-    const msg       = docSnap.data();
+  list.forEach((msg, i) => {
     const isOwn     = msg.role === "user";
-    const prevRole  = i > 0 ? docs[i - 1].data().role : null;
-    const nextRole  = i < docs.length - 1 ? docs[i + 1].data().role : null;
+    const prevRole  = i > 0 ? list[i - 1].role : null;
+    const nextRole  = i < list.length - 1 ? list[i + 1].role : null;
     const grouped   = prevRole === msg.role;
     const groupTail = nextRole !== msg.role;
 
     const div = document.createElement("div");
-    div.dataset.id = docSnap.id;
+    div.dataset.id = msg._id;
     div.className = ["message", isOwn ? "self" : "other",
       grouped ? "grouped" : "", groupTail ? "group-tail" : ""].filter(Boolean).join(" ");
-    if (alreadyRendered.has(docSnap.id)) div.style.animation = "none";
+    if (alreadyRendered.has(msg._id)) div.style.animation = "none";
 
     const textDiv = document.createElement("div");
     textDiv.className = "message-text";
@@ -849,7 +916,7 @@ function renderMessages(docs) {
           const newText = editArea.value.trim();
           if (!newText) return;
           if (newText === (msg.content || "").trim()) { cancel(); return; }
-          editAndResubmit(docSnap.id, newText);   // re-renders on snapshot
+          editAndResubmit(msg._id, newText);   // re-renders on snapshot
         };
         cancelBtn.onclick = cancel;
         saveBtn.onclick = save;
@@ -868,7 +935,7 @@ function renderMessages(docs) {
         div.classList.add("wobbly-strong");
         setTimeout(() => {
           div.classList.remove("wobbly-strong");
-          setTimeout(() => { deleteId = docSnap.id; deleteModal.style.display = "flex"; }, 50);
+          setTimeout(() => { deleteId = msg._id; deleteModal.style.display = "flex"; }, 50);
         }, 900);
       };
 
@@ -895,7 +962,7 @@ function renderMessages(docs) {
       regenBtn.className = "msg-action-btn";
       regenBtn.title = "Regenerate response";
       regenBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.7L1 10"/></svg>`;
-      regenBtn.onclick = () => regenerateMessage(docSnap.id);
+      regenBtn.onclick = () => regenerateMessage(msg._id);
 
       const cpBtn = document.createElement("button");
       cpBtn.className = "msg-action-btn";
@@ -937,6 +1004,14 @@ async function regenerateMessage(docId) {
   if (msgIndex === -1) return;
 
   const history = currentMessages.slice(0, msgIndex).map(m => ({ role: m.role, content: m.content }));
+
+  if (tempMode) {
+    currentMessages.splice(msgIndex);   // drop this reply (and anything after)
+    renderMessages(currentMessages);
+    await generateTempReply(history);
+    return;
+  }
+
   const targetChatId = currentChatId;
 
   await deleteDoc(doc(db, "users", currentUser.uid, "messages", docId));
@@ -967,6 +1042,14 @@ async function editAndResubmit(docId, newText) {
   if (isResponding || !currentUser) return;
   const idx = currentMessages.findIndex(m => m._id === docId);
   if (idx === -1) return;
+
+  if (tempMode) {
+    currentMessages[idx].content = newText;
+    currentMessages.splice(idx + 1);    // truncate everything after the edit
+    renderMessages(currentMessages);
+    await generateTempReply(currentMessages.map(m => ({ role: m.role, content: m.content })));
+    return;
+  }
 
   const targetChatId = currentChatId;
   const history = currentMessages.slice(0, idx).map(m => ({ role: m.role, content: m.content }));
@@ -1016,7 +1099,7 @@ function startMsgListener() {
   );
 
   msgUnsubscribe = onSnapshot(q, snapshot => {
-    if (chatId !== currentChatId) return; // ignore a stale listener
+    if (chatId !== currentChatId || tempMode) return; // ignore stale / temp-chat
 
     deleteModal.style.display = "none";
     deleteId = null;
@@ -1027,8 +1110,8 @@ function startMsgListener() {
     currentMessages = docs.map(d => ({ ...d.data(), _id: d.id }));
 
     const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
-    renderMessages(docs);
-    if (nearBottom || docs.length <= 1) scrollToBottom();
+    renderMessages(currentMessages);
+    if (nearBottom || currentMessages.length <= 1) scrollToBottom();
   });
 }
 
@@ -1053,6 +1136,8 @@ onAuthStateChanged(auth, user => {
   } else {
     cancelGeneration();
     stopPlaceholders();
+    tempMode = false;
+    appEl.classList.remove("temp-mode");
     if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
     currentChatId     = null;
     currentMessages   = [];
@@ -1082,6 +1167,11 @@ resetBtn.onclick = () => {
   if (window.innerWidth < 900) closeSidebar();
 };
 
+const tempChatBtn = document.getElementById("tempChatBtn");
+if (tempChatBtn) tempChatBtn.onclick = toggleTempChat;
+const siTempBtn = document.getElementById("si-temp");
+if (siTempBtn) siTempBtn.onclick = toggleTempChat;
+
 // ── Ephemeral error bubble ────────────────────────────────
 function showEphemeralError(msg, onRetry) {
   const div = document.createElement("div");
@@ -1103,7 +1193,8 @@ function showEphemeralError(msg, onRetry) {
 
 // ── Send message ──────────────────────────────────────────
 async function sendMessage() {
-  if (!currentUser || !currentChatId || isResponding) return;
+  if (!currentUser || isResponding) return;
+  if (!currentChatId && !tempMode) return;
   const text = inputEl.value.trim();
   if (!text && !pendingAttachment) return;
 
@@ -1117,6 +1208,12 @@ async function sendMessage() {
   pendingAttachment = null;
   filePreview.style.display = "none";
 
+  const userContent = attachment
+    ? `${text}${text ? "\n" : ""}[Attached: ${attachment.name}]`
+    : text;
+
+  if (tempMode) { await sendTempMessage(userContent, attachment); return; }
+
   // Snapshot the context BEFORE writing the new message so it isn't duplicated
   // when the Firestore listener updates currentMessages.
   const priorHistory = currentMessages
@@ -1127,9 +1224,6 @@ async function sendMessage() {
 
   const targetChatId = currentChatId;   // keep the reply in this chat even if the user switches
   const messagesRef = collection(db, "users", currentUser.uid, "messages");
-  const userContent = attachment
-    ? `${text}${text ? "\n" : ""}[Attached: ${attachment.name}]`
-    : text;
 
   try {
     await addDoc(messagesRef, {
@@ -1432,8 +1526,14 @@ async function getAIResponse(messages, attachment = null) {
 // ── Delete message handlers ───────────────────────────────
 document.getElementById("cancelDelete").onclick = () => { deleteModal.style.display = "none"; deleteId = null; };
 document.getElementById("confirmDelete").onclick = async () => {
-  if (deleteId && currentUser)
-    await deleteDoc(doc(db, "users", currentUser.uid, "messages", deleteId));
+  if (deleteId) {
+    if (tempMode) {
+      const i = currentMessages.findIndex(m => m._id === deleteId);
+      if (i !== -1) { currentMessages.splice(i, 1); renderMessages(currentMessages); }
+    } else if (currentUser) {
+      await deleteDoc(doc(db, "users", currentUser.uid, "messages", deleteId));
+    }
+  }
   deleteModal.style.display = "none";
   deleteId = null;
 };

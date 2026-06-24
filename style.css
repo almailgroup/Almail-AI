@@ -2114,3 +2114,25 @@ a:focus-visible,
   font-size: 1rem;
   font-weight: 600;
 }
+
+/* ── Temporary chat ────────────────────────────────────────── */
+.temp-banner {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  background: var(--glass-1);
+  border-bottom: 1px dashed var(--border-mid);
+  flex-shrink: 0;
+}
+.temp-mode .temp-banner { display: flex; }
+.temp-banner svg { flex-shrink: 0; opacity: 0.8; }
+
+/* Active state on the temporary-chat toggles */
+.temp-mode #tempChatBtn,
+.temp-mode #si-temp {
+  background: var(--glass-3);
+  color: var(--text);
+}
