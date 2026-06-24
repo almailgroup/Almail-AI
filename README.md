@@ -9,24 +9,30 @@ themes, a collapsible multi-chat sidebar, and streaming replies.
 ## Features
 
 - 💬 **Streaming replies** — answers stream in token-by-token, with a **Stop** button
-- 🗂️ **Multi-chat sidebar** — create, rename, pin, and delete conversations
-- 🎨 **Liquid-glass UI** — dark / light themes, responsive desktop + mobile, swipe gestures
-- ✨ **Welcome suggestions** — prompt chips to get started fast
-- 🧠 **Rich Markdown** — headings, lists, tables, links, and **syntax-highlighted** code
-- 📋 **Copy & regenerate** — copy any message or code block; regenerate AI replies
-- ✏️ **Edit & delete** your own messages
-- 📎 **Attachments** — attach text files for the assistant to read
+- 🗂️ **Multi-chat sidebar** — create, rename, pin, search, export, and delete chats
+- 👻 **Temporary chat** — an in-memory chat that's never saved or shown in history
+- 🎛️ **Personalization** — custom instructions + creativity (temperature) level
+- 🎤 **Voice input** & 🔊 **read-aloud** replies (Web Speech APIs)
+- ⌨️ **Keyboard shortcuts** with a help overlay (`?`)
+- 🎨 **Liquid-glass UI** — dark / light themes, responsive, swipe gestures, ambient orbs
+- ✨ **First-run experience** — splash screen, welcome tour, personalized greeting
+- 🧠 **Rich Markdown** — tables, lists, links, and **syntax-highlighted** code
+- 📋 **Copy / regenerate / edit & resubmit** messages
+- 📎 **Attachments** — text files (read into context), images, drag-drop & paste
+- 📡 **Offline detection** + **retry** on failed replies
 - 🛡️ **Sanitized output** (DOMPurify) to prevent HTML/script injection
 - ☁️ **Synced history** — messages persist per-user in Firestore
+- 📱 **Installable** (PWA web manifest)
 
 ## Files
 
 ```
-index.html     # Markup + library includes
-style.css      # Theme tokens + all styling
-config.js      # AI key / model / persona (isolated)
-firebase.js    # Firebase init (Auth + Firestore)
-chat.js        # App logic: chats, auth, rendering, streaming
+index.html      # Markup + library includes
+style.css       # Theme tokens + all styling
+config.js       # AI key / model / persona (isolated)
+firebase.js     # Firebase init (Auth + Firestore)
+chat.js         # App logic: chats, auth, rendering, streaming
+manifest.json   # PWA manifest (installable)
 ```
 
 ## Running locally

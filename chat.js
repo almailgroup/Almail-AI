@@ -375,6 +375,16 @@ document.getElementById("settingsWhatsNew").onclick = () => {
   welcomeModal.style.display = "flex";
 };
 
+document.getElementById("settingsFeedbackBtn").onclick = () => {
+  settingsPopup.classList.remove("open");
+  window.location.href = "mailto:shelbysog@gmail.com?subject=" + encodeURIComponent("Almail AI feedback");
+};
+
+document.getElementById("settingsHelpBtn").onclick = () => {
+  settingsPopup.classList.remove("open");
+  shortcutsModal.style.display = "flex";   // defined later; available at click time
+};
+
 // ── Personalization modal ─────────────────────────────────
 const personalizeModal   = document.getElementById("personalizeModal");
 const customInstructions = document.getElementById("customInstructions");
@@ -571,22 +581,36 @@ if (chatSearch) {
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
 document.getElementById("attachFilesBtn").onclick = () => { attachPopup.classList.remove("open"); fileInput.click(); };
 
+const MAX_ATTACH_TEXT = 20000; // chars — keep prompts within a sane size
+const TEXT_FILE_RE = /\.(txt|md|markdown|csv|tsv|json|ya?ml|xml|html?|css|js|jsx|ts|tsx|py|java|c|cpp|cs|rb|go|rs|php|sh|sql|log)$/i;
+
+function showAttachmentPreview(name) {
+  filePreviewName.textContent = name;
+  filePreview.style.display = "flex";
+}
+
 async function handleAttachedFile(file) {
   if (!file || !currentUser) return;
+
   if (file.type.startsWith("image/")) {
     const reader = new FileReader();
     reader.onload = () => {
       pendingAttachment = { type: "image", data: reader.result.split(",")[1], mimeType: file.type, name: file.name };
-      filePreviewName.textContent = file.name;
-      filePreview.style.display = "flex";
+      showAttachmentPreview(file.name);
     };
     reader.readAsDataURL(file);
-  } else {
-    const text = await file.text();
-    pendingAttachment = { type: "text", content: text, name: file.name };
-    filePreviewName.textContent = file.name;
-    filePreview.style.display = "flex";
+    return;
   }
+
+  // Only read text-like files; binary (pdf/doc/…) can't be extracted client-side.
+  if (file.type.startsWith("text/") || TEXT_FILE_RE.test(file.name)) {
+    let text = await file.text();
+    if (text.length > MAX_ATTACH_TEXT) text = text.slice(0, MAX_ATTACH_TEXT) + "\n…(truncated)";
+    pendingAttachment = { type: "text", content: text, name: file.name };
+  } else {
+    pendingAttachment = { type: "note", name: file.name }; // filename referenced, content not read
+  }
+  showAttachmentPreview(file.name);
 }
 
 fileInput.onchange = () => {
