@@ -233,6 +233,46 @@ const filePreview     = document.getElementById("filePreview");
 const filePreviewName = document.getElementById("filePreviewName");
 const attachPopup     = document.getElementById("attachPopup");
 
+// ── Splash + first-visit welcome ──────────────────────────
+const splashEl     = document.getElementById("splash");
+const welcomeModal = document.getElementById("welcomeModal");
+const welcomeStart = document.getElementById("welcomeStart");
+const welcomeClose = document.getElementById("welcomeClose");
+
+const splashStart = Date.now();
+let splashDone = false;
+
+function hideSplash() {
+  if (splashDone) return;
+  splashDone = true;
+  const wait = Math.max(0, 850 - (Date.now() - splashStart)); // let the intro play
+  setTimeout(() => {
+    if (splashEl) {
+      splashEl.classList.add("hide");
+      setTimeout(() => splashEl.remove(), 550);
+    }
+    maybeShowWelcome();
+  }, wait);
+}
+setTimeout(hideSplash, 2600); // safety net if auth never resolves
+
+function maybeShowWelcome() {
+  let seen = false;
+  try { seen = !!localStorage.getItem("almail_welcomed"); } catch (e) { seen = true; }
+  if (!seen) welcomeModal.style.display = "flex";
+}
+function closeWelcome() {
+  try { localStorage.setItem("almail_welcomed", "1"); } catch (e) {}
+  welcomeModal.style.display = "none";
+}
+welcomeClose.onclick = closeWelcome;
+welcomeStart.onclick = () => {
+  closeWelcome();
+  if (!currentUser) openAuthModal();
+  else inputEl.focus();
+};
+welcomeModal.addEventListener("click", e => { if (e.target === welcomeModal) closeWelcome(); });
+
 // ── Sidebar ───────────────────────────────────────────────
 const sidebarToggle   = document.getElementById("sidebarToggle");
 const sidebarClose    = document.getElementById("sidebarClose");
@@ -572,11 +612,13 @@ function renderMessages(docs) {
 
   if (docs.length === 0) {
     const logoSrc = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
+    const name = friendlyName(currentUser);
+    const heading = name ? `${timeGreeting()}, ${name}` : timeGreeting();
     messagesEl.innerHTML = `
       <div class="empty-state">
         <img src="${logoSrc}" alt="Almail AI" class="empty-logo" />
-        <h2>How can I help you?</h2>
-        <p>Ask me anything — I'm ready to help.</p>
+        <h2>${heading}</h2>
+        <p>How can I help you today?</p>
         <div class="suggestions">
           <button class="chip" data-prompt="Explain a complex topic in simple terms">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.66 18h4.68M12 2a7 7 0 0 1 4 12.7c-.5.4-.8 1-.8 1.6V17H8.8v-.7c0-.6-.3-1.2-.8-1.6A7 7 0 0 1 12 2z"/></svg>
@@ -832,6 +874,7 @@ onAuthStateChanged(auth, user => {
     deleteModal.style.display  = "none";
     deleteId = null;
   }
+  hideSplash();
 });
 
 // ── New chat button ───────────────────────────────────────
@@ -1067,6 +1110,7 @@ document.addEventListener("keydown", e => {
   if (attachPopup.classList.contains("open"))   { attachPopup.classList.remove("open");   return; }
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
+  if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
   for (const m of [authModal, deleteModal, deleteChatModal]) {
     if (m.style.display === "flex") {
       m.style.display = "none";
@@ -1080,6 +1124,20 @@ document.addEventListener("keydown", e => {
 // ── Helpers ───────────────────────────────────────────────
 function tsMillis(ts) {
   return ts && ts.toMillis ? ts.toMillis() : Number.POSITIVE_INFINITY;
+}
+
+function timeGreeting() {
+  const h = new Date().getHours();
+  if (h < 5)  return "Good evening";
+  if (h < 12) return "Good morning";
+  if (h < 18) return "Good afternoon";
+  return "Good evening";
+}
+
+function friendlyName(user) {
+  if (!user || !user.email) return "";
+  const local = user.email.split("@")[0].split(/[._\-+]/)[0];
+  return local ? local.charAt(0).toUpperCase() + local.slice(1) : "";
 }
 
 function formatTime(ts) {
