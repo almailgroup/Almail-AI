@@ -1607,3 +1607,96 @@ footer {
 }
 .scroll-bottom-btn.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
 .scroll-bottom-btn:hover { background: var(--glass-4); transform: translateX(-50%) translateY(-2px); }
+
+/* ── UI polish ─────────────────────────────────────────────── */
+
+/* Text selection */
+::selection { background: rgba(255,255,255,0.24); color: #fff; }
+.light ::selection { background: rgba(20,20,40,0.15); color: #111; }
+
+/* Visible keyboard focus (mouse users unaffected) */
+button:focus-visible,
+a:focus-visible,
+.chip:focus-visible,
+.chat-item:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--border-strong);
+  outline-offset: 2px;
+}
+
+/* Send button "activates" once there's text to send */
+#sendBtn.has-text:not(.generating) {
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 2px 10px rgba(0,0,0,0.3);
+}
+#sendBtn.has-text:not(.generating):hover { transform: scale(1.07); filter: brightness(1.05); }
+
+/* Subtle interactivity cue on AI bubbles */
+.other:hover { border-color: var(--border-strong); }
+
+/* Empty-state logo */
+.empty-logo {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  object-fit: contain;
+  margin-bottom: 4px;
+  opacity: 0.96;
+  filter: drop-shadow(0 6px 18px rgba(0,0,0,0.35));
+  animation: floatLogo 4.5s ease-in-out infinite;
+}
+.light .empty-logo { filter: drop-shadow(0 6px 18px rgba(0,0,0,0.14)); }
+@keyframes floatLogo {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-7px); }
+}
+
+/* Sidebar chat-list scrollbar (match the message scrollbar) */
+.chat-list::-webkit-scrollbar { width: 3px; }
+.chat-list::-webkit-scrollbar-track { background: transparent; }
+.chat-list::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 20px; }
+.chat-list { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
+
+/* Richer Markdown: tables, rules, keyboard keys */
+.message table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 0.86em;
+}
+.message th, .message td {
+  border: 1px solid var(--border-mid);
+  padding: 7px 11px;
+  text-align: left;
+}
+.message th { background: var(--glass-2); font-weight: 600; }
+.message tbody tr:nth-child(even) td { background: var(--glass-1); }
+
+.message hr { border: none; border-top: 1px solid var(--border-mid); margin: 14px 0; }
+
+.message kbd {
+  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 0.8em;
+  background: var(--glass-3);
+  border: 1px solid var(--border-mid);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.message a:hover { opacity: 1; text-decoration-style: solid; }
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -344,7 +344,7 @@ function applyThemeUI() {
 applyThemeUI();
 
 function applyLogoTheme() {
-  document.querySelectorAll(".brand-logo").forEach(img => {
+  document.querySelectorAll(".brand-logo, .empty-logo").forEach(img => {
     img.src = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
   });
 }
@@ -369,7 +369,13 @@ function autoResize() {
   inputEl.style.lineHeight = inputEl.scrollHeight > 24 ? "1.5" : "24px";
   inputEl.style.overflowY = inputEl.scrollHeight >= 130 ? "auto" : "hidden";
 }
-inputEl.addEventListener("input", autoResize);
+
+// Light up the send button only when there's something to send.
+function updateSendState() {
+  sendBtn.classList.toggle("has-text", inputEl.value.trim().length > 0 && !isResponding);
+}
+
+inputEl.addEventListener("input", () => { autoResize(); updateSendState(); });
 
 // ── Attach popup ──────────────────────────────────────────
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
@@ -565,8 +571,10 @@ function renderMessages(docs) {
   messagesEl.innerHTML = "";
 
   if (docs.length === 0) {
+    const logoSrc = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
     messagesEl.innerHTML = `
       <div class="empty-state">
+        <img src="${logoSrc}" alt="Almail AI" class="empty-logo" />
         <h2>How can I help you?</h2>
         <p>Ask me anything — I'm ready to help.</p>
         <div class="suggestions">
@@ -910,6 +918,7 @@ function setResponding(on) {
   sendBtn.classList.toggle("generating", on);
   sendBtn.title = on ? "Stop generating" : "Send";
   if (!on) typingEl.classList.remove("active");
+  updateSendState();
 }
 
 function stopGenerating() {
