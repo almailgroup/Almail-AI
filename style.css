@@ -2000,3 +2000,117 @@ a:focus-visible,
   animation: caretBlink 0.9s steps(2, start) infinite;
 }
 @keyframes caretBlink { 50% { opacity: 0; } }
+
+/* ── Personalize modal ─────────────────────────────────────── */
+.personalize-box { max-width: 460px; text-align: left; padding: 36px 28px 26px; }
+.personalize-box h3 { font-size: 1.4rem; font-weight: 700; margin-bottom: 6px; text-align: left; color: var(--text); }
+.personalize-sub { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 20px; }
+
+.field-label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin: 0 2px 8px;
+}
+
+.personalize-textarea {
+  width: 100%;
+  min-height: 96px;
+  max-height: 220px;
+  resize: vertical;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-mid);
+  background: var(--glass-2);
+  box-shadow: var(--shadow-inset);
+  color: var(--text);
+  font-size: 0.92rem;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+  margin-bottom: 22px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.personalize-textarea::placeholder { color: var(--text-muted); }
+.personalize-textarea:focus { border-color: var(--border-strong); box-shadow: var(--shadow-inset), 0 0 0 3px rgba(255,255,255,0.06); }
+.light .personalize-textarea:focus { box-shadow: var(--shadow-inset), 0 0 0 3px rgba(0,0,0,0.05); }
+
+/* Segmented control */
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--glass-1);
+  border: 1px solid var(--border-mid);
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+.seg-btn {
+  flex: 1;
+  padding: 9px 6px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.seg-btn:hover { color: var(--text); }
+.seg-btn.active {
+  background: var(--msg-self-bg);
+  color: var(--msg-self-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.personalize-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.personalize-actions .btn-secondary,
+.personalize-actions .btn-primary { flex: 0 0 auto; padding: 11px 22px; }
+
+.btn-primary {
+  padding: 13px 20px;
+  border-radius: 50px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: var(--msg-self-bg);
+  color: var(--msg-self-text);
+  box-shadow: var(--shadow-inset), var(--shadow-md);
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.btn-primary:hover { transform: translateY(-1px); opacity: 0.94; }
+.btn-primary:active { transform: scale(0.98); }
+
+/* ── Drag-and-drop overlay ─────────────────────────────────── */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 4500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+.drop-overlay.show { display: flex; }
+.drop-overlay-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  padding: 44px 60px;
+  text-align: center;
+  color: var(--text);
+  background: var(--glass-2);
+  font-size: 1rem;
+  font-weight: 600;
+}

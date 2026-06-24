@@ -307,6 +307,48 @@ document.getElementById("settingsWhatsNew").onclick = () => {
   welcomeModal.style.display = "flex";
 };
 
+// ── Personalization modal ─────────────────────────────────
+const personalizeModal   = document.getElementById("personalizeModal");
+const customInstructions = document.getElementById("customInstructions");
+const creativitySeg      = document.getElementById("creativitySeg");
+
+function openPersonalize() {
+  settingsPopup.classList.remove("open");
+  const s = getUserSettings();
+  customInstructions.value = s.instructions;
+  let matched = false;
+  creativitySeg.querySelectorAll(".seg-btn").forEach(b => {
+    const on = parseFloat(b.dataset.temp) === s.temperature;
+    b.classList.toggle("active", on);
+    if (on) matched = true;
+  });
+  if (!matched) creativitySeg.querySelector('[data-temp="0.7"]').classList.add("active");
+  personalizeModal.style.display = "flex";
+  setTimeout(() => customInstructions.focus(), 50);
+}
+function closePersonalize() { personalizeModal.style.display = "none"; }
+
+document.getElementById("settingsPersonalize").onclick = openPersonalize;
+document.getElementById("personalizeClose").onclick = closePersonalize;
+document.getElementById("personalizeCancel").onclick = closePersonalize;
+personalizeModal.addEventListener("click", e => { if (e.target === personalizeModal) closePersonalize(); });
+
+creativitySeg.querySelectorAll(".seg-btn").forEach(btn => {
+  btn.onclick = () => {
+    creativitySeg.querySelectorAll(".seg-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  };
+});
+
+document.getElementById("personalizeSave").onclick = () => {
+  const active = creativitySeg.querySelector(".seg-btn.active");
+  saveUserSettings({
+    instructions: customInstructions.value.trim(),
+    temperature: active ? parseFloat(active.dataset.temp) : 0.7
+  });
+  closePersonalize();
+};
+
 // ── Sidebar ───────────────────────────────────────────────
 const sidebarToggle   = document.getElementById("sidebarToggle");
 const sidebarClose    = document.getElementById("sidebarClose");
@@ -461,10 +503,8 @@ if (chatSearch) {
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
 document.getElementById("attachFilesBtn").onclick = () => { attachPopup.classList.remove("open"); fileInput.click(); };
 
-fileInput.onchange = async () => {
-  const file = fileInput.files[0];
-  if (!file) return;
-  fileInput.value = "";
+async function handleAttachedFile(file) {
+  if (!file || !currentUser) return;
   if (file.type.startsWith("image/")) {
     const reader = new FileReader();
     reader.onload = () => {
@@ -479,8 +519,50 @@ fileInput.onchange = async () => {
     filePreviewName.textContent = file.name;
     filePreview.style.display = "flex";
   }
+}
+
+fileInput.onchange = () => {
+  const file = fileInput.files[0];
+  fileInput.value = "";
+  handleAttachedFile(file);
 };
 document.getElementById("fileRemoveBtn").onclick = () => { pendingAttachment = null; filePreview.style.display = "none"; };
+
+// ── Drag-and-drop & paste to attach ───────────────────────
+const dropOverlay = document.getElementById("dropOverlay");
+let dragDepth = 0;
+const dragHasFiles = (e) => e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files");
+
+window.addEventListener("dragenter", (e) => {
+  if (!currentUser || !dragHasFiles(e)) return;
+  dragDepth++;
+  dropOverlay.classList.add("show");
+});
+window.addEventListener("dragover", (e) => { if (dragHasFiles(e)) e.preventDefault(); });
+window.addEventListener("dragleave", () => {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (dragDepth === 0) dropOverlay.classList.remove("show");
+});
+window.addEventListener("drop", (e) => {
+  if (!dragHasFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  dropOverlay.classList.remove("show");
+  if (currentUser && e.dataTransfer.files[0]) handleAttachedFile(e.dataTransfer.files[0]);
+});
+
+inputEl.addEventListener("paste", (e) => {
+  if (!currentUser) return;
+  const items = e.clipboardData && e.clipboardData.items;
+  if (!items) return;
+  for (const it of items) {
+    if (it.kind === "file" && it.type.startsWith("image/")) {
+      const file = it.getAsFile();
+      if (file) { e.preventDefault(); handleAttachedFile(file); }
+      break;
+    }
+  }
+});
 
 // ── Global popups close on outside click ──────────────────
 document.addEventListener("click", (e) => {
@@ -1220,10 +1302,26 @@ function startPlaceholders() {
 function stopPlaceholders() { if (phTimer) { clearInterval(phTimer); phTimer = null; } }
 
 // ── Mistral AI ────────────────────────────────────────────
+// User personalization (custom instructions + creativity).
+function getUserSettings() {
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem("almail_settings") || "{}"); } catch (e) {}
+  return {
+    instructions: typeof s.instructions === "string" ? s.instructions : "",
+    temperature: typeof s.temperature === "number" ? s.temperature : 0.7
+  };
+}
+function saveUserSettings(s) {
+  try { localStorage.setItem("almail_settings", JSON.stringify(s)); } catch (e) {}
+}
+
 // Build the OpenAI-style message array (with optional text-file context).
 function buildApiMessages(messages, attachment = null) {
+  const { instructions } = getUserSettings();
+  const systemContent = AI_CONFIG.systemPrompt +
+    (instructions ? `\n\nThe user has provided these custom instructions — follow them:\n${instructions}` : "");
   return [
-    { role: "system", content: AI_CONFIG.systemPrompt },
+    { role: "system", content: systemContent },
     ...messages.map((msg, i) => {
       const isLastUser = msg.role === "user" && i === messages.length - 1;
       const role = msg.role === "user" ? "user" : "assistant";
@@ -1278,7 +1376,7 @@ async function streamMistral(apiMessages, signal, onDelta) {
   const res = await fetch(AI_CONFIG.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AI_CONFIG.apiKey}` },
-    body: JSON.stringify({ model: AI_CONFIG.model, messages: apiMessages, stream: true }),
+    body: JSON.stringify({ model: AI_CONFIG.model, messages: apiMessages, stream: true, temperature: getUserSettings().temperature }),
     signal
   });
 
@@ -1319,7 +1417,7 @@ async function getAIResponse(messages, attachment = null) {
   const res = await fetch(AI_CONFIG.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AI_CONFIG.apiKey}` },
-    body: JSON.stringify({ model: AI_CONFIG.model, messages: buildApiMessages(messages, attachment) })
+    body: JSON.stringify({ model: AI_CONFIG.model, messages: buildApiMessages(messages, attachment), temperature: getUserSettings().temperature })
   });
 
   if (!res.ok) {
@@ -1357,7 +1455,7 @@ document.addEventListener("keydown", e => {
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
   if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
-  for (const m of [authModal, deleteModal, deleteChatModal, shortcutsModal]) {
+  for (const m of [authModal, deleteModal, deleteChatModal, shortcutsModal, personalizeModal]) {
     if (m.style.display === "flex") {
       m.style.display = "none";
       deleteId = null;
