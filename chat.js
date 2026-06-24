@@ -1,7 +1,7 @@
 import { db, auth } from "./firebase.js";
 import {
-  collection, addDoc, query, orderBy, onSnapshot,
-  serverTimestamp, deleteDoc, doc, updateDoc, getDocs
+  collection, addDoc, query, onSnapshot,
+  serverTimestamp, deleteDoc, doc, updateDoc, getDocs, where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import {
@@ -50,10 +50,11 @@ async function confirmDeleteChat() {
   // Remove this chat's messages from Firestore so they don't pile up as orphans.
   if (currentUser) {
     try {
-      const snap = await getDocs(collection(db, "users", currentUser.uid, "messages"));
-      await Promise.all(
-        snap.docs.filter(d => d.data().chatId === chatId).map(d => deleteDoc(d.ref))
-      );
+      const snap = await getDocs(query(
+        collection(db, "users", currentUser.uid, "messages"),
+        where("chatId", "==", chatId)
+      ));
+      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
     } catch (err) {
       console.error("Failed to delete chat messages:", err);
     }
@@ -175,6 +176,9 @@ function buildChatItem(chat) {
 }
 
 function switchToChat(chatId) {
+  // Leaving a chat mid-generation: stop the stream so the reply doesn't bleed
+  // into the new chat. (Re-selecting the current chat must NOT cancel it.)
+  if (chatId !== currentChatId) cancelGeneration();
   currentChatId = chatId;
   localStorage.setItem("currentChatId", chatId);
   document.querySelectorAll(".chat-item").forEach(el =>
@@ -182,6 +186,13 @@ function switchToChat(chatId) {
   );
   if (window.innerWidth < 900) closeSidebar();
   startMsgListener();
+}
+
+// Abort an in-flight AI stream and clear its transient bubble.
+function cancelGeneration() {
+  if (abortController) { try { abortController.abort(); } catch (_) {} }
+  streaming = null;
+  document.getElementById("streamingMsg")?.remove();
 }
 
 function initChats() {
@@ -415,16 +426,25 @@ async function handleAuth(isRegister = false) {
   const email = emailInput.value.trim(), password = passInput.value.trim();
   if (!email || !password) { errorEl.textContent = "Please fill in all fields"; return; }
   errorEl.textContent = "";
+  const btn = isRegister ? registerBtn : loginBtn;
+  btn.disabled = true;
   try {
     if (isRegister) await createUserWithEmailAndPassword(auth, email, password);
     else            await signInWithEmailAndPassword(auth, email, password);
   } catch (err) {
-    let msg = err.message;
-    if (msg.includes("wrong-password") || msg.includes("invalid-credential")) msg = "Incorrect email or password";
-    else if (msg.includes("user-not-found"))       msg = "No account with this email";
-    else if (msg.includes("email-already-in-use")) msg = "Email already registered";
-    else if (msg.includes("weak-password"))        msg = "Password must be at least 6 characters";
-    errorEl.textContent = msg;
+    const map = {
+      "auth/invalid-email": "That doesn't look like a valid email.",
+      "auth/user-not-found": "No account with this email.",
+      "auth/wrong-password": "Incorrect email or password.",
+      "auth/invalid-credential": "Incorrect email or password.",
+      "auth/email-already-in-use": "This email is already registered.",
+      "auth/weak-password": "Password must be at least 6 characters.",
+      "auth/too-many-requests": "Too many attempts. Please wait a moment.",
+      "auth/network-request-failed": "Network error. Check your connection."
+    };
+    errorEl.textContent = map[err.code] || "Something went wrong. Please try again.";
+  } finally {
+    btn.disabled = false;
   }
 }
 loginBtn.onclick    = () => handleAuth(false);
@@ -492,6 +512,13 @@ function isNearBottom() {
 function scrollToBottom(smooth = true) {
   messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: smooth ? "smooth" : "auto" });
 }
+
+// Floating "jump to latest" button — visible only when scrolled up.
+const scrollBottomBtn = document.getElementById("scrollBottomBtn");
+messagesEl.addEventListener("scroll", () => {
+  scrollBottomBtn.classList.toggle("visible", !isNearBottom());
+});
+scrollBottomBtn.onclick = () => scrollToBottom(true);
 
 // ── Streaming reply bubble ────────────────────────────────
 // Renders/updates the transient assistant bubble while a reply streams in.
@@ -705,6 +732,7 @@ async function regenerateMessage(docId) {
   if (msgIndex === -1) return;
 
   const history = currentMessages.slice(0, msgIndex).map(m => ({ role: m.role, content: m.content }));
+  const targetChatId = currentChatId;
 
   await deleteDoc(doc(db, "users", currentUser.uid, "messages", docId));
 
@@ -714,7 +742,7 @@ async function regenerateMessage(docId) {
     if (aiReply && aiReply.trim()) {
       await addDoc(collection(db, "users", currentUser.uid, "messages"), {
         role: "assistant", content: aiReply,
-        chatId: currentChatId, timestamp: serverTimestamp()
+        chatId: targetChatId, timestamp: serverTimestamp()
       });
     } else {
       document.getElementById("streamingMsg")?.remove();
@@ -734,23 +762,28 @@ function startMsgListener() {
   if (!currentUser || !currentChatId) return;
   if (msgUnsubscribe) msgUnsubscribe();
 
+  // Only fetch THIS chat's messages (where on a single field needs no composite
+  // index); order client-side so a pending serverTimestamp sorts last.
+  const chatId = currentChatId;
   const q = query(
     collection(db, "users", currentUser.uid, "messages"),
-    orderBy("timestamp")
+    where("chatId", "==", chatId)
   );
 
   msgUnsubscribe = onSnapshot(q, snapshot => {
+    if (chatId !== currentChatId) return; // ignore a stale listener
+
     deleteModal.style.display = "none";
     deleteId = null;
 
-    const docs = snapshot.docs.filter(d => d.data().chatId === currentChatId);
+    const docs = snapshot.docs
+      .slice()
+      .sort((a, b) => tsMillis(a.data().timestamp) - tsMillis(b.data().timestamp));
     currentMessages = docs.map(d => ({ ...d.data(), _id: d.id }));
 
     const nearBottom = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight < 100;
     renderMessages(docs);
-    if (nearBottom || docs.length <= 1) {
-      messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
-    }
+    if (nearBottom || docs.length <= 1) scrollToBottom();
   });
 }
 
@@ -772,10 +805,14 @@ onAuthStateChanged(auth, user => {
     attachBtn.disabled         = false;
     initChats();
   } else {
+    cancelGeneration();
     if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
     currentChatId     = null;
     currentMessages   = [];
     isResponding      = false;
+    typingEl.classList.remove("active");
+    sendBtn.classList.remove("generating");
+    sendBtn.title              = "Send";
     openAuthBtn.style.display  = "flex";
     logoutBtn.style.display    = "none";
     inputEl.placeholder        = "Log in to start chatting…";
@@ -828,6 +865,7 @@ async function sendMessage() {
 
   setResponding(true);
 
+  const targetChatId = currentChatId;   // keep the reply in this chat even if the user switches
   const messagesRef = collection(db, "users", currentUser.uid, "messages");
   const userContent = attachment
     ? `${text}${text ? "\n" : ""}[Attached: ${attachment.name}]`
@@ -836,10 +874,10 @@ async function sendMessage() {
   try {
     await addDoc(messagesRef, {
       role: "user", content: userContent,
-      chatId: currentChatId, timestamp: serverTimestamp()
+      chatId: targetChatId, timestamp: serverTimestamp()
     });
 
-    setChatTitle(currentChatId, text.substring(0, 45) || attachment?.name || "New chat");
+    setChatTitle(targetChatId, text.substring(0, 45) || attachment?.name || "New chat");
     scrollToBottom();
 
     const history = [...priorHistory, { role: "user", content: userContent }];
@@ -848,7 +886,7 @@ async function sendMessage() {
     if (aiReply && aiReply.trim()) {
       await addDoc(messagesRef, {
         role: "assistant", content: aiReply,
-        chatId: currentChatId, timestamp: serverTimestamp()
+        chatId: targetChatId, timestamp: serverTimestamp()
       });
     } else {
       document.getElementById("streamingMsg")?.remove();
@@ -1013,7 +1051,28 @@ document.getElementById("cancelDeleteChat").onclick = () => {
 document.getElementById("confirmDeleteChat").onclick = confirmDeleteChat;
 deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModal) { deleteChatModal.style.display = "none"; pendingDeleteChatId = null; } });
 
+// ── Esc closes the topmost overlay ────────────────────────
+document.addEventListener("keydown", e => {
+  if (e.key !== "Escape") return;
+  if (settingsPopup.classList.contains("open")) { settingsPopup.classList.remove("open"); return; }
+  if (attachPopup.classList.contains("open"))   { attachPopup.classList.remove("open");   return; }
+  const openMenu = document.querySelector(".menu.open");
+  if (openMenu) { openMenu.classList.remove("open"); return; }
+  for (const m of [authModal, deleteModal, deleteChatModal]) {
+    if (m.style.display === "flex") {
+      m.style.display = "none";
+      deleteId = null;
+      pendingDeleteChatId = null;
+      return;
+    }
+  }
+});
+
 // ── Helpers ───────────────────────────────────────────────
+function tsMillis(ts) {
+  return ts && ts.toMillis ? ts.toMillis() : Number.POSITIVE_INFINITY;
+}
+
 function formatTime(ts) {
   if (!ts) return "";
   const date = ts.toDate ? ts.toDate() : new Date(ts);
