@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=56" />
+  <link rel="stylesheet" href="style.css?v=57" />
   <!-- Markdown + HTML sanitizer + syntax highlighting -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -37,6 +37,9 @@
     if (s && !s.classList.contains("hide")) { s.classList.add("hide"); setTimeout(function(){ s.remove(); }, 600); }
   }, 4000);
 </script>
+
+<!-- Ambient floating orbs (refracted by the glass panels) -->
+<div class="orbs" aria-hidden="true"><span></span><span></span><span></span></div>
 
 <div id="app" class="sidebar-open">
 
@@ -138,6 +141,12 @@
       </div>
     </div>
     <div class="settings-divider"></div>
+    <button class="settings-item" id="settingsWhatsNew">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z"/>
+      </svg>
+      <span>What's new</span>
+    </button>
     <button class="settings-item" id="settingsFeedbackBtn">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -319,7 +328,7 @@
 </div>
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="chat.js?v=59"></script>
+<script type="module" src="chat.js?v=60"></script>
 
 </body>
 </html>

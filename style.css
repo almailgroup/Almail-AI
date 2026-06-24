@@ -1826,3 +1826,44 @@ a:focus-visible,
   line-height: 1.4;
 }
 .wf-text strong { color: var(--text); font-weight: 600; font-size: 0.92rem; margin-bottom: 1px; }
+
+/* ── Ambient floating orbs ─────────────────────────────────── */
+.orbs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.orbs span {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(64px);
+  opacity: 0.55;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.11), transparent 70%);
+  will-change: transform;
+}
+.light .orbs span {
+  opacity: 0.7;
+  background: radial-gradient(circle at 50% 50%, rgba(120,124,160,0.16), transparent 70%);
+}
+.orbs span:nth-child(1) { width: 440px; height: 440px; top: -90px;  left: -70px;  animation: drift1 26s ease-in-out infinite alternate; }
+.orbs span:nth-child(2) { width: 380px; height: 380px; bottom: -110px; right: -50px; animation: drift2 31s ease-in-out infinite alternate; }
+.orbs span:nth-child(3) { width: 300px; height: 300px; top: 42%; left: 56%;          animation: drift3 36s ease-in-out infinite alternate; }
+
+@keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(70px, 48px) scale(1.16); } }
+@keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-56px, -34px) scale(1.12); } }
+@keyframes drift3 { from { transform: translate(0,0) scale(1); } to { transform: translate(-46px, 56px) scale(1.22); } }
+
+/* ── Typewriter greeting caret ─────────────────────────────── */
+.typing-caret::after {
+  content: "";
+  display: inline-block;
+  width: 2px;
+  height: 0.95em;
+  margin-left: 4px;
+  vertical-align: -2px;
+  background: currentColor;
+  animation: caretBlink 0.9s steps(2, start) infinite;
+}
+@keyframes caretBlink { 50% { opacity: 0; } }

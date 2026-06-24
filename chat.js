@@ -273,6 +273,12 @@ welcomeStart.onclick = () => {
 };
 welcomeModal.addEventListener("click", e => { if (e.target === welcomeModal) closeWelcome(); });
 
+// Re-open the welcome tour from Settings → What's new
+document.getElementById("settingsWhatsNew").onclick = () => {
+  settingsPopup.classList.remove("open");
+  welcomeModal.style.display = "flex";
+};
+
 // ── Sidebar ───────────────────────────────────────────────
 const sidebarToggle   = document.getElementById("sidebarToggle");
 const sidebarClose    = document.getElementById("sidebarClose");
@@ -617,7 +623,7 @@ function renderMessages(docs) {
     messagesEl.innerHTML = `
       <div class="empty-state">
         <img src="${logoSrc}" alt="Almail AI" class="empty-logo" />
-        <h2>${heading}</h2>
+        <h2 id="greetingText"></h2>
         <p>How can I help you today?</p>
         <div class="suggestions">
           <button class="chip" data-prompt="Explain a complex topic in simple terms">
@@ -645,6 +651,7 @@ function renderMessages(docs) {
         sendMessage();
       };
     });
+    typeText(document.getElementById("greetingText"), heading);
     return;
   }
 
@@ -1138,6 +1145,28 @@ function friendlyName(user) {
   if (!user || !user.email) return "";
   const local = user.email.split("@")[0].split(/[._\-+]/)[0];
   return local ? local.charAt(0).toUpperCase() + local.slice(1) : "";
+}
+
+// Typewriter effect (used for the home greeting). A token cancels any earlier
+// run if the empty state re-renders, and reduced-motion gets the text instantly.
+let typeToken = 0;
+function typeText(el, text) {
+  if (!el) return;
+  const myToken = ++typeToken;
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduce) { el.textContent = text; return; }
+  el.textContent = "";
+  el.classList.add("typing-caret");
+  let i = 0;
+  (function tick() {
+    if (myToken !== typeToken || !el.isConnected) return;
+    if (i <= text.length) {
+      el.textContent = text.slice(0, i++);
+      setTimeout(tick, 42);
+    } else {
+      setTimeout(() => { if (myToken === typeToken) el.classList.remove("typing-caret"); }, 700);
+    }
+  })();
 }
 
 function formatTime(ts) {
