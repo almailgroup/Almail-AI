@@ -193,6 +193,7 @@ function cancelGeneration() {
   if (abortController) { try { abortController.abort(); } catch (_) {} }
   streaming = null;
   document.getElementById("streamingMsg")?.remove();
+  stopSpeaking();
 }
 
 function initChats() {
@@ -773,7 +774,19 @@ function renderMessages(docs) {
         }, 1500);
       };
 
-      actions.append(regenBtn, cpBtn);
+      actions.append(regenBtn);
+
+      // Read-aloud (only where speech synthesis is available)
+      if (window.speechSynthesis) {
+        const speakBtn = document.createElement("button");
+        speakBtn.className = "msg-action-btn";
+        speakBtn.title = "Read aloud";
+        speakBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`;
+        speakBtn.onclick = () => toggleSpeak(msg.content || "", speakBtn);
+        actions.append(speakBtn);
+      }
+
+      actions.append(cpBtn);
       messagesEl.appendChild(actions);
     }
   });
@@ -856,13 +869,15 @@ onAuthStateChanged(auth, user => {
     closeAuthModal();
     openAuthBtn.style.display  = "none";
     logoutBtn.style.display    = "flex";
-    inputEl.placeholder        = "Ask anything…";
     inputEl.disabled           = false;
     sendBtn.disabled           = false;
     attachBtn.disabled         = false;
+    micBtn.disabled            = false;
+    startPlaceholders();
     initChats();
   } else {
     cancelGeneration();
+    stopPlaceholders();
     if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
     currentChatId     = null;
     currentMessages   = [];
@@ -876,6 +891,7 @@ onAuthStateChanged(auth, user => {
     inputEl.disabled           = true;
     sendBtn.disabled           = true;
     attachBtn.disabled         = true;
+    micBtn.disabled            = true;
     messagesEl.innerHTML       = "";
     document.getElementById("chatList").innerHTML = "";
     deleteModal.style.display  = "none";
@@ -892,11 +908,20 @@ resetBtn.onclick = () => {
 };
 
 // ── Ephemeral error bubble ────────────────────────────────
-function showEphemeralError(msg) {
+function showEphemeralError(msg, onRetry) {
   const div = document.createElement("div");
   div.className = "message other error-msg group-tail";
   div.style.marginTop = "12px";
-  div.textContent = msg;
+  const span = document.createElement("span");
+  span.textContent = msg;
+  div.appendChild(span);
+  if (onRetry) {
+    const btn = document.createElement("button");
+    btn.className = "retry-btn";
+    btn.textContent = "Retry";
+    btn.onclick = () => { div.remove(); onRetry(); };
+    div.appendChild(btn);
+  }
   messagesEl.appendChild(div);
   messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
 }
@@ -906,6 +931,8 @@ async function sendMessage() {
   if (!currentUser || !currentChatId || isResponding) return;
   const text = inputEl.value.trim();
   if (!text && !pendingAttachment) return;
+
+  if (!navigator.onLine) { updateOnline(); return; } // keep the user's text; banner shows why
 
   const attachment  = pendingAttachment;
   inputEl.value     = "";
@@ -952,7 +979,7 @@ async function sendMessage() {
   } catch (err) {
     console.error("AI error:", err);
     document.getElementById("streamingMsg")?.remove();
-    showEphemeralError("Sorry, something went wrong. Please try again.");
+    showEphemeralError("Sorry, something went wrong.", () => retryReply(targetChatId));
   } finally {
     setResponding(false);
     inputEl.focus();
@@ -979,6 +1006,125 @@ sendBtn.onclick = () => { if (isResponding) stopGenerating(); else sendMessage()
 inputEl.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
 });
+
+// ── Voice input (speech-to-text) ──────────────────────────
+const micBtn = document.getElementById("micBtn");
+(function () {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR || !micBtn) { if (micBtn) micBtn.style.display = "none"; return; }
+  const rec = new SR();
+  rec.continuous = false;
+  rec.interimResults = true;
+  rec.lang = navigator.language || "en-US";
+  let listening = false, baseText = "";
+
+  rec.onresult = (e) => {
+    let interim = "", final = "";
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const tr = e.results[i][0].transcript;
+      if (e.results[i].isFinal) final += tr; else interim += tr;
+    }
+    inputEl.value = [baseText, final, interim].filter(Boolean).join(" ").replace(/\s+/g, " ");
+    autoResize(); updateSendState();
+  };
+  const stop = () => { listening = false; micBtn.classList.remove("listening"); };
+  rec.onend = stop;
+  rec.onerror = stop;
+
+  micBtn.onclick = () => {
+    if (!currentUser) return;
+    if (listening) { rec.stop(); return; }
+    baseText = inputEl.value.trim();
+    try { rec.start(); listening = true; micBtn.classList.add("listening"); inputEl.focus(); } catch (_) {}
+  };
+})();
+
+// ── Read aloud (text-to-speech) ───────────────────────────
+let speakingBtn = null;
+function toggleSpeak(content, btn) {
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+  if (speakingBtn === btn) { synth.cancel(); return; }   // tapping the active one stops
+  synth.cancel();
+  const tmp = document.createElement("div");
+  tmp.innerHTML = renderMarkdown(content);
+  const text = (tmp.textContent || "").trim();
+  if (!text) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.onend = u.onerror = () => { btn.classList.remove("speaking"); if (speakingBtn === btn) speakingBtn = null; };
+  speakingBtn = btn;
+  btn.classList.add("speaking");
+  synth.speak(u);
+}
+function stopSpeaking() { if (window.speechSynthesis) window.speechSynthesis.cancel(); speakingBtn = null; }
+
+// ── Retry a failed reply ──────────────────────────────────
+async function retryReply(targetChatId) {
+  if (isResponding || !currentUser) return;
+  setResponding(true);
+  try {
+    const history = currentMessages.map(m => ({ role: m.role, content: m.content }));
+    const aiReply = await streamAssistantReply(history, null);
+    if (aiReply && aiReply.trim()) {
+      await addDoc(collection(db, "users", currentUser.uid, "messages"), {
+        role: "assistant", content: aiReply, chatId: targetChatId, timestamp: serverTimestamp()
+      });
+    } else {
+      document.getElementById("streamingMsg")?.remove();
+    }
+  } catch (err) {
+    console.error("Retry error:", err);
+    document.getElementById("streamingMsg")?.remove();
+    showEphemeralError("Still couldn't get a response. Please try again.", () => retryReply(targetChatId));
+  } finally {
+    setResponding(false);
+    inputEl.focus();
+  }
+}
+
+// ── Keyboard shortcuts ────────────────────────────────────
+const shortcutsModal = document.getElementById("shortcutsModal");
+function toggleShortcuts() {
+  shortcutsModal.style.display = shortcutsModal.style.display === "flex" ? "none" : "flex";
+}
+document.getElementById("shortcutsClose").onclick = () => { shortcutsModal.style.display = "none"; };
+shortcutsModal.addEventListener("click", e => { if (e.target === shortcutsModal) shortcutsModal.style.display = "none"; });
+
+document.addEventListener("keydown", (e) => {
+  const mod = e.metaKey || e.ctrlKey;
+  const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
+  const inField = tag === "input" || tag === "textarea" || (document.activeElement && document.activeElement.isContentEditable);
+
+  if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); if (currentUser) resetBtn.click(); return; }
+  if (mod && e.key.toLowerCase() === "b") { e.preventDefault(); appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar(); return; }
+  if ((mod && e.key === "/") || (e.key === "?" && !inField)) { e.preventDefault(); toggleShortcuts(); return; }
+  if (e.key === "/" && !mod && !inField) { e.preventDefault(); inputEl.focus(); return; }
+});
+
+// ── Offline detection ─────────────────────────────────────
+const offlineBanner = document.getElementById("offlineBanner");
+function updateOnline() { offlineBanner.classList.toggle("show", !navigator.onLine); }
+window.addEventListener("online", updateOnline);
+window.addEventListener("offline", updateOnline);
+updateOnline();
+
+// ── Rotating composer placeholder ─────────────────────────
+const PLACEHOLDERS = [
+  "Ask anything…", "Summarize an article…", "Write me a poem…",
+  "Explain a tricky concept…", "Draft a polite email…",
+  "Help me debug some code…", "Brainstorm a few ideas…"
+];
+let phIdx = 0, phTimer = null;
+function startPlaceholders() {
+  stopPlaceholders();
+  inputEl.placeholder = PLACEHOLDERS[0];
+  phTimer = setInterval(() => {
+    if (document.activeElement === inputEl || inputEl.value || isResponding) return;
+    phIdx = (phIdx + 1) % PLACEHOLDERS.length;
+    inputEl.placeholder = PLACEHOLDERS[phIdx];
+  }, 3500);
+}
+function stopPlaceholders() { if (phTimer) { clearInterval(phTimer); phTimer = null; } }
 
 // ── Mistral AI ────────────────────────────────────────────
 // Build the OpenAI-style message array (with optional text-file context).
@@ -1118,7 +1264,7 @@ document.addEventListener("keydown", e => {
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
   if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
-  for (const m of [authModal, deleteModal, deleteChatModal]) {
+  for (const m of [authModal, deleteModal, deleteChatModal, shortcutsModal]) {
     if (m.style.display === "flex") {
       m.style.display = "none";
       deleteId = null;

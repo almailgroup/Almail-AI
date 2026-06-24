@@ -1855,6 +1855,95 @@ a:focus-visible,
 @keyframes drift2 { from { transform: translate(0,0) scale(1); } to { transform: translate(-56px, -34px) scale(1.12); } }
 @keyframes drift3 { from { transform: translate(0,0) scale(1); } to { transform: translate(-46px, 56px) scale(1.22); } }
 
+/* ── Mic (voice input) ─────────────────────────────────────── */
+.mic-btn {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.14s, color 0.14s;
+}
+.mic-btn:hover:not(:disabled) { background: var(--glass-3); color: var(--text); }
+.mic-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.mic-btn.listening {
+  background: var(--text);
+  color: var(--bg);
+  animation: micPulse 1.3s ease-in-out infinite;
+}
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(127,127,127,0.4); }
+  50%      { box-shadow: 0 0 0 7px rgba(127,127,127,0); }
+}
+
+/* Read-aloud active state */
+.msg-action-btn.speaking { color: var(--text); background: var(--surface-hover); border-color: var(--border); }
+
+/* ── Retry button on error bubbles ─────────────────────────── */
+.error-msg { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.retry-btn {
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--text);
+  background: var(--glass-3);
+  border: 1px solid var(--border-mid);
+  border-radius: 8px;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s;
+}
+.retry-btn:hover { background: var(--glass-4); border-color: var(--border-strong); }
+
+/* ── Offline banner ────────────────────────────────────────── */
+.offline-banner {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 4000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 9px 16px;
+  background: rgba(248,113,113,0.16);
+  color: var(--text);
+  border-bottom: 1px solid rgba(248,113,113,0.32);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  font-size: 0.84rem;
+  font-weight: 500;
+  transform: translateY(-100%);
+  transition: transform 0.3s cubic-bezier(0.2, 0, 0, 1);
+}
+.offline-banner.show { transform: translateY(0); }
+
+/* ── Keyboard shortcuts modal ──────────────────────────────── */
+.shortcuts-box { max-width: 400px; text-align: left; padding: 36px 28px 26px; }
+.shortcuts-box h3 { font-size: 1.3rem; font-weight: 700; margin-bottom: 18px; text-align: left; color: var(--text); }
+.shortcuts-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin: 0 0 16px; }
+.shortcuts-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.9rem; color: var(--text-muted); }
+.shortcuts-list .keys { display: flex; gap: 5px; }
+.shortcuts-list kbd {
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--glass-2);
+  border: 1px solid var(--border-mid);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  padding: 3px 8px;
+  color: var(--text);
+  white-space: nowrap;
+}
+.shortcuts-hint { font-size: 0.78rem; color: var(--text-muted); text-align: left; opacity: 0.8; }
+
 /* ── Typewriter greeting caret ─────────────────────────────── */
 .typing-caret::after {
   content: "";
