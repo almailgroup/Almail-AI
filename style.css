@@ -446,12 +446,16 @@ body::before {
 }
 
 .chat-item-wrap {
-  position: relative;
   display: flex;
   align-items: center;
+  border-radius: var(--radius-sm);
+  transition: background 0.13s;
 }
+.chat-item-wrap:hover { background: var(--glass-3); }
 
 .chat-item {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -463,9 +467,8 @@ body::before {
   border: none;
   cursor: pointer;
   text-align: left;
-  width: 100%;
   font-family: inherit;
-  transition: background 0.13s, color 0.13s;
+  transition: color 0.13s;
   overflow: hidden;
 }
 
@@ -476,23 +479,17 @@ body::before {
   flex: 1;
 }
 
-.chat-item:hover { background: var(--glass-3); color: var(--text); }
+.chat-item-wrap:hover .chat-item { color: var(--text); }
 .chat-item.active { background: var(--glass-3); color: var(--text); font-weight: 500; }
 
 .chat-item-actions {
-  position: absolute;
-  right: 4px;
-  display: flex;
+  display: none;
   align-items: center;
   gap: 1px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.13s;
-  background: linear-gradient(to right, transparent, var(--glass-3) 30%);
-  padding: 0 2px 0 16px;
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  flex-shrink: 0;
+  padding-right: 6px;
 }
-.chat-item-wrap:hover .chat-item-actions { opacity: 1; pointer-events: all; }
+.chat-item-wrap:hover .chat-item-actions { display: flex; }
 
 .chat-action-btn {
   width: 22px;
@@ -2134,29 +2131,33 @@ a:focus-visible,
 
 .project-list { display: flex; flex-direction: column; gap: 1px; }
 .project-wrap { display: flex; flex-direction: column; }
-.project-row { position: relative; display: flex; align-items: center; }
+.project-row {
+  display: flex; align-items: center;
+  border-radius: var(--radius-sm);
+  transition: background 0.13s;
+}
+.project-row:hover { background: var(--glass-3); }
 
 .project-item {
+  flex: 1; min-width: 0;
   display: flex; align-items: center; gap: 7px;
   padding: 8px 12px; border-radius: var(--radius-sm);
   font-size: 13px; color: var(--text-muted);
   background: transparent; border: none; cursor: pointer;
-  text-align: left; width: 100%; font-family: inherit;
-  transition: background 0.13s, color 0.13s; overflow: hidden;
+  text-align: left; font-family: inherit;
+  transition: color 0.13s; overflow: hidden;
 }
-.project-item:hover { background: var(--glass-3); color: var(--text); }
+.project-row:hover .project-item { color: var(--text); }
 .project-chevron { flex-shrink: 0; transition: transform 0.18s ease; }
 .project-wrap.expanded .project-chevron { transform: rotate(90deg); }
 .project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-weight: 500; }
 
 .project-actions {
-  position: absolute; right: 4px;
-  display: flex; align-items: center; gap: 1px;
-  opacity: 0; pointer-events: none; transition: opacity 0.13s;
-  background: linear-gradient(to right, transparent, var(--glass-3) 30%);
-  padding: 0 2px 0 16px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  display: none;
+  align-items: center; gap: 1px;
+  flex-shrink: 0; padding-right: 6px;
 }
-.project-row:hover .project-actions { opacity: 1; pointer-events: all; }
+.project-row:hover .project-actions { display: flex; }
 
 .project-chats {
   display: none; flex-direction: column; gap: 1px;
