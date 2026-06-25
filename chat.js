@@ -1557,8 +1557,7 @@ if (siTempBtn) siTempBtn.onclick = toggleTempChat;
 const newProjectBtn = document.getElementById("newProjectBtn");
 if (newProjectBtn) newProjectBtn.onclick = () => {
   if (!currentUser) return;
-  autoRenameProjectId = createProject();
-  renderChatList();
+  openProjectsView();
 };
 document.getElementById("cancelDeleteProject").onclick = () => {
   document.getElementById("deleteProjectModal").style.display = "none";
