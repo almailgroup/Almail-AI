@@ -101,6 +101,110 @@ function moveChatToProject(chatId, projectId) {
   renderChatList();
 }
 
+// ── Projects dashboard page ───────────────────────────────
+let pvTab = "all";
+let pvSearchQ = "";
+
+function openProjectsView() {
+  if (!currentUser) return;
+  appEl.classList.add("projects-page");
+  renderProjectsView();
+  if (window.innerWidth < 900) closeSidebar();
+}
+function closeProjectsView() { appEl.classList.remove("projects-page"); }
+function projectsViewOpen() { return appEl.classList.contains("projects-page"); }
+
+function renderProjectsView() {
+  const grid = document.getElementById("pvGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+
+  let projects = (pvTab === "shared") ? [] : loadProjects();
+  const q = pvSearchQ.trim().toLowerCase();
+  if (q) projects = projects.filter(p => (p.name || "").toLowerCase().includes(q));
+
+  if (!projects.length) {
+    grid.classList.add("empty");
+    const empty = document.createElement("div");
+    empty.className = "pv-empty";
+    empty.innerHTML =
+      `<div class="pv-empty-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>`;
+    const t = document.createElement("div");
+    t.className = "pv-empty-text";
+    t.textContent = pvTab === "shared" ? "Nothing shared with you" : (q ? "No projects found" : "No projects yet");
+    empty.appendChild(t);
+    grid.appendChild(empty);
+    return;
+  }
+
+  grid.classList.remove("empty");
+  const allChats = loadChats();
+  projects.forEach(p => grid.appendChild(buildProjectCard(p, allChats)));
+}
+
+function buildProjectCard(project, allChats) {
+  const wrap = document.createElement("div");
+  wrap.className = "pv-card-wrap";
+
+  const card = document.createElement("button");
+  card.className = "pv-card";
+  const icon = document.createElement("div");
+  icon.className = "pv-card-icon";
+  icon.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+  const name = document.createElement("div");
+  name.className = "pv-card-name";
+  name.textContent = project.name;
+  const count = allChats.filter(c => c.projectId === project.id).length;
+  const meta = document.createElement("div");
+  meta.className = "pv-card-meta";
+  meta.textContent = count === 1 ? "1 chat" : `${count} chats`;
+  card.append(icon, name, meta);
+  card.onclick = () => openProjectFromCard(project.id);
+
+  const actions = document.createElement("div");
+  actions.className = "pv-card-actions";
+  const renBtn = document.createElement("button");
+  renBtn.className = "chat-action-btn";
+  renBtn.title = "Rename";
+  renBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  renBtn.onclick = (e) => { e.stopPropagation(); startProjectCardRename(project, name); };
+  const delBtn = document.createElement("button");
+  delBtn.className = "chat-action-btn delete";
+  delBtn.title = "Delete";
+  delBtn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteProject(project.id); };
+  actions.append(renBtn, delBtn);
+
+  wrap.append(card, actions);
+  return wrap;
+}
+
+function startProjectCardRename(project, nameEl) {
+  const input = document.createElement("input");
+  input.className = "pv-card-rename";
+  input.value = project.name;
+  input.onclick = (e) => e.stopPropagation();
+  nameEl.replaceWith(input);
+  input.focus();
+  input.select();
+  const save = () => renameProject(project.id, input.value || project.name);
+  input.addEventListener("keydown", ev => {
+    if (ev.key === "Enter") { ev.preventDefault(); save(); }
+    if (ev.key === "Escape") renderProjectsView();
+  });
+  input.addEventListener("blur", save);
+}
+
+function openProjectFromCard(projectId) {
+  closeProjectsView();
+  const projects = loadProjects();
+  const p = projects.find(x => x.id === projectId);
+  if (p && p.collapsed) { p.collapsed = false; saveProjects(projects); }
+  const chats = loadChats().filter(c => c.projectId === projectId);
+  renderChatList();
+  switchToChat(chats.length ? chats[0].id : createChat(projectId));
+}
+
 function deleteChat(chatId) {
   pendingDeleteChatId = chatId;
   document.getElementById("deleteChatModal").style.display = "flex";
@@ -207,6 +311,8 @@ function renderChatList() {
   }
 
   normal.forEach(chat => chatList.appendChild(buildChatItem(chat)));
+
+  if (projectsViewOpen()) renderProjectsView();
 }
 
 function renderProjects(allChats) {
@@ -432,6 +538,7 @@ function openMoveMenu(chatId, anchorBtn) {
 }
 
 function switchToChat(chatId) {
+  closeProjectsView();
   if (tempMode) { tempMode = false; appEl.classList.remove("temp-mode"); }
   // Leaving a chat mid-generation: stop the stream so the reply doesn't bleed
   // into the new chat. (Re-selecting the current chat must NOT cancel it.)
@@ -450,6 +557,7 @@ function localTs() { const t = Date.now(); return { toMillis: () => t, toDate: (
 
 function enterTempChat() {
   if (tempMode) return;
+  closeProjectsView();
   cancelGeneration();
   if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
   prevChatId = currentChatId;
@@ -1427,6 +1535,7 @@ onAuthStateChanged(auth, user => {
     messagesEl.innerHTML       = "";
     document.getElementById("chatList").innerHTML = "";
     document.getElementById("projectList").innerHTML = "";
+    closeProjectsView();
     deleteModal.style.display  = "none";
     deleteId = null;
   }
@@ -1459,6 +1568,30 @@ document.getElementById("confirmDeleteProject").onclick = confirmDeleteProject;
 document.getElementById("deleteProjectModal").addEventListener("click", e => {
   if (e.target.id === "deleteProjectModal") { e.currentTarget.style.display = "none"; pendingDeleteProjectId = null; }
 });
+
+// ── Projects dashboard page wiring ────────────────────────
+const openProjectsBtn = document.getElementById("openProjectsBtn");
+if (openProjectsBtn) openProjectsBtn.onclick = openProjectsView;
+
+const pvSearch = document.getElementById("pvSearch");
+if (pvSearch) pvSearch.addEventListener("input", () => { pvSearchQ = pvSearch.value; renderProjectsView(); });
+
+document.querySelectorAll(".pv-tab").forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll(".pv-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    pvTab = tab.dataset.tab;
+    renderProjectsView();
+  };
+});
+
+const pvNew = document.getElementById("pvNew");
+if (pvNew) pvNew.onclick = () => {
+  if (!currentUser) return;
+  createProject();
+  renderChatList();      // refreshes sidebar + (since page is open) the grid
+  renderProjectsView();
+};
 
 // ── Ephemeral error bubble ────────────────────────────────
 function showEphemeralError(msg, onRetry) {
@@ -1863,6 +1996,7 @@ document.addEventListener("keydown", e => {
       return;
     }
   }
+  if (projectsViewOpen()) { closeProjectsView(); return; }
 });
 
 // ── Helpers ───────────────────────────────────────────────
