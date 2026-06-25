@@ -2099,3 +2099,107 @@ a:focus-visible,
   background: var(--glass-3);
   color: var(--text);
 }
+
+/* ── Projects ──────────────────────────────────────────────── */
+.projects-section { margin-top: 4px; }
+#app:not(.sidebar-open) .projects-section { display: none; }
+
+.projects-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px 4px;
+}
+.projects-header span {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.projects-add {
+  width: 22px; height: 22px;
+  border-radius: 6px; border: none;
+  background: transparent; color: var(--text-muted);
+  display: grid; place-items: center; cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.projects-add:hover { background: var(--glass-3); color: var(--text); }
+
+.project-list { display: flex; flex-direction: column; gap: 1px; }
+.project-wrap { display: flex; flex-direction: column; }
+.project-row { position: relative; display: flex; align-items: center; }
+
+.project-item {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; color: var(--text-muted);
+  background: transparent; border: none; cursor: pointer;
+  text-align: left; width: 100%; font-family: inherit;
+  transition: background 0.13s, color 0.13s; overflow: hidden;
+}
+.project-item:hover { background: var(--glass-3); color: var(--text); }
+.project-chevron { flex-shrink: 0; transition: transform 0.18s ease; }
+.project-wrap.expanded .project-chevron { transform: rotate(90deg); }
+.project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-weight: 500; }
+
+.project-actions {
+  position: absolute; right: 4px;
+  display: flex; align-items: center; gap: 1px;
+  opacity: 0; pointer-events: none; transition: opacity 0.13s;
+  background: linear-gradient(to right, transparent, var(--glass-3) 30%);
+  padding: 0 2px 0 16px; border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+.project-row:hover .project-actions { opacity: 1; pointer-events: all; }
+
+.project-chats {
+  display: none; flex-direction: column; gap: 1px;
+  margin-left: 13px; padding-left: 6px;
+  border-left: 1px solid var(--border);
+}
+.project-wrap.expanded .project-chats { display: flex; }
+.project-empty { padding: 6px 12px; font-size: 12px; color: var(--text-faint); }
+
+.project-newchat {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 12px; border-radius: var(--radius-sm);
+  font-size: 12.5px; color: var(--text-muted);
+  background: transparent; border: none; cursor: pointer;
+  text-align: left; width: 100%; font-family: inherit;
+  transition: background 0.13s, color 0.13s;
+}
+.project-newchat:hover { background: var(--glass-3); color: var(--text); }
+.project-newchat svg { flex-shrink: 0; opacity: 0.8; }
+
+.project-rename-input {
+  flex: 1; background: transparent; border: none;
+  border-bottom: 1px solid var(--border-strong);
+  color: var(--text); font-size: 13px; font-family: inherit;
+  outline: none; padding: 0 2px; min-width: 0; width: 100%;
+}
+
+/* Move-to-project popup */
+.move-menu {
+  position: fixed; z-index: 350;
+  min-width: 190px; max-height: 300px; overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-mid);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: var(--blur); -webkit-backdrop-filter: var(--blur);
+  padding: 6px;
+}
+.move-menu-label {
+  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-faint); padding: 6px 10px 4px;
+}
+.move-menu button {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  padding: 8px 10px; border: none; background: transparent;
+  color: var(--text); font-size: 13px; font-family: inherit;
+  border-radius: 8px; cursor: pointer; text-align: left;
+}
+.move-menu button:hover:not(:disabled) { background: var(--glass-3); }
+.move-menu button.current { color: var(--text-muted); }
+.move-menu button:disabled { color: var(--text-faint); cursor: default; }
+.move-menu button svg { flex-shrink: 0; opacity: 0.7; }

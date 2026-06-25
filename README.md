@@ -10,6 +10,7 @@ themes, a collapsible multi-chat sidebar, and streaming replies.
 
 - 💬 **Streaming replies** — answers stream in token-by-token, with a **Stop** button
 - 🗂️ **Multi-chat sidebar** — create, rename, pin, search, export, and delete chats
+- 📁 **Projects** — group chats into projects (create, rename, delete, move chats in/out)
 - 👻 **Temporary chat** — an in-memory chat that's never saved or shown in history
 - 🎛️ **Personalization** — custom instructions + creativity (temperature) level
 - 🎤 **Voice input** & 🔊 **read-aloud** replies (Web Speech APIs)

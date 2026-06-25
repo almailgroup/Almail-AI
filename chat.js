@@ -26,16 +26,79 @@ let tempMode          = false;  // temporary chat: nothing is saved
 let prevChatId        = null;   // chat to return to when leaving temp mode
 
 // ── Chat metadata in localStorage ─────────────────────────
-function loadChats()    { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
+function loadChats()    { try { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); } catch (e) { return []; } }
 function saveChats(c)   { localStorage.setItem("chats_v2", JSON.stringify(c)); }
 function genId()        { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
-function createChat() {
+function createChat(projectId) {
   const id = genId();
   const chats = loadChats();
-  chats.unshift({ id, title: "New chat", ts: Date.now(), pinned: false });
+  const chat = { id, title: "New chat", ts: Date.now(), pinned: false };
+  if (projectId) chat.projectId = projectId;
+  chats.unshift(chat);
   saveChats(chats);
   return id;
+}
+
+// ── Projects in localStorage ──────────────────────────────
+function loadProjects()  { try { return JSON.parse(localStorage.getItem("projects_v1") || "[]"); } catch (e) { return []; } }
+function saveProjects(p) { localStorage.setItem("projects_v1", JSON.stringify(p)); }
+
+let pendingDeleteProjectId = null;
+let autoRenameProjectId = null;
+
+function createProject() {
+  const id = genId();
+  const projects = loadProjects();
+  projects.unshift({ id, name: "New project", ts: Date.now(), collapsed: false });
+  saveProjects(projects);
+  return id;
+}
+
+function renameProject(id, name) {
+  const projects = loadProjects();
+  const p = projects.find(p => p.id === id);
+  if (p && name.trim()) { p.name = name.trim(); saveProjects(projects); }
+  renderChatList();
+}
+
+function toggleProjectCollapsed(id) {
+  const projects = loadProjects();
+  const p = projects.find(p => p.id === id);
+  if (p) { p.collapsed = !p.collapsed; saveProjects(projects); }
+  renderChatList();
+}
+
+function deleteProject(id) {
+  pendingDeleteProjectId = id;
+  document.getElementById("deleteProjectModal").style.display = "flex";
+}
+
+function confirmDeleteProject() {
+  const id = pendingDeleteProjectId;
+  pendingDeleteProjectId = null;
+  document.getElementById("deleteProjectModal").style.display = "none";
+  if (!id) return;
+  const chats = loadChats();
+  let changed = false;
+  chats.forEach(c => { if (c.projectId === id) { delete c.projectId; changed = true; } });
+  if (changed) saveChats(chats);
+  saveProjects(loadProjects().filter(p => p.id !== id));
+  renderChatList();
+}
+
+function moveChatToProject(chatId, projectId) {
+  const chats = loadChats();
+  const c = chats.find(c => c.id === chatId);
+  if (!c) return;
+  if (projectId) c.projectId = projectId; else delete c.projectId;
+  saveChats(chats);
+  if (projectId) {
+    const projects = loadProjects();
+    const p = projects.find(p => p.id === projectId);
+    if (p && p.collapsed) { p.collapsed = false; saveProjects(projects); }
+  }
+  renderChatList();
 }
 
 function deleteChat(chatId) {
@@ -104,9 +167,11 @@ function renderChatList() {
   const q   = chatFilter.trim().toLowerCase();
 
   const recentsLabel = document.getElementById("recentsLabel");
+  const projectsSection = document.getElementById("projectsSection");
   if (recentsLabel) recentsLabel.style.display = q ? "none" : "";
+  if (projectsSection) projectsSection.style.display = q ? "none" : "";
 
-  // While searching, show a flat, filtered list (ignore pinned grouping).
+  // While searching, show a flat, filtered list across all chats.
   if (q) {
     const matches = all.filter(c => (c.title || "").toLowerCase().includes(q));
     if (!matches.length) {
@@ -120,8 +185,11 @@ function renderChatList() {
     return;
   }
 
-  const pinned = all.filter(c => c.pinned);
-  const normal = all.filter(c => !c.pinned);
+  renderProjects(all);
+
+  // Recents = chats not in any project (pinned first, like before)
+  const pinned = all.filter(c => c.pinned && !c.projectId);
+  const normal = all.filter(c => !c.pinned && !c.projectId);
 
   if (pinned.length) {
     const label = document.createElement("div");
@@ -139,6 +207,100 @@ function renderChatList() {
   }
 
   normal.forEach(chat => chatList.appendChild(buildChatItem(chat)));
+}
+
+function renderProjects(allChats) {
+  const list = document.getElementById("projectList");
+  if (!list) return;
+  list.innerHTML = "";
+  const chats = allChats || loadChats();
+  loadProjects().forEach(project => list.appendChild(buildProjectRow(project, chats)));
+}
+
+function startProjectRename(project, nameSpan) {
+  const input = document.createElement("input");
+  input.className = "project-rename-input";
+  input.value = project.name;
+  input.onclick = (e) => e.stopPropagation();
+  nameSpan.replaceWith(input);
+  input.focus();
+  input.select();
+  const save = () => renameProject(project.id, input.value || project.name);
+  input.addEventListener("keydown", ev => {
+    if (ev.key === "Enter") { ev.preventDefault(); save(); }
+    if (ev.key === "Escape") renderChatList();
+  });
+  input.addEventListener("blur", save);
+}
+
+function buildProjectRow(project, allChats) {
+  const wrap = document.createElement("div");
+  wrap.className = "project-wrap" + (project.collapsed ? "" : " expanded");
+
+  const row = document.createElement("div");
+  row.className = "project-row";
+
+  const item = document.createElement("button");
+  item.className = "project-item";
+  item.innerHTML =
+    `<svg class="project-chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>` +
+    `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+  const nameSpan = document.createElement("span");
+  nameSpan.className = "project-name";
+  nameSpan.textContent = project.name;
+  item.appendChild(nameSpan);
+  item.onclick = () => toggleProjectCollapsed(project.id);
+
+  const actions = document.createElement("div");
+  actions.className = "project-actions";
+
+  const newBtn = document.createElement("button");
+  newBtn.className = "chat-action-btn";
+  newBtn.title = "New chat in project";
+  newBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
+  newBtn.onclick = (e) => { e.stopPropagation(); switchToChat(createChat(project.id)); };
+
+  const renBtn = document.createElement("button");
+  renBtn.className = "chat-action-btn";
+  renBtn.title = "Rename project";
+  renBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  renBtn.onclick = (e) => { e.stopPropagation(); startProjectRename(project, nameSpan); };
+
+  const delBtn = document.createElement("button");
+  delBtn.className = "chat-action-btn delete";
+  delBtn.title = "Delete project";
+  delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+  delBtn.onclick = (e) => { e.stopPropagation(); deleteProject(project.id); };
+
+  actions.append(newBtn, renBtn, delBtn);
+  row.append(item, actions);
+  wrap.appendChild(row);
+
+  const chatsWrap = document.createElement("div");
+  chatsWrap.className = "project-chats";
+  const projChats = allChats
+    .filter(c => c.projectId === project.id)
+    .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+  if (projChats.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "project-empty";
+    empty.textContent = "No chats yet";
+    chatsWrap.appendChild(empty);
+  } else {
+    projChats.forEach(c => chatsWrap.appendChild(buildChatItem(c)));
+  }
+  const addChat = document.createElement("button");
+  addChat.className = "project-newchat";
+  addChat.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> New chat`;
+  addChat.onclick = () => switchToChat(createChat(project.id));
+  chatsWrap.appendChild(addChat);
+  wrap.appendChild(chatsWrap);
+
+  if (autoRenameProjectId === project.id) {
+    autoRenameProjectId = null;
+    setTimeout(() => startProjectRename(project, nameSpan), 0);
+  }
+  return wrap;
 }
 
 function buildChatItem(chat) {
@@ -187,6 +349,12 @@ function buildChatItem(chat) {
     input.addEventListener("blur", save);
   };
 
+  const moveBtn = document.createElement("button");
+  moveBtn.className = "chat-action-btn";
+  moveBtn.title = "Move to project";
+  moveBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+  moveBtn.onclick = (e) => { e.stopPropagation(); openMoveMenu(chat.id, moveBtn); };
+
   const expBtn = document.createElement("button");
   expBtn.className = "chat-action-btn";
   expBtn.title = "Export as Markdown";
@@ -199,9 +367,60 @@ function buildChatItem(chat) {
   delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
   delBtn.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
 
-  actions.append(pinBtn, renBtn, expBtn, delBtn);
+  actions.append(pinBtn, renBtn, moveBtn, expBtn, delBtn);
   wrap.append(btn, actions);
   return wrap;
+}
+
+// ── Move-to-project popup ─────────────────────────────────
+function closeMoveMenu() { document.getElementById("moveMenu")?.remove(); }
+
+function openMoveMenu(chatId, anchorBtn) {
+  closeMoveMenu();
+  const projects = loadProjects();
+  const chat = loadChats().find(c => c.id === chatId);
+
+  const menu = document.createElement("div");
+  menu.className = "move-menu";
+  menu.id = "moveMenu";
+
+  const label = document.createElement("div");
+  label.className = "move-menu-label";
+  label.textContent = "Move to";
+  menu.appendChild(label);
+
+  const folderSvg = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+
+  if (chat && chat.projectId) {
+    const rec = document.createElement("button");
+    rec.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
+    rec.appendChild(document.createTextNode(" Recents (remove)"));
+    rec.onclick = () => { moveChatToProject(chatId, null); closeMoveMenu(); };
+    menu.appendChild(rec);
+  }
+
+  if (!projects.length) {
+    const none = document.createElement("button");
+    none.disabled = true;
+    none.textContent = "No projects yet";
+    menu.appendChild(none);
+  } else {
+    projects.forEach(p => {
+      const b = document.createElement("button");
+      if (chat && chat.projectId === p.id) b.className = "current";
+      b.innerHTML = folderSvg;
+      b.appendChild(document.createTextNode(" " + p.name));
+      b.onclick = () => { moveChatToProject(chatId, p.id); closeMoveMenu(); };
+      menu.appendChild(b);
+    });
+  }
+
+  document.body.appendChild(menu);
+  const r = anchorBtn.getBoundingClientRect();
+  const top = Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 10);
+  const left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 10);
+  menu.style.top = `${Math.max(10, top)}px`;
+  menu.style.left = `${Math.max(10, left)}px`;
 }
 
 function switchToChat(chatId) {
@@ -662,6 +881,7 @@ document.addEventListener("click", (e) => {
   if (!attachPopup.contains(e.target)   && e.target !== attachBtn)   attachPopup.classList.remove("open");
   if (!e.target.closest(".menu-btn") && !e.target.closest(".menu"))
     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
+  if (!e.target.closest(".move-menu")) closeMoveMenu();
 });
 
 // ── Auth modal ────────────────────────────────────────────
@@ -1178,6 +1398,7 @@ onAuthStateChanged(auth, user => {
     micBtn.disabled            = true;
     messagesEl.innerHTML       = "";
     document.getElementById("chatList").innerHTML = "";
+    document.getElementById("projectList").innerHTML = "";
     deleteModal.style.display  = "none";
     deleteId = null;
   }
@@ -1195,6 +1416,21 @@ const tempChatBtn = document.getElementById("tempChatBtn");
 if (tempChatBtn) tempChatBtn.onclick = toggleTempChat;
 const siTempBtn = document.getElementById("si-temp");
 if (siTempBtn) siTempBtn.onclick = toggleTempChat;
+
+const newProjectBtn = document.getElementById("newProjectBtn");
+if (newProjectBtn) newProjectBtn.onclick = () => {
+  if (!currentUser) return;
+  autoRenameProjectId = createProject();
+  renderChatList();
+};
+document.getElementById("cancelDeleteProject").onclick = () => {
+  document.getElementById("deleteProjectModal").style.display = "none";
+  pendingDeleteProjectId = null;
+};
+document.getElementById("confirmDeleteProject").onclick = confirmDeleteProject;
+document.getElementById("deleteProjectModal").addEventListener("click", e => {
+  if (e.target.id === "deleteProjectModal") { e.currentTarget.style.display = "none"; pendingDeleteProjectId = null; }
+});
 
 // ── Ephemeral error bubble ────────────────────────────────
 function showEphemeralError(msg, onRetry) {
@@ -1564,6 +1800,7 @@ document.getElementById("confirmDelete").onclick = async () => {
 
 // ── Delete chat handlers ──────────────────────────────────
 const deleteChatModal = document.getElementById("deleteChatModal");
+const deleteProjectModal = document.getElementById("deleteProjectModal");
 document.getElementById("cancelDeleteChat").onclick = () => {
   deleteChatModal.style.display = "none";
   pendingDeleteChatId = null;
@@ -1574,16 +1811,18 @@ deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModa
 // ── Esc closes the topmost overlay ────────────────────────
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
+  if (document.getElementById("moveMenu")) { closeMoveMenu(); return; }
   if (settingsPopup.classList.contains("open")) { settingsPopup.classList.remove("open"); return; }
   if (attachPopup.classList.contains("open"))   { attachPopup.classList.remove("open");   return; }
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
   if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
-  for (const m of [authModal, deleteModal, deleteChatModal, shortcutsModal, personalizeModal]) {
+  for (const m of [authModal, deleteModal, deleteChatModal, deleteProjectModal, shortcutsModal, personalizeModal]) {
     if (m.style.display === "flex") {
       m.style.display = "none";
       deleteId = null;
       pendingDeleteChatId = null;
+      pendingDeleteProjectId = null;
       return;
     }
   }
