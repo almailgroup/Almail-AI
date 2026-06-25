@@ -214,7 +214,15 @@ function renderProjects(allChats) {
   if (!list) return;
   list.innerHTML = "";
   const chats = allChats || loadChats();
-  loadProjects().forEach(project => list.appendChild(buildProjectRow(project, chats)));
+  const projects = loadProjects();
+  if (!projects.length) {
+    const hint = document.createElement("div");
+    hint.className = "project-hint";
+    hint.textContent = "No projects yet — tap + to create one";
+    list.appendChild(hint);
+    return;
+  }
+  projects.forEach(project => list.appendChild(buildProjectRow(project, chats)));
 }
 
 function startProjectRename(project, nameSpan) {
