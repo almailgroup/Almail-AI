@@ -808,6 +808,26 @@ if (chatSearch) {
 attachBtn.onclick = (e) => { e.stopPropagation(); attachPopup.classList.toggle("open"); };
 document.getElementById("attachFilesBtn").onclick = () => { attachPopup.classList.remove("open"); fileInput.click(); };
 
+// Camera capture (mobile/touch devices) — opens the camera directly.
+const cameraInput = document.getElementById("cameraInput");
+const takePhotoBtn = document.getElementById("takePhotoBtn");
+const hasCamera = (navigator.maxTouchPoints > 0) ||
+  (window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+if (takePhotoBtn) {
+  if (!hasCamera) {
+    takePhotoBtn.style.display = "none";   // capture is a mobile feature
+  } else {
+    takePhotoBtn.onclick = () => { attachPopup.classList.remove("open"); cameraInput.click(); };
+  }
+}
+if (cameraInput) {
+  cameraInput.onchange = () => {
+    const file = cameraInput.files[0];
+    cameraInput.value = "";
+    handleAttachedFile(file);
+  };
+}
+
 const MAX_ATTACH_TEXT = 20000; // chars — keep prompts within a sane size
 const TEXT_FILE_RE = /\.(txt|md|markdown|csv|tsv|json|ya?ml|xml|html?|css|js|jsx|ts|tsx|py|java|c|cpp|cs|rb|go|rs|php|sh|sql|log)$/i;
 
@@ -1689,6 +1709,15 @@ function buildApiMessages(messages, attachment = null) {
       const role = msg.role === "user" ? "user" : "assistant";
       if (isLastUser && attachment?.type === "text") {
         return { role, content: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` };
+      }
+      if (isLastUser && attachment?.type === "image" && attachment.data) {
+        return {
+          role,
+          content: [
+            { type: "text", text: msg.content || "Describe this image." },
+            { type: "image_url", image_url: { url: `data:${attachment.mimeType};base64,${attachment.data}` } }
+          ]
+        };
       }
       return { role, content: msg.content };
     })
