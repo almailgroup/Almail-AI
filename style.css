@@ -437,6 +437,55 @@ body::before {
   position: relative;
 }
 
+/* ── Top bar (chat title + model badge) ─────────────────── */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 52px;
+  flex-shrink: 0;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--border);
+  background: var(--glass-1);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  z-index: 10;
+}
+#app.projects-page .topbar { display: none; }
+
+.topbar-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.topbar-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 5px 12px;
+  border-radius: 50px;
+  background: var(--glass-2);
+  border: 1px solid var(--border-mid);
+}
+.topbar-badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 3px rgba(52,211,153,0.18);
+}
+
 /* ── Chat history list ──────────────────────────────────── */
 .chat-list {
   display: flex;
@@ -1429,6 +1478,9 @@ footer {
 
   /* User bubbles a touch wider on mobile; assistant text stays full-width */
   .self { max-width: 88%; }
+
+  /* Clear the fixed top-left sidebar toggle */
+  .topbar { padding-left: 60px; height: 50px; }
 
   main#messages { padding: 18px 14px 10px !important; }
   footer { padding: 6px 12px calc(14px + env(safe-area-inset-bottom)) !important; }

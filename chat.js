@@ -313,6 +313,23 @@ function renderChatList() {
   normal.forEach(chat => chatList.appendChild(buildChatItem(chat)));
 
   if (projectsViewOpen()) renderProjectsView();
+  updateTopbar();
+}
+
+// Keep the top bar's title in sync with the active view/chat.
+function updateTopbar() {
+  const titleEl = document.getElementById("topbarTitle");
+  if (!titleEl) return;
+  let label = "Almail AI";
+  if (tempMode) {
+    label = "Temporary chat";
+  } else if (currentChatId) {
+    const c = loadChats().find(ch => ch.id === currentChatId);
+    label = (c && c.title) ? c.title : "New chat";
+  } else if (currentUser) {
+    label = "New chat";
+  }
+  titleEl.textContent = label;
 }
 
 function renderProjects(allChats) {
@@ -550,6 +567,7 @@ function switchToChat(chatId) {
   );
   if (window.innerWidth < 900) closeSidebar();
   startMsgListener();
+  updateTopbar();
 }
 
 // ── Temporary chat (nothing is saved) ─────────────────────
@@ -568,6 +586,7 @@ function enterTempChat() {
   appEl.classList.add("temp-mode");
   if (window.innerWidth < 900) closeSidebar();
   renderMessages([]);
+  updateTopbar();
   inputEl.focus();
 }
 
