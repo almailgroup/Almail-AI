@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=72" />
+  <link rel="stylesheet" href="style.css?v=73" />
   <!-- Markdown (pinned) + HTML sanitizer + syntax highlighting -->
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -411,10 +411,17 @@
     </button>
 
     <div class="account-head">
-      <div class="account-avatar-lg" id="accountAvatar">A</div>
+      <button class="account-avatar-edit" id="accountAvatarBtn" title="Change profile picture" aria-label="Change profile picture">
+        <span class="account-avatar-lg" id="accountAvatar">A</span>
+        <span class="account-avatar-cam">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </span>
+      </button>
       <h3 id="accountName">Your account</h3>
       <p class="account-email" id="accountEmailTop">—</p>
+      <button class="account-remove-photo" id="accountRemovePhoto" style="display:none">Remove photo</button>
     </div>
+    <input type="file" id="avatarInput" accept="image/*" style="display:none" />
 
     <div class="account-rows">
       <div class="account-row">
@@ -540,7 +547,7 @@
 </div>
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="chat.js?v=73"></script>
+<script type="module" src="chat.js?v=74"></script>
 
 </body>
 </html>

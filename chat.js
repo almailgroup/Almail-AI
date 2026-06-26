@@ -921,6 +921,7 @@ function openAccountModal() {
   } catch (e) {}
   document.getElementById("accountRowSince").textContent = since;
   document.getElementById("accountRowChats").textContent = String(loadChats().length);
+  applyAvatar();
   resetDeleteAccountBtn();
   settingsPopup.classList.remove("open");
   accountModal.style.display = "flex";
@@ -930,6 +931,70 @@ function closeAccountModal() { accountModal.style.display = "none"; resetDeleteA
 
 document.getElementById("accountClose").onclick = closeAccountModal;
 accountModal.addEventListener("click", e => { if (e.target === accountModal) closeAccountModal(); });
+
+// ── Profile picture (stored locally per account) ──────────
+function avatarKey(uid)   { return "avatar:" + uid; }
+function getAvatar(uid)   { try { return uid ? (localStorage.getItem(avatarKey(uid)) || "") : ""; } catch (e) { return ""; } }
+function storeAvatar(uid, dataUrl) {
+  try { dataUrl ? localStorage.setItem(avatarKey(uid), dataUrl) : localStorage.removeItem(avatarKey(uid)); } catch (e) {}
+}
+
+function paintAvatar(el, url) {
+  if (!el) return;
+  if (url) { el.style.backgroundImage = `url("${url}")`; el.classList.add("has-photo"); }
+  else     { el.style.backgroundImage = "";              el.classList.remove("has-photo"); }
+}
+
+// Push the current account's picture to every avatar slot — the sidebar
+// tab, the collapsed mini-strip (visible when the sidebar is closed), and
+// the account modal.
+function applyAvatar() {
+  const url = currentUser ? getAvatar(currentUser.uid) : "";
+  paintAvatar(document.getElementById("accountNavAvatar"), url);
+  paintAvatar(document.getElementById("si-account"), url);
+  paintAvatar(document.getElementById("accountAvatar"), url);
+  const removeBtn = document.getElementById("accountRemovePhoto");
+  if (removeBtn) removeBtn.style.display = url ? "inline-block" : "none";
+}
+
+// Resize/centre-crop a chosen image to a small square data URL, then store it.
+function handleAvatarFile(file) {
+  if (!file || !currentUser) return;
+  if (!file.type || !file.type.startsWith("image/")) { showToast("Please choose an image file."); return; }
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      const size = 256;
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      const min = Math.min(img.width, img.height);
+      const sx = (img.width - min) / 2, sy = (img.height - min) / 2;
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+      let dataUrl;
+      try { dataUrl = canvas.toDataURL("image/jpeg", 0.85); }
+      catch (e) { showToast("Couldn't process that image."); return; }
+      storeAvatar(currentUser.uid, dataUrl);
+      applyAvatar();
+      showToast("Profile picture updated");
+    };
+    img.onerror = () => showToast("Couldn't load that image.");
+    img.src = reader.result;
+  };
+  reader.onerror = () => showToast("Couldn't read that file.");
+  reader.readAsDataURL(file);
+}
+
+const avatarInput = document.getElementById("avatarInput");
+document.getElementById("accountAvatarBtn").onclick = () => avatarInput.click();
+avatarInput.onchange = (e) => { handleAvatarFile(e.target.files && e.target.files[0]); e.target.value = ""; };
+document.getElementById("accountRemovePhoto").onclick = () => {
+  if (!currentUser) return;
+  storeAvatar(currentUser.uid, "");
+  applyAvatar();
+  showToast("Profile picture removed");
+};
 
 document.getElementById("accountReset").onclick = async () => {
   if (!currentUser || !currentUser.email) return;
@@ -1650,6 +1715,7 @@ onAuthStateChanged(auth, user => {
   currentUser = user;
   updateSiAccount(user);
   updateAccountUI(user);
+  applyAvatar();
   if (user) {
     closeAuthModal();
     inputEl.disabled           = false;

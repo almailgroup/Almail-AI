@@ -296,6 +296,9 @@ body::before {
 .account-nav-avatar.has-user { background: var(--text); border-color: transparent; }
 .account-nav-avatar.has-user .account-nav-letter { display: block; color: var(--bg); }
 .account-nav-avatar.has-user .account-nav-icon { display: none; }
+.account-nav-avatar.has-photo { background-size: cover; background-position: center; border-color: transparent; }
+.account-nav-avatar.has-photo .account-nav-icon,
+.account-nav-avatar.has-photo .account-nav-letter { display: none; }
 
 .account-nav-text { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
 .account-nav-name {
@@ -695,6 +698,17 @@ body::before {
   color: var(--text);
   border-radius: 50%;
 }
+
+/* Profile photo in the collapsed mini-strip — stays visible when the
+   sidebar is closed. */
+.si-btn.has-photo {
+  background-size: cover;
+  background-position: center;
+  border-radius: 50%;
+  border-color: var(--border-mid);
+}
+.si-btn.has-photo #si-account-icon,
+.si-btn.has-photo .si-avatar-letter { display: none; }
 
 /* ── Attach popup ───────────────────────────────────────── */
 .attach-wrap { position: relative; flex-shrink: 0; }
@@ -2212,19 +2226,62 @@ a:focus-visible,
 .account-box { max-width: 420px; padding: 36px 28px 26px; text-align: center; }
 
 .account-head { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 22px; }
+
+.account-avatar-edit {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  margin-bottom: 6px;
+  border-radius: 50%;
+}
 .account-avatar-lg {
-  width: 72px;
-  height: 72px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: 1.9rem;
+  font-size: 2rem;
   font-weight: 700;
   background: var(--text);
   color: var(--bg);
   box-shadow: var(--shadow-inset), var(--shadow-md);
-  margin-bottom: 6px;
 }
+.account-avatar-lg.has-photo { background-size: cover; background-position: center; color: transparent; }
+
+.account-avatar-cam {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 27px;
+  height: 27px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--glass-4);
+  border: 2px solid var(--bg);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.14s ease;
+}
+.account-avatar-edit:hover .account-avatar-cam { transform: scale(1.1); }
+
+.account-remove-photo {
+  margin-top: 6px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.14s;
+}
+.account-remove-photo:hover { color: var(--text); }
 .account-box h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.4px; color: var(--text); }
 .account-email { font-size: 0.88rem; color: var(--text-muted); word-break: break-all; }
 
