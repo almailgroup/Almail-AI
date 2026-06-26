@@ -694,7 +694,8 @@ main#messages {
   box-shadow: var(--shadow-md);
 }
 
-/* Assistant turns: clean flowing text, no bubble — like premium AI apps. */
+/* Assistant turns: clean flowing text with a branded avatar — like
+   premium AI apps. No bubble; the logo identifies the speaker. */
 .other {
   align-self: stretch;
   max-width: 100%;
@@ -703,9 +704,23 @@ main#messages {
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  padding: 4px 2px;
+  padding: 3px 2px 3px 46px;
   color: var(--text);
 }
+.other:not(.grouped)::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 2px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: var(--glass-2) center / 20px 20px no-repeat;
+  background-image: url('Almail AI Logo.png');
+  border: 1px solid var(--border-mid);
+  box-shadow: var(--shadow-inset);
+}
+.light .other:not(.grouped)::before { background-image: url('Almail-AI-Black-Logo.png'); }
 
 /* Tail corner only on the last user message of a run */
 .self.group-tail  { border-bottom-right-radius: 5px; }
@@ -757,10 +772,17 @@ main#messages {
   display: flex;
   align-self: flex-start;
   gap: 2px;
-  padding: 0;
+  padding-left: 44px; /* align under the assistant text, past the avatar */
   margin-top: 2px;
-  margin-bottom: 10px;
-  opacity: 0.85;
+  margin-bottom: 12px;
+  opacity: 1;
+}
+
+/* On precise pointers, reveal the actions on hover for a cleaner read. */
+@media (hover: hover) and (pointer: fine) {
+  .msg-actions { opacity: 0; transition: opacity 0.15s ease; }
+  .other:hover + .msg-actions,
+  .msg-actions:hover { opacity: 1; }
 }
 
 .msg-action-btn {
