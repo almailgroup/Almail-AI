@@ -6,7 +6,7 @@ import {
 
 import {
   createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, onAuthStateChanged
+  signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import { AI_CONFIG } from "./config.js";
@@ -683,12 +683,12 @@ const loginBtn        = document.getElementById("loginBtn");
 const registerBtn     = document.getElementById("registerBtn");
 const toggleMode      = document.getElementById("toggleAuthMode");
 const errorEl         = document.getElementById("authError");
-const openAuthBtn     = document.getElementById("openAuthBtn");
+const accountBtn      = document.getElementById("accountBtn");
+const accountModal    = document.getElementById("accountModal");
 const messagesEl      = document.getElementById("messages");
 const inputEl         = document.getElementById("messageInput");
 const sendBtn         = document.getElementById("sendBtn");
 const typingEl        = document.getElementById("typingIndicator");
-const logoutBtn       = document.getElementById("logoutBtn");
 const resetBtn        = document.getElementById("resetChatBtn");
 const deleteModal     = document.getElementById("deleteModal");
 const settingsBtn     = document.getElementById("settingsBtn");
@@ -867,8 +867,7 @@ document.getElementById("si-new").onclick    = () => document.getElementById("re
 document.getElementById("si-chats").onclick  = openSidebar;
 document.getElementById("si-expand").onclick = openSidebar;
 document.getElementById("si-account").onclick = () => {
-  if (currentUser) document.getElementById("logoutBtn").click();
-  else document.getElementById("openAuthBtn").click();
+  currentUser ? openAccountModal() : openAuthModal();
 };
 
 function updateSiAccount(user) {
@@ -884,6 +883,98 @@ function updateSiAccount(user) {
     btn.title = "Account";
   }
 }
+
+// Reflect auth state on the sidebar Account tab.
+function updateAccountUI(user) {
+  const nameEl = document.getElementById("accountNavName");
+  const subEl  = document.getElementById("accountNavSub");
+  const avatar = document.getElementById("accountNavAvatar");
+  const letter = avatar && avatar.querySelector(".account-nav-letter");
+  if (!nameEl) return;
+  if (user && user.email) {
+    nameEl.textContent = friendlyName(user) || "Your account";
+    subEl.textContent  = user.email;
+    if (letter) letter.textContent = user.email[0].toUpperCase();
+    avatar.classList.add("has-user");
+  } else {
+    nameEl.textContent = "Sign in";
+    subEl.textContent  = "Save & sync your chats";
+    if (letter) letter.textContent = "";
+    avatar.classList.remove("has-user");
+  }
+}
+
+accountBtn.onclick = () => { currentUser ? openAccountModal() : openAuthModal(); };
+
+// ── Account modal ─────────────────────────────────────────
+function openAccountModal() {
+  if (!currentUser) { openAuthModal(); return; }
+  const email = currentUser.email || "";
+  document.getElementById("accountAvatar").textContent   = (email[0] || "A").toUpperCase();
+  document.getElementById("accountName").textContent     = friendlyName(currentUser) || "Your account";
+  document.getElementById("accountEmailTop").textContent = email;
+  document.getElementById("accountRowEmail").textContent = email;
+  let since = "—";
+  try {
+    const t = currentUser.metadata && currentUser.metadata.creationTime;
+    if (t) since = new Date(t).toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
+  } catch (e) {}
+  document.getElementById("accountRowSince").textContent = since;
+  document.getElementById("accountRowChats").textContent = String(loadChats().length);
+  resetDeleteAccountBtn();
+  settingsPopup.classList.remove("open");
+  accountModal.style.display = "flex";
+  if (window.innerWidth < 900) closeSidebar();
+}
+function closeAccountModal() { accountModal.style.display = "none"; resetDeleteAccountBtn(); }
+
+document.getElementById("accountClose").onclick = closeAccountModal;
+accountModal.addEventListener("click", e => { if (e.target === accountModal) closeAccountModal(); });
+
+document.getElementById("accountReset").onclick = async () => {
+  if (!currentUser || !currentUser.email) return;
+  try {
+    await sendPasswordResetEmail(auth, currentUser.email);
+    showToast("Password reset link sent to " + currentUser.email);
+  } catch (e) {
+    showToast("Couldn't send reset link — please try again.");
+  }
+};
+
+document.getElementById("accountLogout").onclick = () => { closeAccountModal(); signOut(auth); };
+
+// Delete account: two-step confirm to avoid accidental taps.
+let deleteAcctArmed = false, deleteAcctTimer = null;
+function resetDeleteAccountBtn() {
+  deleteAcctArmed = false;
+  clearTimeout(deleteAcctTimer);
+  const b = document.getElementById("accountDelete");
+  if (b) { b.classList.remove("armed"); b.querySelector(".acc-action-label").textContent = "Delete account"; }
+}
+document.getElementById("accountDelete").onclick = async () => {
+  const btn = document.getElementById("accountDelete");
+  const label = btn.querySelector(".acc-action-label");
+  if (!deleteAcctArmed) {
+    deleteAcctArmed = true;
+    btn.classList.add("armed");
+    label.textContent = "Tap again to permanently delete";
+    deleteAcctTimer = setTimeout(resetDeleteAccountBtn, 4000);
+    return;
+  }
+  clearTimeout(deleteAcctTimer);
+  try {
+    await deleteUser(currentUser);
+    closeAccountModal();
+    showToast("Your account has been deleted.");
+  } catch (e) {
+    if (e && e.code === "auth/requires-recent-login") {
+      showToast("For security, log out and back in, then delete again.");
+    } else {
+      showToast("Couldn't delete account — please try again.");
+    }
+    resetDeleteAccountBtn();
+  }
+};
 
 // ── Settings popup ────────────────────────────────────────
 function openSettingsPopup() {
@@ -1068,7 +1159,6 @@ function updateAuthUI() {
 function openAuthModal()  { updateAuthUI(); authModal.style.display = "flex"; emailInput.focus(); }
 function closeAuthModal() { authModal.style.display = "none"; errorEl.textContent = ""; }
 
-openAuthBtn.onclick = openAuthModal;
 document.getElementById("authClose").onclick = closeAuthModal;
 toggleMode.onclick  = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
 authModal.addEventListener("click", e => { if (e.target === authModal) closeAuthModal(); });
@@ -1101,7 +1191,6 @@ async function handleAuth(isRegister = false) {
 loginBtn.onclick    = () => handleAuth(false);
 registerBtn.onclick = () => handleAuth(true);
 passInput.addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(!isLoginMode); });
-logoutBtn.onclick   = () => signOut(auth);
 
 // ── Markdown, sanitizing & code highlighting ──────────────
 // Open links in a new tab safely.
@@ -1560,10 +1649,9 @@ onAuthStateChanged(auth, user => {
   lastUserId = uid;
   currentUser = user;
   updateSiAccount(user);
+  updateAccountUI(user);
   if (user) {
     closeAuthModal();
-    openAuthBtn.style.display  = "none";
-    logoutBtn.style.display    = "flex";
     inputEl.disabled           = false;
     sendBtn.disabled           = false;
     attachBtn.disabled         = false;
@@ -1582,8 +1670,7 @@ onAuthStateChanged(auth, user => {
     typingEl.classList.remove("active");
     sendBtn.classList.remove("generating");
     sendBtn.title              = "Send";
-    openAuthBtn.style.display  = "flex";
-    logoutBtn.style.display    = "none";
+    closeAccountModal();
     inputEl.placeholder        = "Log in to start chatting…";
     inputEl.disabled           = true;
     sendBtn.disabled           = true;
@@ -1841,6 +1928,7 @@ document.addEventListener("keydown", (e) => {
   const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
   const inField = tag === "input" || tag === "textarea" || (document.activeElement && document.activeElement.isContentEditable);
 
+  if (e.key === "Escape" && accountModal.style.display === "flex") { closeAccountModal(); return; }
   if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); if (currentUser) resetBtn.click(); return; }
   if (mod && e.key.toLowerCase() === "b") { e.preventDefault(); appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar(); return; }
   if ((mod && e.key === "/") || (e.key === "?" && !inField)) { e.preventDefault(); toggleShortcuts(); return; }

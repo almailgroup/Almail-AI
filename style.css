@@ -166,7 +166,7 @@ body::before {
   #app:not(.sidebar-open) .brand h2 { display: none; }
 
   #app:not(.sidebar-open) .sidebar-nav,
-  #app:not(.sidebar-open) .sidebar-footer {
+  #app:not(.sidebar-open) .sidebar-account-wrap {
     display: none;
   }
 
@@ -253,23 +253,64 @@ body::before {
   padding: 10px 10px 0;
 }
 
-.sidebar-footer {
-  padding: 10px 10px 6px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+/* ── Account tab (sits above Settings) ──────────────────── */
+.sidebar-account-wrap {
+  margin-top: auto;
+  padding: 8px 10px 2px;
 }
+
+.account-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 9px;
+  background: var(--glass-1);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+}
+.account-nav:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-mid);
+  box-shadow: var(--shadow-inset);
+}
+
+.account-nav-avatar {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  background: var(--glass-3);
+  border: 1px solid var(--border-mid);
+  color: var(--text-muted);
+}
+.account-nav-letter { font-size: 14px; font-weight: 700; line-height: 1; color: var(--text); display: none; }
+.account-nav-avatar.has-user { background: var(--text); border-color: transparent; }
+.account-nav-avatar.has-user .account-nav-letter { display: block; color: var(--bg); }
+.account-nav-avatar.has-user .account-nav-icon { display: none; }
+
+.account-nav-text { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
+.account-nav-name {
+  font-size: 0.85rem; font-weight: 600; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.account-nav-sub {
+  font-size: 0.72rem; color: var(--text-muted);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.account-nav-chevron { color: var(--text-muted); flex-shrink: 0; }
 
 /* ── Settings wrap — always visible in mini strip too ───── */
 .sidebar-settings-wrap {
-  padding: 6px 10px 4px;
-  margin-top: auto;
-}
-
-.sidebar-footer {
-  padding: 4px 10px 12px;
-  border-top: none;
+  padding: 2px 10px 12px;
 }
 
 /* In collapsed state: center icon only */
@@ -2166,6 +2207,88 @@ a:focus-visible,
 }
 .btn-primary:hover { transform: translateY(-1px); opacity: 0.94; }
 .btn-primary:active { transform: scale(0.98); }
+
+/* ── Account modal ─────────────────────────────────────────── */
+.account-box { max-width: 420px; padding: 36px 28px 26px; text-align: center; }
+
+.account-head { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-bottom: 22px; }
+.account-avatar-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 1.9rem;
+  font-weight: 700;
+  background: var(--text);
+  color: var(--bg);
+  box-shadow: var(--shadow-inset), var(--shadow-md);
+  margin-bottom: 6px;
+}
+.account-box h3 { font-size: 1.4rem; font-weight: 700; letter-spacing: -0.4px; color: var(--text); }
+.account-email { font-size: 0.88rem; color: var(--text-muted); word-break: break-all; }
+
+.account-rows {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
+  background: var(--glass-1);
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.account-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 15px;
+}
+.account-row + .account-row { border-top: 1px solid var(--border); }
+.account-row-label { font-size: 0.82rem; color: var(--text-muted); flex-shrink: 0; }
+.account-row-value {
+  font-size: 0.86rem; font-weight: 500; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right;
+}
+
+.account-actions { display: flex; flex-direction: column; gap: 8px; }
+.account-action {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border-mid);
+  background: var(--glass-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.14s, border-color 0.14s, color 0.14s, transform 0.12s;
+}
+.account-action svg { flex-shrink: 0; color: var(--text-muted); transition: color 0.14s; }
+.account-action:hover { background: var(--glass-3); border-color: var(--border-strong); }
+.account-action:hover svg { color: var(--text); }
+.account-action:active { transform: scale(0.99); }
+
+.account-action.danger { color: #ef6f6f; }
+.account-action.danger svg { color: #ef6f6f; }
+.light .account-action.danger { color: #d3463f; }
+.light .account-action.danger svg { color: #d3463f; }
+.account-action.danger:hover {
+  background: rgba(239,111,111,0.12);
+  border-color: rgba(239,111,111,0.4);
+}
+.account-action.danger.armed {
+  background: #e5484d;
+  border-color: #e5484d;
+  color: #fff;
+}
+.account-action.danger.armed svg { color: #fff; }
 
 /* ── Drag-and-drop overlay ─────────────────────────────────── */
 .drop-overlay {
