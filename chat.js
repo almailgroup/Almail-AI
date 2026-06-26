@@ -316,6 +316,22 @@ function renderChatList() {
   updateTopbar();
 }
 
+// Brief, self-dismissing toast notification.
+let toastTimer = null;
+function showToast(message) {
+  let t = document.getElementById("toast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "toast";
+    t.className = "toast";
+    document.body.appendChild(t);
+  }
+  t.textContent = message;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+}
+
 // Keep the top bar's title in sync with the active view/chat.
 function updateTopbar() {
   const titleEl = document.getElementById("topbarTitle");
@@ -1388,6 +1404,28 @@ function renderMessages(list = currentMessages) {
       }
 
       actions.append(cpBtn);
+
+      // Lightweight, local feedback (👍/👎) — acknowledges, exclusive toggle.
+      const upBtn = document.createElement("button");
+      upBtn.className = "msg-action-btn";
+      upBtn.title = "Good response";
+      upBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>`;
+      const downBtn = document.createElement("button");
+      downBtn.className = "msg-action-btn";
+      downBtn.title = "Bad response";
+      downBtn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3zm7-13h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"/></svg>`;
+      upBtn.onclick = () => {
+        const on = upBtn.classList.toggle("rated");
+        downBtn.classList.remove("rated");
+        if (on) showToast("Thanks for your feedback");
+      };
+      downBtn.onclick = () => {
+        const on = downBtn.classList.toggle("rated");
+        upBtn.classList.remove("rated");
+        if (on) showToast("Thanks — we'll use this to improve");
+      };
+      actions.append(upBtn, downBtn);
+
       messagesEl.appendChild(actions);
     }
   });

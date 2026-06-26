@@ -715,6 +715,9 @@ main#messages {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  /* Content gently fades as it scrolls up beneath the top bar. */
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
 }
 
 #messages::-webkit-scrollbar { width: 3px; }
@@ -847,6 +850,13 @@ main#messages {
   transition: background 0.13s, color 0.13s, border-color 0.13s;
   flex-shrink: 0;
 }
+
+.msg-action-btn.rated {
+  color: var(--text);
+  background: var(--glass-3);
+  border-color: var(--border-mid);
+}
+.msg-action-btn.rated svg { fill: currentColor; }
 
 .msg-action-btn:hover {
   background: var(--surface-hover);
@@ -1652,6 +1662,31 @@ footer {
 }
 .scroll-bottom-btn.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
 .scroll-bottom-btn:hover { background: var(--glass-4); transform: translateX(-50%) translateY(-2px); }
+
+/* ── Toast ─────────────────────────────────────────────────── */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 96px;
+  transform: translateX(-50%) translateY(10px);
+  max-width: min(90vw, 360px);
+  text-align: center;
+  background: var(--glass-4);
+  color: var(--text);
+  border: 1px solid var(--border-mid);
+  box-shadow: var(--shadow-inset), var(--shadow-lg);
+  backdrop-filter: var(--blur);
+  -webkit-backdrop-filter: var(--blur);
+  padding: 10px 18px;
+  border-radius: 50px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 6000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 /* ── UI polish ─────────────────────────────────────────────── */
 
