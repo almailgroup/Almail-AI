@@ -81,6 +81,8 @@ body {
   overflow: hidden;
   position: relative;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Subtle ambient gradient the glass can refract */
@@ -655,11 +657,15 @@ body::before {
 /* ── Messages ───────────────────────────────────────────── */
 main#messages {
   flex: 1;
-  padding: 28px 24px 12px;
+  /* Centered, readable content column with comfortable gutters
+     (the signature layout of high-end AI chat apps). */
+  padding: 30px max(20px, calc((100% - 800px) / 2)) 18px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 
 #messages::-webkit-scrollbar { width: 3px; }
@@ -669,44 +675,48 @@ main#messages {
 #messages { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
 
 .message {
-  max-width: 78%;
-  padding: 10px 14px;
+  max-width: 100%;
+  padding: 10px 15px;
   border-radius: var(--radius-lg);
   position: relative;
-  font-size: 0.93rem;
-  line-height: 1.58;
-  animation: appear 0.22s cubic-bezier(0.2, 0, 0, 1);
+  font-size: 0.95rem;
+  line-height: 1.65;
+  animation: appear 0.24s cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* User turns: solid bubble aligned to the right of the column. */
 .self {
   align-self: flex-end;
+  max-width: 82%;
   background: var(--msg-self-bg);
   color: var(--msg-self-text);
   border-bottom-right-radius: var(--radius-lg); /* overridden by .group-tail */
   box-shadow: var(--shadow-md);
 }
 
+/* Assistant turns: clean flowing text, no bubble — like premium AI apps. */
 .other {
-  align-self: flex-start;
-  background: var(--msg-ai-bg);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  border: 1px solid var(--border-mid);
-  border-bottom-left-radius: var(--radius-lg); /* overridden by .group-tail */
-  box-shadow: var(--shadow-inset), var(--shadow-sm);
+  align-self: stretch;
+  max-width: 100%;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  padding: 4px 2px;
   color: var(--text);
 }
 
-/* Tail corner only on the last message of a sender run */
+/* Tail corner only on the last user message of a run */
 .self.group-tail  { border-bottom-right-radius: 5px; }
-.other.group-tail { border-bottom-left-radius: 5px; }
 
-/* Consecutive same-sender: tighten gap + flatten the joining corner */
+/* Consecutive user messages: tighten gap + flatten the joining corner */
 .self.grouped  { margin-top: 2px; border-top-right-radius: 8px; }
-.other.grouped { margin-top: 2px; border-top-left-radius: 8px; }
+.other.grouped { margin-top: 0; }
 
 /* First message of a new sender run gets breathing room */
-.self:not(.grouped), .other:not(.grouped) { margin-top: 12px; }
+.self:not(.grouped)  { margin-top: 18px; }
+.other:not(.grouped) { margin-top: 16px; }
 
 .meta {
   font-size: 0.70rem;
@@ -729,16 +739,16 @@ main#messages {
 }
 
 .empty-state h2 {
-  font-size: 2rem;
+  font-size: 2.3rem;
   font-weight: 700;
-  letter-spacing: -0.5px;
+  letter-spacing: -1px;
   color: var(--text);
 }
 
 .empty-state p {
-  font-size: 1rem;
+  font-size: 1.02rem;
   color: var(--text-muted);
-  max-width: 320px;
+  max-width: 340px;
   line-height: 1.55;
 }
 
@@ -747,9 +757,10 @@ main#messages {
   display: flex;
   align-self: flex-start;
   gap: 2px;
-  padding: 0 6px;
-  margin-top: 4px;
-  margin-bottom: 6px;
+  padding: 0;
+  margin-top: 2px;
+  margin-bottom: 10px;
+  opacity: 0.85;
 }
 
 .msg-action-btn {
@@ -899,7 +910,7 @@ main#messages {
 
 /* ── Typing indicator ───────────────────────────────────── */
 #typingIndicator {
-  padding: 0 24px;
+  padding: 0 max(22px, calc((100% - 800px) / 2));
   height: 0;
   display: flex;
   align-items: center;
@@ -909,7 +920,7 @@ main#messages {
 
 #typingIndicator.active {
   height: 42px;
-  padding: 4px 24px 8px;
+  padding: 4px max(22px, calc((100% - 800px) / 2)) 8px;
 }
 
 .typing-bubble {
@@ -947,14 +958,12 @@ main#messages {
 
 /* ── Footer / input ─────────────────────────────────────── */
 footer {
-  padding: 10px 20px 18px;
-  border-top: 1px solid var(--border);
+  /* Composer shares the centered content column with the messages. */
+  padding: 10px max(16px, calc((100% - 800px) / 2)) calc(16px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--glass-1);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  gap: 7px;
+  background: linear-gradient(to top, var(--bg) 35%, transparent);
   flex-shrink: 0;
 }
 
@@ -972,9 +981,9 @@ footer {
   gap: 8px;
   background: var(--glass-2);
   border: 1px solid var(--border-mid);
-  border-radius: var(--radius-lg);
-  padding: 6px 6px 6px 8px;
-  box-shadow: var(--shadow-inset), var(--shadow-sm);
+  border-radius: var(--radius-xl);
+  padding: 8px 8px 8px 10px;
+  box-shadow: var(--shadow-inset), var(--shadow-md);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   transition: border-color 0.16s, box-shadow 0.16s;
@@ -982,11 +991,11 @@ footer {
 
 .footer-input-row:focus-within {
   border-color: var(--border-strong);
-  box-shadow: var(--shadow-inset), 0 0 0 3px rgba(255,255,255,0.05);
+  box-shadow: var(--shadow-inset), var(--shadow-md), 0 0 0 4px rgba(255,255,255,0.05);
 }
 
 .light .footer-input-row:focus-within {
-  box-shadow: var(--shadow-inset), 0 0 0 3px rgba(0,0,0,0.05);
+  box-shadow: var(--shadow-inset), var(--shadow-md), 0 0 0 4px rgba(0,0,0,0.04);
 }
 
 .attach-btn {
@@ -1365,10 +1374,7 @@ footer {
 
 /* ── Wide screen layout ─────────────────────────────────── */
 @media (min-width: 700px) {
-  header        { padding-left: 66px; padding-right: 32px; }
-  main#messages { padding: 28px 32px 12px; }
-  footer        { padding: 8px 28px 22px; }
-  .message      { max-width: 62%; }
+  .self { max-width: 72%; }
 }
 
 /* ── Mobile: sidebar overlays ───────────────────────────── */
@@ -1399,13 +1405,18 @@ footer {
 
   #app.sidebar-open #sidebarBackdrop { display: none; }
 
-  /* Full-width message bubbles on mobile */
-  .message { max-width: 88% !important; }
+  /* User bubbles a touch wider on mobile; assistant text stays full-width */
+  .self { max-width: 88%; }
 
-  /* Better header spacing on mobile */
-  header { padding-left: 16px !important; padding-right: 16px !important; }
-  main#messages { padding: 16px 14px 8px !important; }
-  footer { padding: 6px 12px 16px !important; }
+  main#messages { padding: 18px 14px 10px !important; }
+  footer { padding: 6px 12px calc(14px + env(safe-area-inset-bottom)) !important; }
+
+  /* 16px input prevents iOS Safari from auto-zooming on focus */
+  #messageInput { font-size: 16px; line-height: 22px; }
+
+  /* Comfortable tap targets on touch devices */
+  .attach-btn, .mic-btn { width: 38px; height: 38px; min-width: 38px; }
+  #sendBtn { width: 40px; height: 40px; min-width: 40px; }
 }
 
 /* ── Animations ─────────────────────────────────────────── */
@@ -1519,10 +1530,10 @@ footer {
 .chip {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
   text-align: left;
-  padding: 13px 15px;
-  border-radius: 14px;
+  padding: 14px 16px;
+  border-radius: 15px;
   background: var(--surface);
   border: 1px solid var(--border-mid);
   color: var(--text);
@@ -1592,8 +1603,7 @@ a:focus-visible,
 }
 #sendBtn.has-text:not(.generating):hover { transform: scale(1.07); filter: brightness(1.05); }
 
-/* Subtle interactivity cue on AI bubbles */
-.other:hover { border-color: var(--border-strong); }
+/* Assistant text is borderless — no hover treatment needed. */
 
 /* Empty-state logo */
 .empty-logo {
