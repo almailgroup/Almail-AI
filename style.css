@@ -481,11 +481,10 @@ body::before {
   position: relative;
 }
 
-/* ── Top bar (chat title + model badge) ─────────────────── */
+/* ── Top bar (current chat title) ───────────────────────── */
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 12px;
   height: 52px;
   flex-shrink: 0;
@@ -507,27 +506,6 @@ body::before {
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
-}
-
-.topbar-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  flex-shrink: 0;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 5px 12px;
-  border-radius: 50px;
-  background: var(--glass-2);
-  border: 1px solid var(--border-mid);
-}
-.topbar-badge-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 0 3px rgba(52,211,153,0.18);
 }
 
 /* ── Chat history list ──────────────────────────────────── */
