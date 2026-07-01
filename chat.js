@@ -9,7 +9,7 @@ import {
   signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { AI_CONFIG } from "./config.js";
+import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
@@ -698,6 +698,9 @@ const fileInput       = document.getElementById("fileInput");
 const filePreview     = document.getElementById("filePreview");
 const filePreviewName = document.getElementById("filePreviewName");
 const attachPopup     = document.getElementById("attachPopup");
+const modelSwitcherBtn  = document.getElementById("modelSwitcherBtn");
+const modelSwitcherName = document.getElementById("modelSwitcherName");
+const modelMenu         = document.getElementById("modelMenu");
 
 // ── Splash + first-visit welcome ──────────────────────────
 const splashEl     = document.getElementById("splash");
@@ -1206,6 +1209,7 @@ inputEl.addEventListener("paste", (e) => {
 document.addEventListener("click", (e) => {
   if (!settingsPopup.contains(e.target) && e.target !== settingsBtn) settingsPopup.classList.remove("open");
   if (!attachPopup.contains(e.target)   && e.target !== attachBtn)   attachPopup.classList.remove("open");
+  if (!modelMenu.contains(e.target)     && e.target !== modelSwitcherBtn && !modelSwitcherBtn.contains(e.target)) modelMenu.classList.remove("open");
   if (!e.target.closest(".menu-btn") && !e.target.closest(".menu"))
     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
   if (!e.target.closest(".move-menu")) closeMoveMenu();
@@ -2026,7 +2030,7 @@ function startPlaceholders() {
 }
 function stopPlaceholders() { if (phTimer) { clearInterval(phTimer); phTimer = null; } }
 
-// ── Mistral AI ────────────────────────────────────────────
+// ── AI providers (Mistral / Gemini) ───────────────────────
 // User personalization (custom instructions + creativity).
 function getUserSettings() {
   let s = {};
@@ -2040,13 +2044,75 @@ function saveUserSettings(s) {
   try { localStorage.setItem("almail_settings", JSON.stringify(s)); } catch (e) {}
 }
 
-// Build the OpenAI-style message array (with optional text-file context).
-function buildApiMessages(messages, attachment = null) {
+// Which provider answers new messages — persisted across reloads.
+let currentProvider = (() => {
+  try {
+    const saved = localStorage.getItem("aiProvider");
+    return (saved && PROVIDERS[saved]) ? saved : DEFAULT_PROVIDER;
+  } catch (e) { return DEFAULT_PROVIDER; }
+})();
+
+// ── Model switcher (top bar) ──────────────────────────────
+function buildModelMenu() {
+  modelMenu.innerHTML = "";
+  Object.keys(PROVIDERS).forEach(id => {
+    const p = PROVIDERS[id];
+    const item = document.createElement("button");
+    item.className = "model-menu-item";
+    item.dataset.provider = id;
+    const noKey = !p.apiKey;
+    item.innerHTML = `
+      <span class="model-menu-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+      <span class="model-menu-text"><strong>${p.label}</strong><small>${noKey ? "Add API key in config.js" : p.model}</small></span>`;
+    item.onclick = () => setProvider(id);
+    modelMenu.appendChild(item);
+  });
+  updateModelMenuChecks();
+}
+
+function updateModelMenuChecks() {
+  modelMenu.querySelectorAll(".model-menu-item").forEach(el => {
+    el.classList.toggle("active", el.dataset.provider === currentProvider);
+  });
+}
+
+function updateModelSwitcherUI() {
+  const p = PROVIDERS[currentProvider];
+  modelSwitcherName.textContent = p ? p.label : "Model";
+  updateModelMenuChecks();
+}
+
+function openModelMenu()  { modelMenu.classList.add("open"); }
+function closeModelMenu() { modelMenu.classList.remove("open"); }
+
+function setProvider(id) {
+  if (!PROVIDERS[id]) return;
+  const changed = id !== currentProvider;
+  currentProvider = id;
+  try { localStorage.setItem("aiProvider", id); } catch (e) {}
+  updateModelSwitcherUI();
+  closeModelMenu();
+  if (changed) showToast(`Now chatting with ${PROVIDERS[id].label}`);
+}
+
+modelSwitcherBtn.onclick = (e) => {
+  e.stopPropagation();
+  modelMenu.classList.contains("open") ? closeModelMenu() : openModelMenu();
+};
+
+buildModelMenu();
+updateModelSwitcherUI();
+
+function fullSystemPrompt() {
   const { instructions } = getUserSettings();
-  const systemContent = AI_CONFIG.systemPrompt +
+  return AI_CONFIG.systemPrompt +
     (instructions ? `\n\nThe user has provided these custom instructions — follow them:\n${instructions}` : "");
+}
+
+// Build the OpenAI-style message array (Mistral) — with optional file/image context.
+function buildOpenAIMessages(messages, attachment = null) {
   return [
-    { role: "system", content: systemContent },
+    { role: "system", content: fullSystemPrompt() },
     ...messages.map((msg, i) => {
       const isLastUser = msg.role === "user" && i === messages.length - 1;
       const role = msg.role === "user" ? "user" : "assistant";
@@ -2067,28 +2133,54 @@ function buildApiMessages(messages, attachment = null) {
   ];
 }
 
+// Build Gemini's { systemInstruction, contents } request shape (roles are
+// "user" / "model", and images go in inline_data instead of image_url).
+function buildGeminiContents(messages, attachment = null) {
+  const contents = messages.map((msg, i) => {
+    const isLastUser = msg.role === "user" && i === messages.length - 1;
+    const role = msg.role === "user" ? "user" : "model";
+    if (isLastUser && attachment?.type === "text") {
+      return { role, parts: [{ text: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` }] };
+    }
+    if (isLastUser && attachment?.type === "image" && attachment.data) {
+      return {
+        role,
+        parts: [
+          { text: msg.content || "Describe this image." },
+          { inline_data: { mime_type: attachment.mimeType, data: attachment.data } }
+        ]
+      };
+    }
+    return { role, parts: [{ text: msg.content || "" }] };
+  });
+  return { systemInstruction: { parts: [{ text: fullSystemPrompt() }] }, contents };
+}
+
 // Drive a streamed reply: manages the live bubble, typing indicator, abort,
 // and falls back to a single request if streaming fails. Returns final text.
+// Dispatches to whichever provider is currently selected.
 async function streamAssistantReply(history, attachment) {
   abortController = new AbortController();
   streaming = { text: "", started: false };
   typingEl.classList.add("active");
   scrollToBottom();
 
-  const apiMessages = buildApiMessages(history, attachment);
-  let finalText = "";
+  const onDelta = (full) => {
+    if (!streaming) return;
+    if (!streaming.started) {
+      streaming.started = true;
+      typingEl.classList.remove("active");
+    }
+    const stick = isNearBottom();
+    streaming.text = full;
+    scheduleStreamRender(stick);
+  };
 
+  let finalText = "";
   try {
-    finalText = await streamMistral(apiMessages, abortController.signal, (full) => {
-      if (!streaming) return;
-      if (!streaming.started) {
-        streaming.started = true;
-        typingEl.classList.remove("active");
-      }
-      const stick = isNearBottom();
-      streaming.text = full;
-      scheduleStreamRender(stick);
-    });
+    finalText = (currentProvider === "gemini")
+      ? await streamGemini(history, attachment, abortController.signal, onDelta)
+      : await streamMistral(buildOpenAIMessages(history, attachment), abortController.signal, onDelta);
   } catch (err) {
     if (err.name === "AbortError") {
       finalText = streaming ? streaming.text : "";
@@ -2107,10 +2199,11 @@ async function streamAssistantReply(history, attachment) {
 
 // SSE streaming (Mistral / OpenAI-compatible: data: {…delta…}\n\n … data: [DONE]).
 async function streamMistral(apiMessages, signal, onDelta) {
-  const res = await fetch(AI_CONFIG.endpoint, {
+  const p = PROVIDERS.mistral;
+  const res = await fetch(p.endpoint, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AI_CONFIG.apiKey}` },
-    body: JSON.stringify({ model: AI_CONFIG.model, messages: apiMessages, stream: true, temperature: getUserSettings().temperature }),
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${p.apiKey}` },
+    body: JSON.stringify({ model: p.model, messages: apiMessages, stream: true, temperature: getUserSettings().temperature }),
     signal
   });
 
@@ -2146,12 +2239,66 @@ async function streamMistral(apiMessages, signal, onDelta) {
   return full;
 }
 
-// Non-streaming fallback.
-async function getAIResponse(messages, attachment = null) {
-  const res = await fetch(AI_CONFIG.endpoint, {
+// SSE streaming for Gemini (data: {candidates:[{content:{parts:[{text}]}}]}).
+// Each chunk's text is an incremental delta, same shape as Mistral's stream.
+async function streamGemini(history, attachment, signal, onDelta) {
+  const p = PROVIDERS.gemini;
+  if (!p.apiKey) throw new Error("No Gemini API key configured — add one in config.js.");
+
+  const { systemInstruction, contents } = buildGeminiContents(history, attachment);
+  const res = await fetch(`${p.endpoint}/${p.model}:streamGenerateContent?alt=sse`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${AI_CONFIG.apiKey}` },
-    body: JSON.stringify({ model: AI_CONFIG.model, messages: buildApiMessages(messages, attachment), temperature: getUserSettings().temperature })
+    headers: { "Content-Type": "application/json", "x-goog-api-key": p.apiKey },
+    body: JSON.stringify({ contents, systemInstruction, generationConfig: { temperature: getUserSettings().temperature } }),
+    signal
+  });
+
+  if (!res.ok || !res.body) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Array.isArray(err) ? err[0]?.error?.message : err?.error?.message;
+    throw new Error(`API ${res.status}: ${msg || res.statusText}`);
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "", full = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t.startsWith("data:")) continue;
+      const payload = t.slice(5).trim();
+      if (!payload) continue;
+      try {
+        const json = JSON.parse(payload);
+        const delta = (json.candidates?.[0]?.content?.parts || []).map(pt => pt.text || "").join("");
+        if (delta) { full += delta; onDelta(full); }
+      } catch (_) { /* partial JSON spanning chunks — ignore */ }
+    }
+  }
+
+  if (!full) throw new Error("Empty stream response");
+  return full;
+}
+
+// Non-streaming fallback — dispatches to whichever provider is selected.
+async function getAIResponse(messages, attachment = null) {
+  return (currentProvider === "gemini")
+    ? getGeminiResponse(messages, attachment)
+    : getMistralResponse(messages, attachment);
+}
+
+async function getMistralResponse(messages, attachment = null) {
+  const p = PROVIDERS.mistral;
+  const res = await fetch(p.endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${p.apiKey}` },
+    body: JSON.stringify({ model: p.model, messages: buildOpenAIMessages(messages, attachment), temperature: getUserSettings().temperature })
   });
 
   if (!res.ok) {
@@ -2161,6 +2308,28 @@ async function getAIResponse(messages, attachment = null) {
 
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() || "No response received.";
+}
+
+async function getGeminiResponse(messages, attachment = null) {
+  const p = PROVIDERS.gemini;
+  if (!p.apiKey) throw new Error("No Gemini API key configured — add one in config.js.");
+
+  const { systemInstruction, contents } = buildGeminiContents(messages, attachment);
+  const res = await fetch(`${p.endpoint}/${p.model}:generateContent`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-goog-api-key": p.apiKey },
+    body: JSON.stringify({ contents, systemInstruction, generationConfig: { temperature: getUserSettings().temperature } })
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const msg = Array.isArray(err) ? err[0]?.error?.message : err?.error?.message;
+    throw new Error(`API ${res.status}: ${msg || res.statusText}`);
+  }
+
+  const data = await res.json();
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  return parts.map(pt => pt.text || "").join("").trim() || "No response received.";
 }
 
 // ── Delete message handlers ───────────────────────────────
@@ -2194,6 +2363,7 @@ document.addEventListener("keydown", e => {
   if (document.getElementById("moveMenu")) { closeMoveMenu(); return; }
   if (settingsPopup.classList.contains("open")) { settingsPopup.classList.remove("open"); return; }
   if (attachPopup.classList.contains("open"))   { attachPopup.classList.remove("open");   return; }
+  if (modelMenu.classList.contains("open"))     { closeModelMenu(); return; }
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
   if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
