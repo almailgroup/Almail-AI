@@ -43,13 +43,11 @@ export const PROVIDERS = {
   gemini: {
     label: "Luxora 1.1",
     tagline: "Creative, with a long memory",
-    // Swap for whatever Gemini model you have access to
-    // (e.g. "gemini-2.5-flash", "gemini-2.5-pro").
-    model: "gemini-2.0-flash",
+    // gemini-2.0-flash has zero free-tier quota on this key; 2.5-flash
+    // is confirmed working (verified against the live API).
+    model: "gemini-2.5-flash",
     endpoint: "https://generativelanguage.googleapis.com/v1beta/models",
-    // Paste your Gemini API key here — get one free at
-    // https://aistudio.google.com/apikey
-    apiKey: "",
+    apiKey: "AQ.Ab8RN6JILlps8lfcPXax2iSu2vy3GV8beXoECbDlBOQz1gd3dQ",
   },
 };
 
