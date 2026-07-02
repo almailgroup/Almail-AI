@@ -82,6 +82,7 @@ button, a, input, textarea, select, [role="button"] { touch-action: manipulation
 body {
   background: var(--bg);
   color: var(--text);
+  color-scheme: dark; /* native scrollbars/inputs match the theme — no white flash */
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   height: 100dvh;
   overflow: hidden;
@@ -89,6 +90,17 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+body.light { color-scheme: light; }
+
+/* Fluid theme switch: applied for ~400ms around a toggle, then removed
+   so permanent wildcard transitions never tax normal interactions. */
+body.theme-anim,
+body.theme-anim *,
+body.theme-anim *::before,
+body.theme-anim *::after {
+  transition: background-color 0.35s ease, color 0.35s ease,
+              border-color 0.35s ease, fill 0.35s ease, stroke 0.35s ease !important;
 }
 
 /* Subtle ambient gradient the glass can refract */
@@ -1135,14 +1147,19 @@ main#messages {
 }
 
 /* Inline "Thinking…" shimmer — sits where the reply will appear,
-   with the assistant avatar, instead of a detached dots bubble. */
+   with the assistant avatar, instead of a detached dots bubble.
+   Fades in/out (the container's height transition handles layout) so it
+   blends into the first streamed tokens instead of popping. */
 .typing-inline {
-  display: none;
+  display: flex;
   align-items: center;
   gap: 16px;
   flex-shrink: 0;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.22s ease, transform 0.22s ease;
 }
-#typingIndicator.active .typing-inline { display: flex; }
+#typingIndicator.active .typing-inline { opacity: 1; transform: translateY(0); }
 
 .typing-avatar {
   width: 30px;
@@ -1325,11 +1342,30 @@ footer {
   position: fixed;
   inset: 0;
   background: rgba(0,0,0,0.72);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: none;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 20px;
+  animation: modalBackdropIn 0.25s ease;
+}
+
+/* Animated dismissal: JS adds .closing, waits ~170ms, then hides.
+   Only transform/opacity animate — GPU-composited, no mobile jank. */
+.modal.closing {
+  animation: modalBackdropOut 0.17s ease forwards;
+  pointer-events: none;
+}
+.modal.closing .modal-box {
+  animation: modalBoxOut 0.17s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
+@keyframes modalBackdropIn  { from { opacity: 0; } }
+@keyframes modalBackdropOut { to   { opacity: 0; } }
+@keyframes modalBoxOut {
+  to { opacity: 0; transform: scale(0.95) translateY(10px); }
 }
 
 .modal-box {
@@ -1342,7 +1378,8 @@ footer {
   width: 100%;
   max-width: 420px;
   box-shadow: var(--shadow-inset), var(--shadow-lg);
-  animation: modalIn 0.22s cubic-bezier(0.2, 0, 0, 1);
+  animation: modalIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
   position: relative;
   overflow: hidden;
   text-align: center;
@@ -1361,7 +1398,7 @@ footer {
 .modal-box > * { position: relative; z-index: 1; }
 
 @keyframes modalIn {
-  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  from { opacity: 0; transform: scale(0.95) translateY(14px); }
   to   { opacity: 1; transform: scale(1)    translateY(0);    }
 }
 
@@ -1878,7 +1915,22 @@ footer {
   pointer-events: none;
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
-.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+
+.toast-action {
+  margin-left: 12px;
+  padding: 4px 12px;
+  border: none;
+  border-radius: 50px;
+  background: var(--text);
+  color: var(--bg);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.14s;
+}
+.toast-action:hover { opacity: 0.85; }
 
 /* ── UI polish ─────────────────────────────────────────────── */
 
@@ -2829,6 +2881,7 @@ a:focus-visible,
 }
 
 .admin-banner {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2836,12 +2889,48 @@ a:focus-visible,
   background: var(--glass-2);
   border: 1px solid var(--border-strong);
   border-radius: 12px;
-  padding: 10px 14px;
+  padding: 10px 44px;
   margin-bottom: 16px;
   font-weight: 600;
   font-size: 0.92rem;
   color: var(--text);
 }
+
+/* ✕ on the admin banner — removes admin access */
+.plan-remove-x {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: var(--glass-3);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+.plan-remove-x:hover { background: rgba(239,111,111,0.22); color: #ef6f6f; }
+.light .plan-remove-x:hover { background: rgba(211,70,63,0.14); color: #d3463f; }
+
+/* "✕ Remove this plan" under the CTA of the plan you're currently on */
+.plan-remove {
+  margin-top: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.76rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.14s;
+}
+.plan-remove:hover { color: #ef6f6f; }
+.light .plan-remove:hover { color: #d3463f; }
 
 .plan-cards {
   display: grid;

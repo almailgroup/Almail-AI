@@ -25,9 +25,42 @@ let streaming         = null;   // { text, started } while a reply streams in
 let tempMode          = false;  // temporary chat: nothing is saved
 let prevChatId        = null;   // chat to return to when leaving temp mode
 
+// ── Modal lifecycle (animated open/close) ─────────────────
+// All overlays share one show/hide pair so dismissals play a short
+// exit animation instead of snapping out of existence. Reopening a
+// modal mid-close cancels the pending hide.
+const MODAL_OUT_MS = 170;
+function showModal(m) {
+  if (!m) return;
+  clearTimeout(m._closeTimer);
+  m.classList.remove("closing");
+  m.style.display = "flex";
+}
+function hideModal(m) {
+  if (!m) return;
+  clearTimeout(m._closeTimer);
+  if (m.style.display !== "flex") { m.style.display = "none"; return; }
+  m.classList.add("closing");
+  m._closeTimer = setTimeout(() => {
+    m.style.display = "none";
+    m.classList.remove("closing");
+  }, MODAL_OUT_MS);
+}
+
 // ── Chat metadata in localStorage ─────────────────────────
-function loadChats()    { try { return JSON.parse(localStorage.getItem("chats_v2") || "[]"); } catch (e) { return []; } }
-function saveChats(c)   { localStorage.setItem("chats_v2", JSON.stringify(c)); }
+// Chats/projects are memo-cached: renders skip the JSON round-trip, and a
+// cross-tab `storage` event invalidates the cache so tabs stay in sync.
+let _chatsCache = null, _projectsCache = null;
+function loadChats() {
+  if (_chatsCache) return _chatsCache;
+  try { _chatsCache = JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
+  catch (e) { _chatsCache = []; }
+  return _chatsCache;
+}
+function saveChats(c) {
+  _chatsCache = c;
+  try { localStorage.setItem("chats_v2", JSON.stringify(c)); } catch (e) {}
+}
 function genId()        { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
 function createChat(projectId) {
@@ -41,8 +74,25 @@ function createChat(projectId) {
 }
 
 // ── Projects in localStorage ──────────────────────────────
-function loadProjects()  { try { return JSON.parse(localStorage.getItem("projects_v1") || "[]"); } catch (e) { return []; } }
-function saveProjects(p) { localStorage.setItem("projects_v1", JSON.stringify(p)); }
+function loadProjects() {
+  if (_projectsCache) return _projectsCache;
+  try { _projectsCache = JSON.parse(localStorage.getItem("projects_v1") || "[]"); }
+  catch (e) { _projectsCache = []; }
+  return _projectsCache;
+}
+function saveProjects(p) {
+  _projectsCache = p;
+  try { localStorage.setItem("projects_v1", JSON.stringify(p)); } catch (e) {}
+}
+
+// Another tab changed chats/projects — drop caches and re-render.
+window.addEventListener("storage", (e) => {
+  if (e.key === "chats_v2" || e.key === "projects_v1") {
+    _chatsCache = null;
+    _projectsCache = null;
+    if (currentUser) renderChatList();
+  }
+});
 
 let pendingDeleteProjectId = null;
 let autoRenameProjectId = null;
@@ -71,13 +121,13 @@ function toggleProjectCollapsed(id) {
 
 function deleteProject(id) {
   pendingDeleteProjectId = id;
-  document.getElementById("deleteProjectModal").style.display = "flex";
+  showModal(document.getElementById("deleteProjectModal"));
 }
 
 function confirmDeleteProject() {
   const id = pendingDeleteProjectId;
   pendingDeleteProjectId = null;
-  document.getElementById("deleteProjectModal").style.display = "none";
+  hideModal(document.getElementById("deleteProjectModal"));
   if (!id) return;
   const chats = loadChats();
   let changed = false;
@@ -207,28 +257,44 @@ function openProjectFromCard(projectId) {
 
 function deleteChat(chatId) {
   pendingDeleteChatId = chatId;
-  document.getElementById("deleteChatModal").style.display = "flex";
+  showModal(document.getElementById("deleteChatModal"));
 }
 
-async function confirmDeleteChat() {
+// Soft delete: the chat leaves the list immediately, but its Firestore
+// messages are only purged after a grace window — the toast's Undo
+// restores the chat with all messages intact.
+let pendingChatPurge = null; // { chatId, timer }
+
+async function purgeChatMessages(chatId) {
+  if (!currentUser) return;
+  try {
+    const snap = await getDocs(query(
+      collection(db, "users", currentUser.uid, "messages"),
+      where("chatId", "==", chatId)
+    ));
+    await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+  } catch (err) {
+    console.error("Failed to delete chat messages:", err);
+  }
+}
+
+function flushPendingPurge() {
+  if (!pendingChatPurge) return;
+  clearTimeout(pendingChatPurge.timer);
+  const id = pendingChatPurge.chatId;
+  pendingChatPurge = null;
+  purgeChatMessages(id);
+}
+
+function confirmDeleteChat() {
   if (!pendingDeleteChatId) return;
   const chatId = pendingDeleteChatId;
   pendingDeleteChatId = null;
-  document.getElementById("deleteChatModal").style.display = "none";
+  hideModal(document.getElementById("deleteChatModal"));
 
-  // Remove this chat's messages from Firestore so they don't pile up as orphans.
-  if (currentUser) {
-    try {
-      const snap = await getDocs(query(
-        collection(db, "users", currentUser.uid, "messages"),
-        where("chatId", "==", chatId)
-      ));
-      await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-    } catch (err) {
-      console.error("Failed to delete chat messages:", err);
-    }
-  }
+  flushPendingPurge(); // only one undo window at a time — finalize the previous one
 
+  const removedChat = loadChats().find(c => c.id === chatId);
   saveChats(loadChats().filter(c => c.id !== chatId));
   if (currentChatId === chatId) {
     const remaining = loadChats();
@@ -237,6 +303,27 @@ async function confirmDeleteChat() {
   } else {
     renderChatList();
   }
+
+  pendingChatPurge = {
+    chatId,
+    timer: setTimeout(() => { pendingChatPurge = null; purgeChatMessages(chatId); }, 6000)
+  };
+  showToast("Chat deleted", {
+    label: "Undo",
+    fn: () => {
+      if (pendingChatPurge && pendingChatPurge.chatId === chatId) {
+        clearTimeout(pendingChatPurge.timer);
+        pendingChatPurge = null;
+      }
+      if (removedChat && !loadChats().some(c => c.id === chatId)) {
+        const chats = loadChats();
+        chats.unshift(removedChat);
+        saveChats(chats);
+        renderChatList();
+        showToast("Chat restored");
+      }
+    }
+  });
 }
 
 function togglePin(chatId) {
@@ -316,9 +403,10 @@ function renderChatList() {
   updateTopbar();
 }
 
-// Brief, self-dismissing toast notification.
+// Brief, self-dismissing toast. Pass { label, fn } as `action` for an
+// inline button (e.g. "Undo") — action toasts stay up longer.
 let toastTimer = null;
-function showToast(message) {
+function showToast(message, action) {
   let t = document.getElementById("toast");
   if (!t) {
     t = document.createElement("div");
@@ -327,9 +415,21 @@ function showToast(message) {
     document.body.appendChild(t);
   }
   t.textContent = message;
+  if (action) {
+    const b = document.createElement("button");
+    b.className = "toast-action";
+    b.textContent = action.label;
+    b.onclick = (e) => {
+      e.stopPropagation();
+      clearTimeout(toastTimer);
+      t.classList.remove("show");
+      action.fn();
+    };
+    t.appendChild(b);
+  }
   t.classList.add("show");
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => t.classList.remove("show"), 2200);
+  toastTimer = setTimeout(() => t.classList.remove("show"), action ? 6000 : 2200);
 }
 
 // Keep the top bar's title in sync with the active view/chat.
@@ -734,11 +834,11 @@ setTimeout(hideSplash, 2600); // safety net if auth never resolves
 function maybeShowWelcome() {
   let seen = false;
   try { seen = !!localStorage.getItem("almail_welcomed"); } catch (e) { seen = true; }
-  if (!seen) welcomeModal.style.display = "flex";
+  if (!seen) showModal(welcomeModal);
 }
 function closeWelcome() {
   try { localStorage.setItem("almail_welcomed", "1"); } catch (e) {}
-  welcomeModal.style.display = "none";
+  hideModal(welcomeModal);
 }
 welcomeClose.onclick = closeWelcome;
 welcomeStart.onclick = () => {
@@ -751,7 +851,7 @@ welcomeModal.addEventListener("click", e => { if (e.target === welcomeModal) clo
 // Re-open the welcome tour from Settings → What's new
 document.getElementById("settingsWhatsNew").onclick = () => {
   settingsPopup.classList.remove("open");
-  welcomeModal.style.display = "flex";
+  showModal(welcomeModal);
 };
 
 document.getElementById("settingsFeedbackBtn").onclick = () => {
@@ -761,7 +861,7 @@ document.getElementById("settingsFeedbackBtn").onclick = () => {
 
 document.getElementById("settingsHelpBtn").onclick = () => {
   settingsPopup.classList.remove("open");
-  shortcutsModal.style.display = "flex";   // defined later; available at click time
+  showModal(shortcutsModal);   // defined later; available at click time
 };
 
 // ── Personalization modal ─────────────────────────────────
@@ -780,10 +880,10 @@ function openPersonalize() {
     if (on) matched = true;
   });
   if (!matched) creativitySeg.querySelector('[data-temp="0.7"]').classList.add("active");
-  personalizeModal.style.display = "flex";
+  showModal(personalizeModal);
   setTimeout(() => customInstructions.focus(), 50);
 }
-function closePersonalize() { personalizeModal.style.display = "none"; }
+function closePersonalize() { hideModal(personalizeModal); }
 
 document.getElementById("settingsPersonalize").onclick = openPersonalize;
 document.getElementById("personalizeClose").onclick = closePersonalize;
@@ -937,10 +1037,10 @@ function openAccountModal() {
   applyAvatar();
   resetDeleteAccountBtn();
   settingsPopup.classList.remove("open");
-  accountModal.style.display = "flex";
+  showModal(accountModal);
   if (window.innerWidth < 900) closeSidebar();
 }
-function closeAccountModal() { accountModal.style.display = "none"; resetDeleteAccountBtn(); }
+function closeAccountModal() { hideModal(accountModal); resetDeleteAccountBtn(); }
 
 document.getElementById("accountClose").onclick = closeAccountModal;
 accountModal.addEventListener("click", e => { if (e.target === accountModal) closeAccountModal(); });
@@ -1019,7 +1119,7 @@ document.getElementById("accountReset").onclick = async () => {
   }
 };
 
-document.getElementById("accountLogout").onclick = () => { closeAccountModal(); signOut(auth); };
+document.getElementById("accountLogout").onclick = () => { flushPendingPurge(); closeAccountModal(); signOut(auth); };
 
 // Delete account: two-step confirm to avoid accidental taps.
 let deleteAcctArmed = false, deleteAcctTimer = null;
@@ -1110,7 +1210,20 @@ function updateUpgradeUI() {
     } else {
       btn.textContent = id === "pro" ? "Upgrade to Pro" : "Upgrade to Max";
     }
+    // "✕ Remove this plan" shows only on the card you're currently on.
+    const rm = card.querySelector(".plan-remove");
+    if (rm) rm.style.display = (id === plan && plan !== "free") ? "" : "none";
   });
+}
+
+// Revert to Free — used by the admin banner ✕ and the per-card remove button.
+function removeCurrentPlan() {
+  if (!currentUser) return;
+  const was = PLANS[getPlan()].name;
+  if (getPlan() === "free") return;
+  setPlan("free");
+  updateUpgradeUI();
+  showToast(`${was} removed — you're back on Free`);
 }
 
 function openUpgradeModal() {
@@ -1121,14 +1234,17 @@ function openUpgradeModal() {
   const ri = document.getElementById("redeemInput");
   if (ri) ri.value = "";
   settingsPopup.classList.remove("open");
-  upgradeModal.style.display = "flex";
+  showModal(upgradeModal);
   if (window.innerWidth < 900) closeSidebar();
 }
-function closeUpgradeModal() { upgradeModal.style.display = "none"; }
+function closeUpgradeModal() { hideModal(upgradeModal); }
 
 document.getElementById("upgradeBtn").onclick = openUpgradeModal;
 document.getElementById("upgradeClose").onclick = closeUpgradeModal;
 upgradeModal.addEventListener("click", e => { if (e.target === upgradeModal) closeUpgradeModal(); });
+
+document.getElementById("adminRemove").onclick = removeCurrentPlan;
+document.querySelectorAll(".plan-remove").forEach(b => { b.onclick = removeCurrentPlan; });
 
 // Paid tiers aren't live yet — the CTA says so instead of charging.
 document.querySelectorAll(".plan-cta").forEach(btn => {
@@ -1211,10 +1327,16 @@ function applyLogoTheme() {
   });
 }
 
+let themeAnimTimer = null;
 function setTheme(light) {
   isLight = light;
+  // Cross-fade every surface for the toggle, then drop the transitions so
+  // they don't tax normal interactions.
+  document.body.classList.add("theme-anim");
+  clearTimeout(themeAnimTimer);
+  themeAnimTimer = setTimeout(() => document.body.classList.remove("theme-anim"), 400);
   document.body.classList.toggle("light", isLight);
-  localStorage.setItem("theme", isLight ? "light" : "dark");
+  try { localStorage.setItem("theme", isLight ? "light" : "dark"); } catch (e) {}
   applyThemeUI();
   applyLogoTheme();
   settingsPopup.classList.remove("open");
@@ -1407,8 +1529,8 @@ function updateAuthUI() {
   toggleMode.textContent    = isLoginMode ? "Don't have an account? Register" : "Already have an account? Log in";
   errorEl.textContent = "";
 }
-function openAuthModal()  { updateAuthUI(); authModal.style.display = "flex"; emailInput.focus(); }
-function closeAuthModal() { authModal.style.display = "none"; errorEl.textContent = ""; }
+function openAuthModal()  { updateAuthUI(); showModal(authModal); emailInput.focus(); }
+function closeAuthModal() { hideModal(authModal); errorEl.textContent = ""; }
 
 document.getElementById("authClose").onclick = closeAuthModal;
 toggleMode.onclick  = () => { isLoginMode = !isLoginMode; updateAuthUI(); };
@@ -1520,8 +1642,14 @@ messagesEl.addEventListener("scroll", () => {
 scrollBottomBtn.onclick = () => scrollToBottom(true);
 
 // ── Streaming reply bubble ────────────────────────────────
-// Renders/updates the transient assistant bubble while a reply streams in.
+// Incremental renderer: text is split at the last block boundary (\n\n).
+// The "stable" part — everything already complete — is parsed once,
+// syntax-highlighted, and never touched again, so finished paragraphs,
+// lists, and code blocks don't flicker or jump. Only the small active
+// tail re-parses each animation frame.
 // Survives Firestore snapshot re-renders because renderMessages re-invokes it.
+let streamStableCache = { src: "", html: "" };
+
 function renderStreamingBubble() {
   if (!streaming || !streaming.started) return;
   let div = document.getElementById("streamingMsg");
@@ -1531,15 +1659,38 @@ function renderStreamingBubble() {
     div.id = "streamingMsg";
     const textDiv = document.createElement("div");
     textDiv.className = "message-text";
-    textDiv.id = "streamText";
+    const stableDiv = document.createElement("div");
+    stableDiv.id = "streamStable";
+    const tailDiv = document.createElement("div");
+    tailDiv.id = "streamTail";
+    textDiv.append(stableDiv, tailDiv);
     const meta = document.createElement("div");
     meta.className = "meta";
     meta.textContent = "Almail AI";
     div.append(textDiv, meta);
     messagesEl.appendChild(div);
+    // A full re-render wiped the bubble — rehydrate the finished part.
+    if (streamStableCache.src) {
+      stableDiv.innerHTML = streamStableCache.html;
+      enhanceCodeBlocks(stableDiv);
+    }
   }
-  document.getElementById("streamText").innerHTML =
-    renderMarkdown(streaming.text) + '<span class="stream-cursor"></span>';
+
+  const text = streaming.text || "";
+  const cut = text.lastIndexOf("\n\n");
+  let stable = cut >= 0 ? text.slice(0, cut + 2) : "";
+  // Never split inside an unclosed code fence — the fragment wouldn't parse.
+  if (((stable.match(/```/g) || []).length) % 2 === 1) stable = "";
+  const tail = text.slice(stable.length);
+
+  if (stable !== streamStableCache.src) {
+    const stableDiv = document.getElementById("streamStable");
+    streamStableCache = { src: stable, html: renderMarkdown(stable) };
+    stableDiv.innerHTML = streamStableCache.html;
+    enhanceCodeBlocks(stableDiv); // highlight + language badge + copy, live
+  }
+  document.getElementById("streamTail").innerHTML =
+    renderMarkdown(tail) + '<span class="stream-cursor"></span>';
 }
 
 let rafPending = false, rafStick = false;
@@ -1704,7 +1855,7 @@ function renderMessages(list = currentMessages) {
         div.classList.add("wobbly-strong");
         setTimeout(() => {
           div.classList.remove("wobbly-strong");
-          setTimeout(() => { deleteId = msg._id; deleteModal.style.display = "flex"; }, 50);
+          setTimeout(() => { deleteId = msg._id; showModal(deleteModal); }, 50);
         }, 900);
       };
 
@@ -1903,7 +2054,7 @@ function startMsgListener() {
   msgUnsubscribe = onSnapshot(q, snapshot => {
     if (chatId !== currentChatId || tempMode) return; // ignore stale / temp-chat
 
-    deleteModal.style.display = "none";
+    hideModal(deleteModal);
     deleteId = null;
 
     const docs = snapshot.docs
@@ -1977,7 +2128,7 @@ onAuthStateChanged(auth, user => {
     document.getElementById("chatList").innerHTML = "";
     document.getElementById("projectList").innerHTML = "";
     closeProjectsView();
-    deleteModal.style.display  = "none";
+    hideModal(deleteModal);
     deleteId = null;
     updateSendState();
     updateTopbar();
@@ -2003,12 +2154,12 @@ if (newProjectBtn) newProjectBtn.onclick = () => {
   openProjectsView();
 };
 document.getElementById("cancelDeleteProject").onclick = () => {
-  document.getElementById("deleteProjectModal").style.display = "none";
+  hideModal(document.getElementById("deleteProjectModal"));
   pendingDeleteProjectId = null;
 };
 document.getElementById("confirmDeleteProject").onclick = confirmDeleteProject;
 document.getElementById("deleteProjectModal").addEventListener("click", e => {
-  if (e.target.id === "deleteProjectModal") { e.currentTarget.style.display = "none"; pendingDeleteProjectId = null; }
+  if (e.target.id === "deleteProjectModal") { hideModal(e.currentTarget); pendingDeleteProjectId = null; }
 });
 
 // ── Projects dashboard page wiring ────────────────────────
@@ -2216,18 +2367,19 @@ async function retryReply(targetChatId) {
 
 // ── Keyboard shortcuts ────────────────────────────────────
 const shortcutsModal = document.getElementById("shortcutsModal");
+function modalIsOpen(m) { return m.style.display === "flex" && !m.classList.contains("closing"); }
 function toggleShortcuts() {
-  shortcutsModal.style.display = shortcutsModal.style.display === "flex" ? "none" : "flex";
+  modalIsOpen(shortcutsModal) ? hideModal(shortcutsModal) : showModal(shortcutsModal);
 }
-document.getElementById("shortcutsClose").onclick = () => { shortcutsModal.style.display = "none"; };
-shortcutsModal.addEventListener("click", e => { if (e.target === shortcutsModal) shortcutsModal.style.display = "none"; });
+document.getElementById("shortcutsClose").onclick = () => { hideModal(shortcutsModal); };
+shortcutsModal.addEventListener("click", e => { if (e.target === shortcutsModal) hideModal(shortcutsModal); });
 
 document.addEventListener("keydown", (e) => {
   const mod = e.metaKey || e.ctrlKey;
   const tag = (document.activeElement && document.activeElement.tagName || "").toLowerCase();
   const inField = tag === "input" || tag === "textarea" || (document.activeElement && document.activeElement.isContentEditable);
 
-  if (e.key === "Escape" && accountModal.style.display === "flex") { closeAccountModal(); return; }
+  if (e.key === "Escape" && modalIsOpen(accountModal)) { closeAccountModal(); return; }
   if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); if (currentUser) resetBtn.click(); return; }
   if (mod && e.key.toLowerCase() === "b") { e.preventDefault(); appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar(); return; }
   if ((mod && e.key === "/") || (e.key === "?" && !inField)) { e.preventDefault(); toggleShortcuts(); return; }
@@ -2424,6 +2576,7 @@ function buildGeminiContents(messages, attachment = null) {
 async function streamAssistantReply(history, attachment) {
   abortController = new AbortController();
   streaming = { text: "", started: false };
+  streamStableCache = { src: "", html: "" };
   typingEl.classList.add("active");
   scrollToBottom();
 
@@ -2433,7 +2586,11 @@ async function streamAssistantReply(history, attachment) {
       streaming.started = true;
       typingEl.classList.remove("active");
     }
+    // Scroll anchoring: stick to the bottom while the user is there; the
+    // moment they scroll up to read, release the lock (no yanking) and
+    // badge the jump-to-latest button instead.
     const stick = isNearBottom();
+    if (!stick) scrollBottomBtn.classList.add("has-new");
     streaming.text = full;
     scheduleStreamRender(stick);
   };
@@ -2609,7 +2766,7 @@ async function getGeminiResponse(messages, attachment = null, signal = undefined
 }
 
 // ── Delete message handlers ───────────────────────────────
-document.getElementById("cancelDelete").onclick = () => { deleteModal.style.display = "none"; deleteId = null; };
+document.getElementById("cancelDelete").onclick = () => { hideModal(deleteModal); deleteId = null; };
 document.getElementById("confirmDelete").onclick = async () => {
   if (deleteId) {
     if (tempMode) {
@@ -2619,7 +2776,7 @@ document.getElementById("confirmDelete").onclick = async () => {
       await deleteDoc(doc(db, "users", currentUser.uid, "messages", deleteId));
     }
   }
-  deleteModal.style.display = "none";
+  hideModal(deleteModal);
   deleteId = null;
 };
 
@@ -2627,11 +2784,11 @@ document.getElementById("confirmDelete").onclick = async () => {
 const deleteChatModal = document.getElementById("deleteChatModal");
 const deleteProjectModal = document.getElementById("deleteProjectModal");
 document.getElementById("cancelDeleteChat").onclick = () => {
-  deleteChatModal.style.display = "none";
+  hideModal(deleteChatModal);
   pendingDeleteChatId = null;
 };
 document.getElementById("confirmDeleteChat").onclick = confirmDeleteChat;
-deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModal) { deleteChatModal.style.display = "none"; pendingDeleteChatId = null; } });
+deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModal) { hideModal(deleteChatModal); pendingDeleteChatId = null; } });
 
 // ── Esc closes the topmost overlay ────────────────────────
 document.addEventListener("keydown", e => {
@@ -2642,10 +2799,10 @@ document.addEventListener("keydown", e => {
   if (modelMenu.classList.contains("open"))     { closeModelMenu(); return; }
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
-  if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
+  if (modalIsOpen(welcomeModal)) { closeWelcome(); return; }
   for (const m of [authModal, deleteModal, deleteChatModal, deleteProjectModal, shortcutsModal, personalizeModal, upgradeModal]) {
-    if (m.style.display === "flex") {
-      m.style.display = "none";
+    if (modalIsOpen(m)) {
+      hideModal(m);
       deleteId = null;
       pendingDeleteChatId = null;
       pendingDeleteProjectId = null;
