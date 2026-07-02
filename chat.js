@@ -2173,11 +2173,13 @@ function saveUserSettings(s) {
 }
 
 // Which provider answers new messages — persisted across reloads.
+// A saved choice whose key was removed falls back to the default.
 let currentProvider = (() => {
   try {
     const saved = localStorage.getItem("aiProvider");
-    return (saved && PROVIDERS[saved]) ? saved : DEFAULT_PROVIDER;
-  } catch (e) { return DEFAULT_PROVIDER; }
+    if (saved && PROVIDERS[saved] && PROVIDERS[saved].apiKey) return saved;
+  } catch (e) {}
+  return DEFAULT_PROVIDER;
 })();
 
 // ── Model switcher (top bar) ──────────────────────────────
@@ -2191,7 +2193,8 @@ function buildModelMenu() {
     const noKey = !p.apiKey;
     item.innerHTML = `
       <span class="model-menu-check"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
-      <span class="model-menu-text"><strong>${p.label}</strong><small>${noKey ? "Add API key in config.js" : p.model}</small></span>`;
+      <span class="model-menu-text"><strong>${p.label}</strong><small>${noKey ? "Coming soon" : (p.tagline || p.model)}</small></span>`;
+    if (noKey) item.classList.add("unavailable");
     item.onclick = () => setProvider(id);
     modelMenu.appendChild(item);
   });
@@ -2215,6 +2218,7 @@ function closeModelMenu() { modelMenu.classList.remove("open"); }
 
 function setProvider(id) {
   if (!PROVIDERS[id]) return;
+  if (!PROVIDERS[id].apiKey) { showToast(`${PROVIDERS[id].label} isn't available yet`); return; }
   const changed = id !== currentProvider;
   currentProvider = id;
   try { localStorage.setItem("aiProvider", id); } catch (e) {}

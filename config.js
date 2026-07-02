@@ -28,9 +28,12 @@ export const AI_CONFIG = {
 
 // Which model answers your messages. Users can switch between these from the
 // model picker in the top bar; the choice is remembered in localStorage.
+// `label` + `tagline` are the user-facing branding; `model`/`endpoint` are
+// the real backend (Mistral / Google Gemini) behind each one.
 export const PROVIDERS = {
   mistral: {
-    label: "Mistral",
+    label: "Celestra 1.0",
+    tagline: "Fast, sharp everyday answers",
     model: "mistral-small-latest",
     endpoint: "https://api.mistral.ai/v1/chat/completions",
     // Mistral API key (client-side — see security note above).
@@ -38,7 +41,8 @@ export const PROVIDERS = {
   },
 
   gemini: {
-    label: "Gemini",
+    label: "Luxora 1.1",
+    tagline: "Creative, with a long memory",
     // Swap for whatever Gemini model you have access to
     // (e.g. "gemini-2.5-flash", "gemini-2.5-pro").
     model: "gemini-2.0-flash",

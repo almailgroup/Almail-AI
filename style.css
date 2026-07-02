@@ -247,11 +247,20 @@ body::before {
 
 .sidebar-nav {
   flex: 1;
+  min-height: 0;           /* let this flex child shrink… */
+  overflow-y: auto;        /* …and scroll, so Account/Settings below stay reachable */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   display: flex;
   flex-direction: column;
   gap: 2px;
   padding: 10px 10px 0;
 }
+
+.sidebar-nav::-webkit-scrollbar { width: 3px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 20px; }
+.sidebar-nav { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
 
 /* ── Account tab (sits above Settings) ──────────────────── */
 .sidebar-account-wrap {
@@ -564,6 +573,8 @@ body::before {
   transition: background 0.13s ease;
 }
 .model-menu-item:hover { background: var(--glass-3); }
+.model-menu-item.unavailable { opacity: 0.55; cursor: default; }
+.model-menu-item.unavailable:hover { background: transparent; }
 
 .model-menu-check { width: 16px; height: 16px; flex-shrink: 0; display: grid; place-items: center; color: transparent; }
 .model-menu-item.active .model-menu-check { color: var(--text); }
@@ -573,13 +584,14 @@ body::before {
 .model-menu-text small { font-size: 0.74rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ── Chat history list ──────────────────────────────────── */
+/* The chat list flows inside the scrollable .sidebar-nav — no inner
+   scrollbox (its old viewport-based max-height ignored the projects
+   section above it and trapped Settings off-screen). */
 .chat-list {
   display: flex;
   flex-direction: column;
   gap: 1px;
   margin-top: 4px;
-  overflow-y: auto;
-  max-height: calc(100vh - 220px);
 }
 
 .chat-item-wrap {
