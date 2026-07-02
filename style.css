@@ -1768,6 +1768,42 @@ footer {
 .scroll-bottom-btn.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
 .scroll-bottom-btn:hover { background: var(--glass-4); transform: translateX(-50%) translateY(-2px); }
 
+/* Green dot: a new reply arrived while scrolled up reading */
+.scroll-bottom-btn.has-new::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #34d399;
+  border: 2px solid var(--bg);
+}
+
+/* ── In-chat date separators ───────────────────────────────── */
+.date-sep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 4px;
+}
+.date-sep::before,
+.date-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.date-sep span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
 /* ── Toast ─────────────────────────────────────────────────── */
 .toast {
   position: fixed;
