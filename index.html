@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>Almail AI</title>
   <meta name="description" content="Almail AI — a fast, private, and intelligent AI assistant." />
+  <meta property="og:title" content="Almail AI" />
+  <meta property="og:description" content="A fast, private, and intelligent AI assistant." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="Almail AI Logo.png" />
+  <meta name="twitter:card" content="summary" />
   <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)" />
   <meta name="theme-color" content="#f0eee6" media="(prefers-color-scheme: light)" />
   <link rel="icon" type="image/png" href="Almail-AI-Black-Logo.png?v=2" />
@@ -15,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=75" />
+  <link rel="stylesheet" href="style.css?v=76" />
   <!-- Markdown (pinned) + HTML sanitizer + syntax highlighting -->
   <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
@@ -269,6 +274,7 @@
 
     <footer>
       <div id="filePreview" class="file-preview" style="display:none">
+        <img id="filePreviewThumb" class="file-preview-thumb" alt="" style="display:none" />
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         <span id="filePreviewName"></span>
         <button id="fileRemoveBtn" class="file-remove">×</button>
@@ -550,7 +556,7 @@
 </div>
 
 <script type="module" src="firebase.js"></script>
-<script type="module" src="chat.js?v=76"></script>
+<script type="module" src="chat.js?v=77"></script>
 
 </body>
 </html>

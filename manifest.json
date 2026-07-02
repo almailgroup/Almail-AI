@@ -11,9 +11,15 @@
   "icons": [
     {
       "src": "Almail AI Logo.png",
-      "sizes": "512x512",
+      "sizes": "783x783",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "Almail-AI-Black-Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

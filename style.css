@@ -1206,6 +1206,14 @@ footer {
   margin: 0 2px;
 }
 .file-preview span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px; }
+.file-preview-thumb {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--border-mid);
+  flex-shrink: 0;
+}
 .file-remove { background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; line-height: 1; padding: 0 2px; }
 .file-remove:hover { color: var(--text); }
 

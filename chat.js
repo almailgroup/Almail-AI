@@ -346,6 +346,9 @@ function updateTopbar() {
     label = "New chat";
   }
   titleEl.textContent = label;
+  // Keep the browser tab in sync with the conversation.
+  document.title = (label && label !== "Almail AI" && label !== "New chat")
+    ? `${label} — Almail AI` : "Almail AI";
 }
 
 function renderProjects(allChats) {
@@ -626,17 +629,20 @@ function toggleTempChat() {
 // Generate an assistant reply for the in-memory temp conversation.
 async function generateTempReply(history, attachment = null) {
   setResponding(true);
-  let ok = false;
+  let ok = false, aiReply = "";
   try {
-    const aiReply = await streamAssistantReply(history, attachment);
-    if (aiReply && aiReply.trim()) {
-      currentMessages.push({ _id: "t" + genId(), role: "assistant", content: aiReply, timestamp: localTs() });
-      ok = true;
-    }
+    aiReply = await streamAssistantReply(history, attachment);
   } catch (err) {
     console.error("Temp AI error:", err);
   }
   setResponding(false);
+  // The user may have left temp mode mid-stream (Esc / chat switch); in that
+  // case currentMessages now belongs to a real chat — don't leak into it.
+  if (!tempMode) return;
+  if (aiReply && aiReply.trim()) {
+    currentMessages.push({ _id: "t" + genId(), role: "assistant", content: aiReply, timestamp: localTs() });
+    ok = true;
+  }
   document.getElementById("streamingMsg")?.remove();
   renderMessages(currentMessages);
   if (!ok) showEphemeralError("Sorry, something went wrong.");
@@ -866,10 +872,13 @@ document.addEventListener("touchmove", (e) => {
 }, { passive: false });
 
 // ── Collapsed icon strip ──────────────────────────────────
-document.getElementById("si-new").onclick    = () => document.getElementById("resetChatBtn").click();
+// Action buttons stopPropagation so the strip's expand-on-click handler
+// doesn't also pop the sidebar open underneath them.
+document.getElementById("si-new").onclick    = (e) => { e.stopPropagation(); document.getElementById("resetChatBtn").click(); };
 document.getElementById("si-chats").onclick  = openSidebar;
 document.getElementById("si-expand").onclick = openSidebar;
-document.getElementById("si-account").onclick = () => {
+document.getElementById("si-account").onclick = (e) => {
+  e.stopPropagation();
   currentUser ? openAccountModal() : openAuthModal();
 };
 
@@ -1020,6 +1029,7 @@ function resetDeleteAccountBtn() {
   if (b) { b.classList.remove("armed"); b.querySelector(".acc-action-label").textContent = "Delete account"; }
 }
 document.getElementById("accountDelete").onclick = async () => {
+  if (!currentUser) return;
   const btn = document.getElementById("accountDelete");
   const label = btn.querySelector(".acc-action-label");
   if (!deleteAcctArmed) {
@@ -1131,21 +1141,57 @@ if (cameraInput) {
 }
 
 const MAX_ATTACH_TEXT = 20000; // chars — keep prompts within a sane size
+const MAX_IMAGE_DIM   = 1600;  // px — phone photos get downscaled to this
 const TEXT_FILE_RE = /\.(txt|md|markdown|csv|tsv|json|ya?ml|xml|html?|css|js|jsx|ts|tsx|py|java|c|cpp|cs|rb|go|rs|php|sh|sql|log)$/i;
 
-function showAttachmentPreview(name) {
+function showAttachmentPreview(name, thumbUrl) {
   filePreviewName.textContent = name;
+  const thumb = document.getElementById("filePreviewThumb");
+  if (thumb) {
+    if (thumbUrl) { thumb.src = thumbUrl; thumb.style.display = "block"; }
+    else          { thumb.removeAttribute("src"); thumb.style.display = "none"; }
+  }
   filePreview.style.display = "flex";
+}
+
+// Downscale/compress large images so photos don't blow the API payload
+// limits. Resolves null when the original is already small (or can't be
+// decoded — HEIC on non-Safari, for instance), in which case we send as-is.
+function downscaleImage(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const scale = Math.min(1, MAX_IMAGE_DIM / Math.max(img.width, img.height));
+      if (scale === 1 && file.size < 900 * 1024) { resolve(null); return; }
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      try { resolve(canvas.toDataURL("image/jpeg", 0.85)); }
+      catch (_) { resolve(null); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
+    img.src = url;
+  });
 }
 
 async function handleAttachedFile(file) {
   if (!file || !currentUser) return;
 
   if (file.type.startsWith("image/")) {
+    const scaled = await downscaleImage(file);
+    if (scaled) {
+      pendingAttachment = { type: "image", data: scaled.split(",")[1], mimeType: "image/jpeg", name: file.name };
+      showAttachmentPreview(file.name, scaled);
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
       pendingAttachment = { type: "image", data: reader.result.split(",")[1], mimeType: file.type, name: file.name };
-      showAttachmentPreview(file.name);
+      showAttachmentPreview(file.name, reader.result);
     };
     reader.readAsDataURL(file);
     return;
@@ -1259,6 +1305,7 @@ async function handleAuth(isRegister = false) {
 }
 loginBtn.onclick    = () => handleAuth(false);
 registerBtn.onclick = () => handleAuth(true);
+emailInput.addEventListener("keydown", e => { if (e.key === "Enter") passInput.focus(); });
 passInput.addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(!isLoginMode); });
 
 // ── Markdown, sanitizing & code highlighting ──────────────
@@ -1297,7 +1344,12 @@ function enhanceCodeBlocks(container) {
 
     const header = document.createElement("div");
     header.className = "code-block-header";
-    header.innerHTML = `<span class="code-lang">${lang || "code"}</span>`;
+    // textContent (not innerHTML): the language comes from model output and
+    // could otherwise smuggle markup through the class attribute.
+    const langSpan = document.createElement("span");
+    langSpan.className = "code-lang";
+    langSpan.textContent = lang || "code";
+    header.appendChild(langSpan);
 
     const copyBtn = document.createElement("button");
     copyBtn.className = "copy-code";
@@ -1598,7 +1650,9 @@ async function regenerateMessage(docId) {
   const msgIndex = currentMessages.findIndex(m => m._id === docId);
   if (msgIndex === -1) return;
 
-  const history = currentMessages.slice(0, msgIndex).map(m => ({ role: m.role, content: m.content }));
+  const history = currentMessages.slice(0, msgIndex)
+    .slice(-AI_CONFIG.historyLimit)
+    .map(m => ({ role: m.role, content: m.content }));
 
   if (tempMode) {
     currentMessages.splice(msgIndex);   // drop this reply (and anything after)
@@ -1609,7 +1663,11 @@ async function regenerateMessage(docId) {
 
   const targetChatId = currentChatId;
 
-  await deleteDoc(doc(db, "users", currentUser.uid, "messages", docId));
+  // Remove this reply AND everything after it, so the regenerated reply
+  // becomes the new tail (otherwise it would append after later messages
+  // and scramble the conversation order).
+  const toDelete = currentMessages.slice(msgIndex).map(m => m._id);
+  await Promise.all(toDelete.map(id => deleteDoc(doc(db, "users", currentUser.uid, "messages", id))));
 
   setResponding(true);
   try {
@@ -1642,12 +1700,14 @@ async function editAndResubmit(docId, newText) {
     currentMessages[idx].content = newText;
     currentMessages.splice(idx + 1);    // truncate everything after the edit
     renderMessages(currentMessages);
-    await generateTempReply(currentMessages.map(m => ({ role: m.role, content: m.content })));
+    await generateTempReply(currentMessages.slice(-AI_CONFIG.historyLimit).map(m => ({ role: m.role, content: m.content })));
     return;
   }
 
   const targetChatId = currentChatId;
-  const history = currentMessages.slice(0, idx).map(m => ({ role: m.role, content: m.content }));
+  const history = currentMessages.slice(0, idx)
+    .slice(-AI_CONFIG.historyLimit)
+    .map(m => ({ role: m.role, content: m.content }));
   history.push({ role: "user", content: newText });
   const toDelete = currentMessages.slice(idx + 1).map(m => m._id);
 
@@ -1752,6 +1812,8 @@ onAuthStateChanged(auth, user => {
     closeProjectsView();
     deleteModal.style.display  = "none";
     deleteId = null;
+    updateSendState();
+    updateTopbar();
   }
   hideSplash();
 });
@@ -1766,7 +1828,7 @@ resetBtn.onclick = () => {
 const tempChatBtn = document.getElementById("tempChatBtn");
 if (tempChatBtn) tempChatBtn.onclick = toggleTempChat;
 const siTempBtn = document.getElementById("si-temp");
-if (siTempBtn) siTempBtn.onclick = toggleTempChat;
+if (siTempBtn) siTempBtn.onclick = (e) => { e.stopPropagation(); toggleTempChat(); };
 
 const newProjectBtn = document.getElementById("newProjectBtn");
 if (newProjectBtn) newProjectBtn.onclick = () => {
@@ -1803,7 +1865,6 @@ if (pvNew) pvNew.onclick = () => {
   if (!currentUser) return;
   createProject();
   renderChatList();      // refreshes sidebar + (since page is open) the grid
-  renderProjectsView();
 };
 
 // ── Ephemeral error bubble ────────────────────────────────
@@ -1890,9 +1951,10 @@ async function sendMessage() {
 }
 
 // Toggle UI between idle and "generating" (where the send button stops the stream).
+// The composer stays enabled so the user can type their next message while
+// the reply streams in (sendMessage guards against double-send).
 function setResponding(on) {
   isResponding       = on;
-  inputEl.disabled   = on;
   attachBtn.disabled = on;
   sendBtn.disabled   = false;          // stays clickable so it can act as Stop
   sendBtn.classList.toggle("generating", on);
@@ -1966,7 +2028,7 @@ async function retryReply(targetChatId) {
   if (isResponding || !currentUser) return;
   setResponding(true);
   try {
-    const history = currentMessages.map(m => ({ role: m.role, content: m.content }));
+    const history = currentMessages.slice(-AI_CONFIG.historyLimit).map(m => ({ role: m.role, content: m.content }));
     const aiReply = await streamAssistantReply(history, null);
     if (aiReply && aiReply.trim()) {
       await addDoc(collection(db, "users", currentUser.uid, "messages"), {
@@ -2187,7 +2249,13 @@ async function streamAssistantReply(history, attachment) {
     } else {
       console.error("Stream failed, falling back:", err);
       typingEl.classList.add("active");
-      finalText = await getAIResponse(history, attachment); // may throw → handled by caller
+      try {
+        // Pass the signal so Stop also aborts the fallback request.
+        finalText = await getAIResponse(history, attachment, abortController.signal);
+      } catch (err2) {
+        if (err2.name === "AbortError") finalText = "";
+        else throw err2; // real failure → handled by caller
+      }
     }
   } finally {
     streaming = null;
@@ -2216,24 +2284,27 @@ async function streamMistral(apiMessages, signal, onDelta) {
   const decoder = new TextDecoder();
   let buffer = "", full = "";
 
+  const handleLine = (line) => {
+    const t = line.trim();
+    if (!t.startsWith("data:")) return;
+    const payload = t.slice(5).trim();
+    if (!payload || payload === "[DONE]") return;
+    try {
+      const json = JSON.parse(payload);
+      const delta = json.choices?.[0]?.delta?.content || "";
+      if (delta) { full += delta; onDelta(full); }
+    } catch (_) { /* partial JSON spanning chunks — ignore */ }
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n");
     buffer = lines.pop() || "";
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t.startsWith("data:")) continue;
-      const payload = t.slice(5).trim();
-      if (!payload || payload === "[DONE]") continue;
-      try {
-        const json = JSON.parse(payload);
-        const delta = json.choices?.[0]?.delta?.content || "";
-        if (delta) { full += delta; onDelta(full); }
-      } catch (_) { /* partial JSON spanning chunks — ignore */ }
-    }
+    lines.forEach(handleLine);
   }
+  handleLine(buffer); // flush a final line that arrived without a trailing \n
 
   if (!full) throw new Error("Empty stream response");
   return full;
@@ -2263,42 +2334,46 @@ async function streamGemini(history, attachment, signal, onDelta) {
   const decoder = new TextDecoder();
   let buffer = "", full = "";
 
+  const handleLine = (line) => {
+    const t = line.trim();
+    if (!t.startsWith("data:")) return;
+    const payload = t.slice(5).trim();
+    if (!payload) return;
+    try {
+      const json = JSON.parse(payload);
+      const delta = (json.candidates?.[0]?.content?.parts || []).map(pt => pt.text || "").join("");
+      if (delta) { full += delta; onDelta(full); }
+    } catch (_) { /* partial JSON spanning chunks — ignore */ }
+  };
+
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n");
     buffer = lines.pop() || "";
-    for (const line of lines) {
-      const t = line.trim();
-      if (!t.startsWith("data:")) continue;
-      const payload = t.slice(5).trim();
-      if (!payload) continue;
-      try {
-        const json = JSON.parse(payload);
-        const delta = (json.candidates?.[0]?.content?.parts || []).map(pt => pt.text || "").join("");
-        if (delta) { full += delta; onDelta(full); }
-      } catch (_) { /* partial JSON spanning chunks — ignore */ }
-    }
+    lines.forEach(handleLine);
   }
+  handleLine(buffer); // flush a final line that arrived without a trailing \n
 
   if (!full) throw new Error("Empty stream response");
   return full;
 }
 
 // Non-streaming fallback — dispatches to whichever provider is selected.
-async function getAIResponse(messages, attachment = null) {
+async function getAIResponse(messages, attachment = null, signal = undefined) {
   return (currentProvider === "gemini")
-    ? getGeminiResponse(messages, attachment)
-    : getMistralResponse(messages, attachment);
+    ? getGeminiResponse(messages, attachment, signal)
+    : getMistralResponse(messages, attachment, signal);
 }
 
-async function getMistralResponse(messages, attachment = null) {
+async function getMistralResponse(messages, attachment = null, signal = undefined) {
   const p = PROVIDERS.mistral;
   const res = await fetch(p.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${p.apiKey}` },
-    body: JSON.stringify({ model: p.model, messages: buildOpenAIMessages(messages, attachment), temperature: getUserSettings().temperature })
+    body: JSON.stringify({ model: p.model, messages: buildOpenAIMessages(messages, attachment), temperature: getUserSettings().temperature }),
+    signal
   });
 
   if (!res.ok) {
@@ -2310,7 +2385,7 @@ async function getMistralResponse(messages, attachment = null) {
   return data.choices?.[0]?.message?.content?.trim() || "No response received.";
 }
 
-async function getGeminiResponse(messages, attachment = null) {
+async function getGeminiResponse(messages, attachment = null, signal = undefined) {
   const p = PROVIDERS.gemini;
   if (!p.apiKey) throw new Error("No Gemini API key configured — add one in config.js.");
 
@@ -2318,7 +2393,8 @@ async function getGeminiResponse(messages, attachment = null) {
   const res = await fetch(`${p.endpoint}/${p.model}:generateContent`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "x-goog-api-key": p.apiKey },
-    body: JSON.stringify({ contents, systemInstruction, generationConfig: { temperature: getUserSettings().temperature } })
+    body: JSON.stringify({ contents, systemInstruction, generationConfig: { temperature: getUserSettings().temperature } }),
+    signal
   });
 
   if (!res.ok) {
