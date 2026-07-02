@@ -29,7 +29,9 @@ export const AI_CONFIG = {
 // Which model answers your messages. Users can switch between these from the
 // model picker in the top bar; the choice is remembered in localStorage.
 // `label` + `tagline` are the user-facing branding; `model`/`endpoint` are
-// the real backend (Mistral / Google Gemini) behind each one.
+// the real backend behind each one. Both are OpenAI-compatible chat-
+// completions APIs (same request/response shape), so they share one
+// implementation in chat.js (streamOpenAICompatible / getAIResponse).
 export const PROVIDERS = {
   mistral: {
     label: "Celestra 1.0",
@@ -40,16 +42,16 @@ export const PROVIDERS = {
     apiKey: "9fJRIRAzrNEvMsciprVznKVYaCDO5gAq",
   },
 
-  gemini: {
+  openai: {
     label: "Luxora 1.1",
     tagline: "Creative, with a long memory",
-    // "-latest" alias — Google points it at whatever their current
-    // recommended flash model is (gemini-3.5-flash as of this key).
-    // Verified working (generateContent + streamGenerateContent) against
-    // the live API with this exact key.
-    model: "gemini-flash-latest",
-    endpoint: "https://generativelanguage.googleapis.com/v1beta/models",
-    apiKey: "AQ.Ab8RN6IC9iI09IUW2Ty1rK1PsR5srsbBdxXqCukuqoAacZ3jig",
+    // Swap for whatever OpenAI model you have access to
+    // (e.g. "gpt-4o", "gpt-4.1-mini").
+    model: "gpt-4o-mini",
+    endpoint: "https://api.openai.com/v1/chat/completions",
+    // OpenAI API key (client-side — see security note above). Get one at
+    // https://platform.openai.com/api-keys
+    apiKey: "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",
   },
 };
 

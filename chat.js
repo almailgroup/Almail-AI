@@ -9,7 +9,7 @@ import {
   signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=3";
+import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=4";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
@@ -2440,7 +2440,7 @@ function startPlaceholders() {
 }
 function stopPlaceholders() { if (phTimer) { clearInterval(phTimer); phTimer = null; } }
 
-// ── AI providers (Mistral / Gemini) ───────────────────────
+// ── AI providers (Mistral / OpenAI) ───────────────────────
 // User personalization (custom instructions + creativity).
 function getUserSettings() {
   let s = {};
@@ -2547,29 +2547,6 @@ function buildOpenAIMessages(messages, attachment = null) {
   ];
 }
 
-// Build Gemini's { systemInstruction, contents } request shape (roles are
-// "user" / "model", and images go in inline_data instead of image_url).
-function buildGeminiContents(messages, attachment = null) {
-  const contents = messages.map((msg, i) => {
-    const isLastUser = msg.role === "user" && i === messages.length - 1;
-    const role = msg.role === "user" ? "user" : "model";
-    if (isLastUser && attachment?.type === "text") {
-      return { role, parts: [{ text: `File: "${attachment.name}"\n${attachment.content}\n\nUser: ${msg.content}` }] };
-    }
-    if (isLastUser && attachment?.type === "image" && attachment.data) {
-      return {
-        role,
-        parts: [
-          { text: msg.content || "Describe this image." },
-          { inline_data: { mime_type: attachment.mimeType, data: attachment.data } }
-        ]
-      };
-    }
-    return { role, parts: [{ text: msg.content || "" }] };
-  });
-  return { systemInstruction: { parts: [{ text: fullSystemPrompt() }] }, contents };
-}
-
 // Drive a streamed reply: manages the live bubble, typing indicator, abort,
 // and falls back to a single request if streaming fails. Returns final text.
 // Dispatches to whichever provider is currently selected.
@@ -2597,9 +2574,13 @@ async function streamAssistantReply(history, attachment) {
 
   let finalText = "";
   try {
-    finalText = (currentProvider === "gemini")
-      ? await streamGemini(history, attachment, abortController.signal, onDelta)
-      : await streamMistral(buildOpenAIMessages(history, attachment), abortController.signal, onDelta);
+    // Every provider speaks the same OpenAI-style chat-completions format.
+    finalText = await streamOpenAICompatible(
+      PROVIDERS[currentProvider],
+      buildOpenAIMessages(history, attachment),
+      abortController.signal,
+      onDelta
+    );
   } catch (err) {
     if (err.name === "AbortError") {
       finalText = streaming ? streaming.text : "";
@@ -2622,9 +2603,10 @@ async function streamAssistantReply(history, attachment) {
   return finalText;
 }
 
-// SSE streaming (Mistral / OpenAI-compatible: data: {…delta…}\n\n … data: [DONE]).
-async function streamMistral(apiMessages, signal, onDelta) {
-  const p = PROVIDERS.mistral;
+// SSE streaming — shared by every provider (Mistral, OpenAI, and anything
+// else OpenAI-compatible): data: {…delta…}\n\n … data: [DONE].
+async function streamOpenAICompatible(p, apiMessages, signal, onDelta) {
+  if (!p.apiKey) throw new Error(`No API key configured for ${p.label} — add one in config.js.`);
   const res = await fetch(p.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${p.apiKey}` },
@@ -2667,65 +2649,10 @@ async function streamMistral(apiMessages, signal, onDelta) {
   return full;
 }
 
-// SSE streaming for Gemini (data: {candidates:[{content:{parts:[{text}]}}]}).
-// Each chunk's text is an incremental delta, same shape as Mistral's stream.
-async function streamGemini(history, attachment, signal, onDelta) {
-  const p = PROVIDERS.gemini;
-  if (!p.apiKey) throw new Error("No Gemini API key configured — add one in config.js.");
-
-  const { systemInstruction, contents } = buildGeminiContents(history, attachment);
-  const res = await fetch(`${p.endpoint}/${p.model}:streamGenerateContent?alt=sse`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": p.apiKey },
-    body: JSON.stringify({ contents, systemInstruction, generationConfig: { temperature: getUserSettings().temperature } }),
-    signal
-  });
-
-  if (!res.ok || !res.body) {
-    const err = await res.json().catch(() => ({}));
-    const msg = Array.isArray(err) ? err[0]?.error?.message : err?.error?.message;
-    throw new Error(`API ${res.status}: ${msg || res.statusText}`);
-  }
-
-  const reader = res.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "", full = "";
-
-  const handleLine = (line) => {
-    const t = line.trim();
-    if (!t.startsWith("data:")) return;
-    const payload = t.slice(5).trim();
-    if (!payload) return;
-    try {
-      const json = JSON.parse(payload);
-      const delta = (json.candidates?.[0]?.content?.parts || []).map(pt => pt.text || "").join("");
-      if (delta) { full += delta; onDelta(full); }
-    } catch (_) { /* partial JSON spanning chunks — ignore */ }
-  };
-
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split("\n");
-    buffer = lines.pop() || "";
-    lines.forEach(handleLine);
-  }
-  handleLine(buffer); // flush a final line that arrived without a trailing \n
-
-  if (!full) throw new Error("Empty stream response");
-  return full;
-}
-
-// Non-streaming fallback — dispatches to whichever provider is selected.
+// Non-streaming fallback — same shared logic, any provider.
 async function getAIResponse(messages, attachment = null, signal = undefined) {
-  return (currentProvider === "gemini")
-    ? getGeminiResponse(messages, attachment, signal)
-    : getMistralResponse(messages, attachment, signal);
-}
-
-async function getMistralResponse(messages, attachment = null, signal = undefined) {
-  const p = PROVIDERS.mistral;
+  const p = PROVIDERS[currentProvider];
+  if (!p.apiKey) throw new Error(`No API key configured for ${p.label} — add one in config.js.`);
   const res = await fetch(p.endpoint, {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${p.apiKey}` },
@@ -2740,29 +2667,6 @@ async function getMistralResponse(messages, attachment = null, signal = undefine
 
   const data = await res.json();
   return data.choices?.[0]?.message?.content?.trim() || "No response received.";
-}
-
-async function getGeminiResponse(messages, attachment = null, signal = undefined) {
-  const p = PROVIDERS.gemini;
-  if (!p.apiKey) throw new Error("No Gemini API key configured — add one in config.js.");
-
-  const { systemInstruction, contents } = buildGeminiContents(messages, attachment);
-  const res = await fetch(`${p.endpoint}/${p.model}:generateContent`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-goog-api-key": p.apiKey },
-    body: JSON.stringify({ contents, systemInstruction, generationConfig: { temperature: getUserSettings().temperature } }),
-    signal
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    const msg = Array.isArray(err) ? err[0]?.error?.message : err?.error?.message;
-    throw new Error(`API ${res.status}: ${msg || res.statusText}`);
-  }
-
-  const data = await res.json();
-  const parts = data.candidates?.[0]?.content?.parts || [];
-  return parts.map(pt => pt.text || "").join("").trim() || "No response received.";
 }
 
 // ── Delete message handlers ───────────────────────────────
