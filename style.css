@@ -28,6 +28,10 @@
   /* Blur */
   --blur: blur(28px) saturate(180%);
 
+  /* Solid surface for dropdown menus (glass fails inside elements that
+     already use backdrop-filter, leaving text unreadable). */
+  --menu-bg: #201f1e;
+
   /* Shadows */
   --shadow-sm:  0 1px 4px rgba(0,0,0,0.5);
   --shadow-md:  0 4px 20px rgba(0,0,0,0.55), 0 1px 4px rgba(0,0,0,0.4);
@@ -61,6 +65,8 @@
   --msg-self-bg:   #141414;
   --msg-self-text: #f2f2f2;
   --msg-ai-bg:     rgba(255,255,255,0.7);
+
+  --menu-bg: #fbfaf7;
 
   --shadow-sm:  0 1px 4px rgba(0,0,0,0.1);
   --shadow-md:  0 4px 20px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08);
@@ -2760,4 +2766,210 @@ a:focus-visible,
   .pv-controls { width: 100%; }
   .pv-search { flex: 1; }
   .pv-search input { width: 100%; max-width: none; }
+}
+
+/* ── Solid, always-readable menu surfaces ──────────────────── */
+/* Translucent glass backgrounds fail when an ancestor already uses
+   backdrop-filter (e.g. the top bar or composer), leaving menu text
+   floating over the conversation. Menus get a solid surface instead. */
+.settings-popup,
+.settings-submenu,
+.attach-popup,
+.move-menu,
+.model-menu {
+  background: var(--menu-bg);
+}
+
+/* ── Sidebar "Upgrade plan" button ─────────────────────────── */
+.upgrade-nav {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  margin-bottom: 6px;
+  background: transparent;
+  border: 1px dashed var(--border-mid);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: color 0.14s, border-color 0.14s, background 0.14s;
+}
+.upgrade-nav:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+.upgrade-nav svg { flex-shrink: 0; }
+
+/* ── Upgrade / plans modal ─────────────────────────────────── */
+.upgrade-box {
+  max-width: 920px;
+  text-align: left;
+  padding: 36px 28px 24px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.upgrade-box h3 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+  text-align: center;
+  color: var(--text);
+}
+.upgrade-sub {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  margin: 6px 0 22px;
+}
+
+.admin-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--glass-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.plan-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.plan-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-mid);
+  background: var(--glass-1);
+  border-radius: 16px;
+  padding: 22px 18px 16px;
+}
+.plan-card.featured {
+  border-color: var(--border-strong);
+  background: var(--glass-2);
+}
+.plan-flag {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  border-radius: 50px;
+  padding: 3px 11px;
+  white-space: nowrap;
+}
+.plan-name { font-size: 1.02rem; font-weight: 700; color: var(--text); }
+.plan-price { font-size: 1.55rem; font-weight: 700; margin: 5px 0 2px; color: var(--text); }
+.plan-price small { font-size: 0.78rem; color: var(--text-muted); font-weight: 500; }
+.plan-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin-bottom: 13px;
+}
+.plan-features {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  flex: 1;
+}
+.plan-features li {
+  display: flex;
+  gap: 8px;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--text);
+}
+.plan-features li::before {
+  content: "✓";
+  color: var(--text-muted);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.plan-cta {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 50px;
+  border: 1px solid var(--border-mid);
+  background: var(--glass-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s, opacity 0.14s, background 0.14s;
+}
+.plan-card.featured .plan-cta,
+.plan-card[data-plan="max"] .plan-cta {
+  background: var(--text);
+  color: var(--bg);
+  border-color: transparent;
+}
+.plan-cta:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.92; }
+.plan-cta:disabled { opacity: 0.55; cursor: default; }
+
+.redeem-wrap { margin-top: 18px; text-align: center; }
+.redeem-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+  transition: color 0.14s;
+}
+.redeem-toggle:hover { color: var(--text); }
+.redeem-row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+.redeem-row input {
+  width: 240px;
+  max-width: 60vw;
+  padding: 10px 15px;
+  border-radius: 50px;
+  border: 1px solid var(--border-mid);
+  background: var(--glass-1);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.redeem-row input:focus { border-color: var(--border-strong); }
+.redeem-row .btn-primary { padding: 10px 20px; }
+.redeem-error {
+  text-align: center;
+  color: #ef6f6f;
+  font-size: 0.8rem;
+  margin-top: 8px;
+  min-height: 1em;
+}
+.light .redeem-error { color: #d3463f; }
+
+@media (max-width: 760px) {
+  .plan-cards { grid-template-columns: 1fr; }
+  .upgrade-box { padding: 30px 16px 20px; max-height: 92vh; }
+  .plan-card.featured { order: -1; } /* Pro first on mobile */
 }

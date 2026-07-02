@@ -933,6 +933,7 @@ function openAccountModal() {
   } catch (e) {}
   document.getElementById("accountRowSince").textContent = since;
   document.getElementById("accountRowChats").textContent = String(loadChats().length);
+  document.getElementById("accountRowPlan").textContent = PLANS[getPlan()].name;
   applyAvatar();
   resetDeleteAccountBtn();
   settingsPopup.classList.remove("open");
@@ -1053,6 +1054,134 @@ document.getElementById("accountDelete").onclick = async () => {
     resetDeleteAccountBtn();
   }
 };
+
+// ── Plans & upgrade ───────────────────────────────────────
+const PLANS = {
+  free:  { name: "Free" },
+  pro:   { name: "Almail Pro" },
+  max:   { name: "Almail Max" },
+  admin: { name: "Admin" },
+};
+// SHA-256 of the private access code — the code itself never appears here.
+const ACCESS_HASH = "543eed7b291b85fbd43da5e936d846b3063bda1f8dd5cf92cdf0ca4b0d72a221";
+
+function planKey(uid) { return "plan:" + uid; }
+function getPlan() {
+  if (!currentUser) return "free";
+  try {
+    const p = localStorage.getItem(planKey(currentUser.uid));
+    return PLANS[p] ? p : "free";
+  } catch (e) { return "free"; }
+}
+function setPlan(id) {
+  if (!currentUser || !PLANS[id]) return;
+  try { localStorage.setItem(planKey(currentUser.uid), id); } catch (e) {}
+  updatePlanUI();
+}
+
+const upgradeModal = document.getElementById("upgradeModal");
+
+// Reflect the current plan across the sidebar, account modal, and upgrade modal.
+function updatePlanUI() {
+  const plan = getPlan();
+  const navLabel = document.getElementById("upgradeNavLabel");
+  if (navLabel) navLabel.textContent = plan === "admin" ? "Admin · Full access" : "Upgrade plan";
+  const rowPlan = document.getElementById("accountRowPlan");
+  if (rowPlan) rowPlan.textContent = PLANS[plan].name;
+  if (upgradeModal.style.display === "flex") updateUpgradeUI();
+}
+
+function updateUpgradeUI() {
+  const plan = getPlan();
+  document.getElementById("adminActive").style.display = plan === "admin" ? "flex" : "none";
+  document.querySelectorAll(".plan-card").forEach(card => {
+    const id = card.dataset.plan;
+    const btn = card.querySelector(".plan-cta");
+    btn.disabled = false;
+    if (plan === "admin") {
+      btn.textContent = "Included with Admin";
+      btn.disabled = true;
+    } else if (id === plan) {
+      btn.textContent = "Current plan";
+      btn.disabled = true;
+    } else if (id === "free") {
+      btn.textContent = "Free";
+      btn.disabled = true;
+    } else {
+      btn.textContent = id === "pro" ? "Upgrade to Pro" : "Upgrade to Max";
+    }
+  });
+}
+
+function openUpgradeModal() {
+  if (!currentUser) { openAuthModal(); return; }
+  updateUpgradeUI();
+  document.getElementById("redeemRow").style.display = "none";
+  document.getElementById("redeemError").textContent = "";
+  const ri = document.getElementById("redeemInput");
+  if (ri) ri.value = "";
+  settingsPopup.classList.remove("open");
+  upgradeModal.style.display = "flex";
+  if (window.innerWidth < 900) closeSidebar();
+}
+function closeUpgradeModal() { upgradeModal.style.display = "none"; }
+
+document.getElementById("upgradeBtn").onclick = openUpgradeModal;
+document.getElementById("upgradeClose").onclick = closeUpgradeModal;
+upgradeModal.addEventListener("click", e => { if (e.target === upgradeModal) closeUpgradeModal(); });
+
+// Paid tiers aren't live yet — the CTA says so instead of charging.
+document.querySelectorAll(".plan-cta").forEach(btn => {
+  btn.onclick = () => {
+    if (btn.disabled) return;
+    const id = btn.closest(".plan-card")?.dataset.plan;
+    if (id === "pro" || id === "max") {
+      btn.textContent = "Coming soon";
+      showToast("Payments are coming soon — stay tuned!");
+      setTimeout(updateUpgradeUI, 1800);
+    }
+  };
+});
+
+// Access-code redemption. The entered code is hashed and compared against
+// ACCESS_HASH; a match unlocks the Admin plan (full access, no limits).
+async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+const redeemInput = document.getElementById("redeemInput");
+document.getElementById("redeemToggle").onclick = () => {
+  const row = document.getElementById("redeemRow");
+  const show = row.style.display === "none";
+  row.style.display = show ? "flex" : "none";
+  document.getElementById("redeemError").textContent = "";
+  if (show) redeemInput.focus();
+};
+
+async function applyRedeemCode() {
+  const v = redeemInput.value.trim();
+  const errEl = document.getElementById("redeemError");
+  if (!v) return;
+  errEl.textContent = "";
+  try {
+    const h = await sha256Hex(v);
+    if (h === ACCESS_HASH) {
+      redeemInput.value = "";
+      setPlan("admin");
+      updateUpgradeUI();
+      showToast("Admin unlocked — full access enabled");
+    } else {
+      errEl.textContent = "That code isn't valid.";
+    }
+  } catch (e) {
+    errEl.textContent = "Couldn't verify the code — please try again.";
+  }
+}
+document.getElementById("redeemApply").onclick = applyRedeemCode;
+redeemInput.addEventListener("keydown", e => { if (e.key === "Enter") applyRedeemCode(); });
+
+updatePlanUI();
 
 // ── Settings popup ────────────────────────────────────────
 function openSettingsPopup() {
@@ -1817,6 +1946,7 @@ onAuthStateChanged(auth, user => {
   updateSiAccount(user);
   updateAccountUI(user);
   applyAvatar();
+  updatePlanUI();
   if (user) {
     closeAuthModal();
     inputEl.disabled           = false;
@@ -2513,7 +2643,7 @@ document.addEventListener("keydown", e => {
   const openMenu = document.querySelector(".menu.open");
   if (openMenu) { openMenu.classList.remove("open"); return; }
   if (welcomeModal.style.display === "flex") { closeWelcome(); return; }
-  for (const m of [authModal, deleteModal, deleteChatModal, deleteProjectModal, shortcutsModal, personalizeModal]) {
+  for (const m of [authModal, deleteModal, deleteChatModal, deleteProjectModal, shortcutsModal, personalizeModal, upgradeModal]) {
     if (m.style.display === "flex") {
       m.style.display = "none";
       deleteId = null;
