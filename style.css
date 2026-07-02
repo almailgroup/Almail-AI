@@ -882,11 +882,26 @@ main#messages {
 .self:not(.grouped)  { margin-top: 18px; }
 .other:not(.grouped) { margin-top: 16px; }
 
-.meta {
-  font-size: 0.70rem;
-  margin-top: 5px;
-  letter-spacing: 0.1px;
-  opacity: 0.55;
+/* Sender + relative time. Hidden by default for a clean conversation;
+   on precise pointers it floats in on hover without reserving space,
+   so bubbles stay compact. On touch it stays hidden — the conversation
+   reads like a modern messenger. */
+.meta { display: none; }
+@media (hover: hover) and (pointer: fine) {
+  .meta {
+    display: block;
+    position: absolute;
+    font-size: 0.68rem;
+    letter-spacing: 0.1px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .self .meta  { bottom: -19px; right: 8px; }
+  .other .meta { top: 8px; right: 4px; }
+  .message:hover .meta { opacity: 0.85; }
 }
 
 /* ── Empty state ────────────────────────────────────────── */
@@ -1101,38 +1116,46 @@ main#messages {
   padding: 4px max(22px, calc((100% - 800px) / 2)) 8px;
 }
 
-.typing-bubble {
+/* Inline "Thinking…" shimmer — sits where the reply will appear,
+   with the assistant avatar, instead of a detached dots bubble. */
+.typing-inline {
   display: none;
   align-items: center;
-  gap: 5px;
-  background: var(--msg-ai-bg);
-  backdrop-filter: var(--blur);
+  gap: 16px;
+  flex-shrink: 0;
+}
+#typingIndicator.active .typing-inline { display: flex; }
+
+.typing-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: var(--glass-2) center / 20px 20px no-repeat;
+  background-image: url('Almail AI Logo.png');
   border: 1px solid var(--border-mid);
-  box-shadow: var(--shadow-inset), var(--shadow-sm);
-  border-radius: 18px;
-  border-bottom-left-radius: 5px;
-  padding: 9px 13px;
+  box-shadow: var(--shadow-inset);
 }
+.light .typing-avatar { background-image: url('Almail-AI-Black-Logo.png'); }
 
-.typing-bubble span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--text-muted);
-  display: block;
-  animation: typingDot 1.4s ease-in-out infinite;
+.typing-shimmer {
+  font-size: 0.92rem;
+  font-weight: 500;
+  background: linear-gradient(90deg,
+    var(--text-muted) 0%, var(--text) 50%, var(--text-muted) 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmerText 1.8s linear infinite;
 }
-
-.typing-bubble span:nth-child(2) { animation-delay: 0.18s; }
-.typing-bubble span:nth-child(3) { animation-delay: 0.36s; }
-
-@keyframes typingDot {
-  0%, 55%, 100% { transform: translateY(0); opacity: 0.35; }
-  28%            { transform: translateY(-5px); opacity: 1; }
+@keyframes shimmerText {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
 }
-
-#typingIndicator.active .typing-bubble { display: flex; }
-.typing-bubble { flex-shrink: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .typing-shimmer { color: var(--text-muted); background: none; animation: none; }
+}
 
 /* ── Footer / input ─────────────────────────────────────── */
 footer {
@@ -1153,19 +1176,29 @@ footer {
   letter-spacing: 0.01em;
 }
 
+/* Two-row composer: textarea on top, action toolbar below (attach on the
+   left, mic + send on the right) — the layout of modern AI chat apps. */
 .footer-input-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 2px;
   background: var(--glass-2);
   border: 1px solid var(--border-mid);
   border-radius: var(--radius-xl);
-  padding: 8px 8px 8px 10px;
+  padding: 12px 10px 8px 14px;
+  cursor: text;
   box-shadow: var(--shadow-inset), var(--shadow-md);
   backdrop-filter: var(--blur);
   -webkit-backdrop-filter: var(--blur);
   transition: border-color 0.16s, box-shadow 0.16s;
 }
+
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.composer-spacer { flex: 1; }
 
 .footer-input-row:focus-within {
   border-color: var(--border-strong);
@@ -1180,17 +1213,17 @@ footer {
   width: 34px;
   height: 34px;
   min-width: 34px;
-  border-radius: 8px;
+  border-radius: 50%;
   background: transparent;
-  border: none;
+  border: 1px solid var(--border-mid);
   color: var(--text-muted);
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
-  transition: background 0.14s, color 0.14s;
+  transition: background 0.14s, color 0.14s, border-color 0.14s;
 }
-.attach-btn:hover { background: var(--glass-3); color: var(--text); }
+.attach-btn:hover { background: var(--glass-3); color: var(--text); border-color: var(--border-strong); }
 .attach-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .file-preview {
@@ -1218,14 +1251,14 @@ footer {
 .file-remove:hover { color: var(--text); }
 
 #messageInput {
-  flex: 1;
+  width: 100%;
   height: 24px;
-  max-height: 130px;
+  max-height: 180px;
   resize: none;
   overflow-y: hidden;
   border: none;
-  padding: 0 4px;
-  font-size: 0.93rem;
+  padding: 0 4px 6px 0;
+  font-size: 0.95rem;
   font-family: inherit;
   background: transparent;
   color: var(--text);
@@ -1239,7 +1272,7 @@ footer {
   width: 36px;
   height: 36px;
   min-width: 36px;
-  border-radius: 10px;
+  border-radius: 50%;
   background: rgba(255,255,255,0.12);
   color: var(--text);
   border: none;
@@ -2080,7 +2113,7 @@ a:focus-visible,
   width: 36px;
   height: 36px;
   min-width: 36px;
-  border-radius: 10px;
+  border-radius: 50%;
   border: none;
   background: transparent;
   color: var(--text-muted);

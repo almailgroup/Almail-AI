@@ -1096,12 +1096,19 @@ document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
 // ── Textarea auto-resize ──────────────────────────────────
+const COMPOSER_MAX_H = 180;
 function autoResize() {
   inputEl.style.height = "24px";
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 130) + "px";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, COMPOSER_MAX_H) + "px";
   inputEl.style.lineHeight = inputEl.scrollHeight > 24 ? "1.5" : "24px";
-  inputEl.style.overflowY = inputEl.scrollHeight >= 130 ? "auto" : "hidden";
+  inputEl.style.overflowY = inputEl.scrollHeight >= COMPOSER_MAX_H ? "auto" : "hidden";
 }
+
+// The whole composer behaves like one big input: clicking anywhere on it
+// (except a button) focuses the textarea.
+document.querySelector(".footer-input-row").addEventListener("click", (e) => {
+  if (!e.target.closest("button") && !inputEl.disabled) inputEl.focus();
+});
 
 // Light up the send button only when there's something to send.
 function updateSendState() {
