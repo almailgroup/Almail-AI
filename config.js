@@ -43,11 +43,13 @@ export const PROVIDERS = {
   gemini: {
     label: "Luxora 1.1",
     tagline: "Creative, with a long memory",
-    // gemini-2.0-flash has zero free-tier quota on this key; 2.5-flash
-    // is confirmed working (verified against the live API).
-    model: "gemini-2.5-flash",
+    // "-latest" alias — Google points it at whatever their current
+    // recommended flash model is (gemini-3.5-flash as of this key).
+    // Verified working (generateContent + streamGenerateContent) against
+    // the live API with this exact key.
+    model: "gemini-flash-latest",
     endpoint: "https://generativelanguage.googleapis.com/v1beta/models",
-    apiKey: "AQ.Ab8RN6JILlps8lfcPXax2iSu2vy3GV8beXoECbDlBOQz1gd3dQ",
+    apiKey: "AQ.Ab8RN6IC9iI09IUW2Ty1rK1PsR5srsbBdxXqCukuqoAacZ3jig",
   },
 };
 
