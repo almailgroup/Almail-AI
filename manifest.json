@@ -1,0 +1,25 @@
+{
+  "name": "Almail AI",
+  "short_name": "Almail AI",
+  "description": "A fast, private, and intelligent AI assistant.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#141413",
+  "theme_color": "#141413",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "Almail AI Logo.png",
+      "sizes": "783x783",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "Almail-AI-Black-Logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

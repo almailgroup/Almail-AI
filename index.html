@@ -2,74 +2,660 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AZSCO AI</title>
-  <link rel="stylesheet" href="css/style.css" />
-  <!-- Marked.js for rendering markdown (bold, italic, lists, etc.) -->
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <title>Almail AI</title>
+  <meta name="description" content="Almail AI — a fast, private, and intelligent AI assistant." />
+  <meta property="og:title" content="Almail AI" />
+  <meta property="og:description" content="A fast, private, and intelligent AI assistant." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="Almail AI Logo.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#f0eee6" media="(prefers-color-scheme: light)" />
+  <link rel="icon" type="image/png" href="Almail-AI-Black-Logo.png?v=2" />
+  <link rel="apple-touch-icon" href="Almail AI Logo.png" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Almail AI" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css?v=83" />
+  <!-- Markdown (pinned) + HTML sanitizer + syntax highlighting -->
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
 </head>
 <body>
 
-<div id="app" class="hidden">
+<!-- Apply saved theme before first paint to avoid a flash -->
+<script>
+  try { if (localStorage.getItem("theme") !== "dark") document.body.classList.add("light"); } catch (e) {}
+</script>
 
-  <header>
-    <div class="header-left">
-      <h2>AZSO. AI</h2>
-      <span class="status"></span>
+<!-- Branded splash (covers the brief load while Firebase initializes) -->
+<div id="splash" class="splash">
+  <div class="splash-inner">
+    <img src="Almail AI Logo.png"       alt="Almail AI" class="splash-logo logo-dark" />
+    <img src="Almail-AI-Black-Logo.png" alt="Almail AI" class="splash-logo logo-light" />
+    <div class="splash-title">ALMAIL AI</div>
+    <div class="splash-bar"><span></span></div>
+  </div>
+</div>
+<!-- Fallback: never let the splash get stuck if scripts fail to load -->
+<script>
+  setTimeout(function () {
+    var s = document.getElementById("splash");
+    if (s && !s.classList.contains("hide")) { s.classList.add("hide"); setTimeout(function(){ s.remove(); }, 600); }
+  }, 4000);
+</script>
+
+<!-- Ambient floating orbs (refracted by the glass panels) -->
+<div class="orbs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<div id="app" class="sidebar-open">
+
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <img src="Almail AI Logo.png" alt="Almail AI" class="brand-logo" />
+      </div>
+      <button id="sidebarClose" title="Close sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="18" height="18" rx="2"/>
+          <path d="M9 3v18"/>
+          <path d="m16 15-3-3 3-3"/>
+        </svg>
+      </button>
     </div>
-    <div class="actions">
-      <button id="resetChatBtn" title="Reset chat">♻️</button>
-      <button id="themeBtn">🌙</button>
-      <button id="logoutBtn" title="Log out">↩️</button>
+
+    <nav class="sidebar-nav">
+      <button id="resetChatBtn" class="nav-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>New chat</span>
+      </button>
+      <button id="tempChatBtn" class="nav-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 21V10a7 7 0 0 1 14 0v11l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/><circle cx="9.5" cy="11" r="0.6" fill="currentColor"/><circle cx="14.5" cy="11" r="0.6" fill="currentColor"/>
+        </svg>
+        <span>Temporary chat</span>
+      </button>
+
+      <div id="projectsSection" class="projects-section">
+        <div class="projects-header">
+          <button id="openProjectsBtn" class="projects-title-btn" title="Open Projects">Projects</button>
+          <button id="newProjectBtn" class="projects-add" title="New project" aria-label="New project">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <div id="projectList" class="project-list"></div>
+      </div>
+
+      <div class="chat-search-wrap">
+        <svg class="chat-search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input id="chatSearch" class="chat-search" type="text" placeholder="Search chats" autocomplete="off" />
+      </div>
+      <p class="chat-section-label" id="recentsLabel">Recents</p>
+      <!-- Chat history list populated by JS -->
+      <div id="chatList" class="chat-list"></div>
+    </nav>
+
+    <!-- Collapsed-sidebar icon strip (desktop only, hidden when expanded) -->
+    <div class="sidebar-icon-nav">
+      <button class="si-btn" id="si-new" title="New chat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="si-btn" id="si-chats" title="Open chats">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      </button>
+      <button class="si-btn" id="si-temp" title="Temporary chat">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10a7 7 0 0 1 14 0v11l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/><circle cx="9.5" cy="11" r="0.6" fill="currentColor"/><circle cx="14.5" cy="11" r="0.6" fill="currentColor"/></svg>
+      </button>
     </div>
-  </header>
 
-  <main id="messages"></main>
+    <!-- Collapsed-sidebar bottom icons (desktop only, hidden when expanded) -->
+    <div class="sidebar-icon-account">
+      <button class="si-btn" id="si-expand" title="Expand sidebar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="m13 9 3 3-3 3"/></svg>
+      </button>
+    </div>
 
-  <div id="typingIndicator"></div>
+    <div class="sidebar-icon-profile">
+      <button class="si-btn" id="si-account" title="Account">
+        <svg id="si-account-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <span class="si-avatar-letter" style="display:none"></span>
+      </button>
+    </div>
 
-  <footer>
-    <textarea id="messageInput" placeholder="Ask anything..."></textarea>
-    <button id="sendBtn">➤</button>
-  </footer>
+    <div class="sidebar-account-wrap">
+      <button id="upgradeBtn" class="upgrade-nav" title="Upgrade plan">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7 5.7 1.9-5.7 1.9L12 18.4l-1.9-5.9-5.7-1.9 5.7-1.9z"/><path d="M19 15l.9 2.6L22.5 18l-2.6.9L19 21.5l-.9-2.6-2.6-.9 2.6-.9z"/></svg>
+        <span id="upgradeNavLabel">Upgrade plan</span>
+      </button>
+      <button id="accountBtn" class="account-nav" title="Account">
+        <span class="account-nav-avatar" id="accountNavAvatar">
+          <svg class="account-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <span class="account-nav-letter"></span>
+        </span>
+        <span class="account-nav-text">
+          <span class="account-nav-name" id="accountNavName">Sign in</span>
+          <span class="account-nav-sub" id="accountNavSub">Save &amp; sync your chats</span>
+        </span>
+        <svg class="account-nav-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div class="sidebar-settings-wrap">
+      <button id="settingsBtn" class="nav-item" title="Settings">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Settings</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Settings popup -->
+  <div id="settingsPopup" class="settings-popup">
+    <div class="settings-item-wrap">
+      <button class="settings-item">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <span>Theme</span>
+        <svg class="settings-item-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+      <div class="settings-submenu">
+        <button class="settings-subitem" id="themeDarkBtn">
+          <svg id="checkDark" class="settings-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Dark</span>
+        </button>
+        <button class="settings-subitem" id="themeLightBtn">
+          <svg id="checkLight" class="settings-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>Light</span>
+        </button>
+      </div>
+    </div>
+    <button class="settings-item" id="settingsPersonalize">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>
+      </svg>
+      <span>Personalize</span>
+    </button>
+    <div class="settings-divider"></div>
+    <button class="settings-item" id="settingsWhatsNew">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l2.4 7.4H22l-6 4.6 2.3 7.4-6.3-4.6L5.7 21.4 8 14 2 9.4h7.6z"/>
+      </svg>
+      <span>What's new</span>
+    </button>
+    <button class="settings-item" id="settingsFeedbackBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <span>Send feedback</span>
+    </button>
+    <button class="settings-item" id="settingsHelpBtn">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+      <span>Help</span>
+      <svg class="settings-item-arrow" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+  </div>
+
+  <!-- Backdrop for mobile overlay -->
+  <div id="sidebarBackdrop"></div>
+
+  <!-- Sidebar toggle (fixed top-left, mobile only) -->
+  <button id="sidebarToggle" title="Open sidebar">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/>
+      <path d="M9 3v18"/>
+      <path d="m13 9 3 3-3 3"/>
+    </svg>
+  </button>
+
+  <!-- Chat area -->
+  <div class="chat-main">
+
+    <!-- Top bar: current chat title + model picker -->
+    <div class="topbar" id="topbar">
+      <div class="topbar-title" id="topbarTitle">Almail AI</div>
+      <div class="model-switcher-wrap">
+        <button class="model-switcher" id="modelSwitcherBtn" title="Choose AI model">
+          <span id="modelSwitcherName">Celestra 1.0</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="model-menu" id="modelMenu"></div>
+      </div>
+    </div>
+
+    <!-- Projects dashboard page (shown when #app has .projects-page) -->
+    <section id="projectsView" class="projects-view">
+      <div class="pv-inner">
+        <div class="pv-top">
+          <h1 class="pv-title">Projects</h1>
+          <div class="pv-controls">
+            <div class="pv-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="pvSearch" type="text" placeholder="Search projects" autocomplete="off" />
+            </div>
+            <button id="pvNew" class="pv-new">New</button>
+          </div>
+        </div>
+        <div class="pv-tabs">
+          <button class="pv-tab active" data-tab="all">All</button>
+          <button class="pv-tab" data-tab="mine">Created by you</button>
+          <button class="pv-tab" data-tab="shared">Shared with you</button>
+        </div>
+        <div id="pvGrid" class="pv-grid"></div>
+      </div>
+    </section>
+
+    <div id="tempBanner" class="temp-banner">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V10a7 7 0 0 1 14 0v11l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/></svg>
+      <span>Temporary chat — this conversation won't be saved or shown in your history.</span>
+    </div>
+    <main id="messages" aria-live="polite" aria-label="Conversation"></main>
+
+    <button id="scrollBottomBtn" class="scroll-bottom-btn" title="Scroll to latest" aria-label="Scroll to latest message">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+      </svg>
+    </button>
+
+    <div id="typingIndicator">
+      <div class="typing-inline">
+        <span class="typing-avatar" aria-hidden="true"></span>
+        <span class="typing-shimmer">Thinking…</span>
+      </div>
+    </div>
+
+    <footer>
+      <div id="filePreview" class="file-preview" style="display:none">
+        <img id="filePreviewThumb" class="file-preview-thumb" alt="" style="display:none" />
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+        <span id="filePreviewName"></span>
+        <button id="fileRemoveBtn" class="file-remove">×</button>
+      </div>
+      <div class="footer-input-row">
+        <textarea id="messageInput" placeholder="Log in to start chatting…" rows="1" disabled></textarea>
+        <div class="composer-toolbar">
+          <div class="attach-wrap">
+            <button id="attachBtn" class="attach-btn" title="Add photos & files" disabled>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+            </button>
+            <div id="attachPopup" class="attach-popup">
+              <button id="takePhotoBtn" class="attach-popup-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+                </svg>
+                <span>Take photo</span>
+              </button>
+              <button id="attachFilesBtn" class="attach-popup-item">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+                </svg>
+                <span>Add photos &amp; files</span>
+              </button>
+            </div>
+          </div>
+          <div class="composer-spacer"></div>
+          <button id="micBtn" class="mic-btn" title="Voice input" aria-label="Voice input" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+          </button>
+          <button id="sendBtn" title="Send" disabled>
+            <svg class="ico-send" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>
+            </svg>
+            <svg class="ico-stop" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <rect x="6" y="6" width="12" height="12" rx="2.5"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <input type="file" id="fileInput" style="display:none" accept="image/*,.txt,.md,.csv,.json,.log,.xml,.html,.css,.js,.ts,.py">
+      <input type="file" id="cameraInput" style="display:none" accept="image/*" capture="environment">
+      <p class="footer-disclaimer">Almail AI can make mistakes.</p>
+    </footer>
+  </div>
 
 </div>
 
 <!-- Auth Modal -->
 <div class="modal" id="authModal">
-  <div class="modal-box">
-    <h3 id="authTitle">Welcome to AZSCO AI</h3>
-    
-    <input id="emailInput" type="email" placeholder="Email" required autocomplete="email"/>
-    <input id="passwordInput" type="password" placeholder="Password" required autocomplete="current-password"/>
-    
-    <div class="row">
-      <button id="loginBtn">Log In</button>
-      <button id="registerBtn">Register</button>
-    </div>
-    
-    <p id="authError"></p>
-    
-    <button id="toggleAuthMode">
-      Don't have an account? Register
+  <div class="modal-box auth-modal">
+    <button class="auth-close" id="authClose" title="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
     </button>
+    <h3 id="authTitle">Log in or sign up</h3>
+    <p class="auth-subtitle">Chat smarter and save your conversation history.</p>
+    <div class="auth-socials">
+      <button class="social-btn" id="googleBtn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <button class="social-btn" id="appleBtn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        Continue with Apple
+      </button>
+      <button class="social-btn" id="phoneBtn" disabled>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.39 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        Continue with phone
+      </button>
+    </div>
+    <div class="auth-divider"><span>OR</span></div>
+    <input id="emailInput"    type="email"    placeholder="Email address" autocomplete="email"/>
+    <input id="passwordInput" type="password" placeholder="Password"       autocomplete="current-password"/>
+    <p id="authError"></p>
+    <button id="loginBtn"    class="auth-continue">Continue</button>
+    <button id="registerBtn" class="auth-continue" style="display:none">Create account</button>
+    <button id="toggleAuthMode" class="auth-switch">Don't have an account? Register</button>
   </div>
 </div>
 
 <!-- Delete Confirmation Modal -->
 <div class="modal" id="deleteModal">
-  <div class="modal-box">
+  <div class="modal-box delete-modal-box">
+    <div class="delete-icon">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+      </svg>
+    </div>
     <h3>Delete message?</h3>
     <p>This action cannot be undone.</p>
     <div class="row">
-      <button id="cancelDelete">Cancel</button>
-      <button id="confirmDelete">Delete</button>
+      <button id="cancelDelete" class="btn-secondary">Cancel</button>
+      <button id="confirmDelete" class="btn-danger">Delete</button>
     </div>
   </div>
 </div>
 
-<script type="module" src="js/firebase.js"></script>
-<script type="module" src="js/chat.js"></script>
+<!-- Offline banner -->
+<div id="offlineBanner" class="offline-banner">
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M10.71 5.05A16 16 0 0 1 22.58 9M1.42 9a15.91 15.91 0 0 1 4.7-2.88M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/>
+  </svg>
+  <span>You're offline — messages can't be sent right now.</span>
+</div>
+
+<!-- Keyboard Shortcuts Modal -->
+<div class="modal" id="shortcutsModal">
+  <div class="modal-box shortcuts-box">
+    <button class="auth-close" id="shortcutsClose" title="Close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>Keyboard shortcuts</h3>
+    <ul class="shortcuts-list">
+      <li><span>New chat</span><span class="keys"><kbd>Ctrl</kbd><kbd>K</kbd></span></li>
+      <li><span>Toggle sidebar</span><span class="keys"><kbd>Ctrl</kbd><kbd>B</kbd></span></li>
+      <li><span>Focus message box</span><span class="keys"><kbd>/</kbd></span></li>
+      <li><span>Send message</span><span class="keys"><kbd>Enter</kbd></span></li>
+      <li><span>New line</span><span class="keys"><kbd>Shift</kbd><kbd>Enter</kbd></span></li>
+      <li><span>Show shortcuts</span><span class="keys"><kbd>?</kbd></span></li>
+      <li><span>Close / cancel</span><span class="keys"><kbd>Esc</kbd></span></li>
+    </ul>
+    <p class="shortcuts-hint">On Mac, use ⌘ instead of Ctrl.</p>
+  </div>
+</div>
+
+<!-- Drag-and-drop overlay -->
+<div id="dropOverlay" class="drop-overlay">
+  <div class="drop-overlay-inner">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    Drop a file to attach
+  </div>
+</div>
+
+<!-- Account Modal -->
+<div class="modal" id="accountModal">
+  <div class="modal-box account-box">
+    <button class="auth-close" id="accountClose" title="Close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+
+    <div class="account-head">
+      <button class="account-avatar-edit" id="accountAvatarBtn" title="Change profile picture" aria-label="Change profile picture">
+        <span class="account-avatar-lg" id="accountAvatar">A</span>
+        <span class="account-avatar-cam">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </span>
+      </button>
+      <h3 id="accountName">Your account</h3>
+      <p class="account-email" id="accountEmailTop">—</p>
+      <button class="account-remove-photo" id="accountRemovePhoto" style="display:none">Remove photo</button>
+    </div>
+    <input type="file" id="avatarInput" accept="image/*" style="display:none" />
+
+    <div class="account-rows">
+      <div class="account-row">
+        <span class="account-row-label">Plan</span>
+        <span class="account-row-value" id="accountRowPlan">Free</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-label">Email</span>
+        <span class="account-row-value" id="accountRowEmail">—</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-label">Member since</span>
+        <span class="account-row-value" id="accountRowSince">—</span>
+      </div>
+      <div class="account-row">
+        <span class="account-row-label">Conversations</span>
+        <span class="account-row-value" id="accountRowChats">—</span>
+      </div>
+    </div>
+
+    <div class="account-actions">
+      <button class="account-action" id="accountReset">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <span class="acc-action-label">Reset password</span>
+      </button>
+      <button class="account-action" id="accountLogout">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span class="acc-action-label">Log out</span>
+      </button>
+      <button class="account-action danger" id="accountDelete">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+        <span class="acc-action-label">Delete account</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Upgrade / Plans Modal -->
+<div class="modal" id="upgradeModal">
+  <div class="modal-box upgrade-box">
+    <button class="auth-close" id="upgradeClose" title="Close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>Upgrade your plan</h3>
+    <p class="upgrade-sub">More power, higher limits, and the newest AI features.</p>
+
+    <div class="admin-banner" id="adminActive" style="display:none">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 2h14v2H5v-2z"/></svg>
+      <span>Admin — full access enabled</span>
+      <button class="plan-remove-x" id="adminRemove" title="Remove admin access" aria-label="Remove admin access">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <div class="plan-cards">
+      <div class="plan-card" data-plan="free">
+        <div class="plan-name">Free</div>
+        <div class="plan-price">$0 <small>/ month</small></div>
+        <p class="plan-desc">Basic AI for everyday questions, with daily limits.</p>
+        <ul class="plan-features">
+          <li>Standard AI model (Celestra 1.0)</li>
+          <li>Daily message limits</li>
+          <li>Chat history &amp; projects</li>
+          <li>Standard response speed</li>
+          <li>Community support</li>
+        </ul>
+        <button class="plan-cta">Current plan</button>
+      </div>
+
+      <div class="plan-card featured" data-plan="pro">
+        <div class="plan-flag">Most popular</div>
+        <div class="plan-name">Almail Pro</div>
+        <div class="plan-price">$4.99 <small>/ month</small></div>
+        <p class="plan-desc">Smarter AI for everyday use — write, learn, code, and create with higher limits and premium tools.</p>
+        <ul class="plan-features">
+          <li>Unlimited AI conversations</li>
+          <li>Faster response times</li>
+          <li>Access to advanced AI models</li>
+          <li>Longer conversation memory</li>
+          <li>File uploads (PDFs, documents, images)</li>
+          <li>Image generation</li>
+          <li>Priority access during peak hours</li>
+          <li>Ad-free experience</li>
+          <li>Priority support</li>
+        </ul>
+        <button class="plan-cta">Upgrade to Pro</button>
+        <button class="plan-remove" style="display:none">✕ Remove this plan</button>
+      </div>
+
+      <div class="plan-card" data-plan="max">
+        <div class="plan-name">Almail Max</div>
+        <div class="plan-price">$19.99 <small>/ month</small></div>
+        <p class="plan-desc">The complete AI experience for creators and professionals — maximum performance and the highest limits.</p>
+        <ul class="plan-features">
+          <li>Everything in Pro</li>
+          <li>Unlimited access to the most advanced AI model</li>
+          <li>Highest message limits</li>
+          <li>Premium image generation</li>
+          <li>Video generation (when available)</li>
+          <li>Voice conversations</li>
+          <li>Deep research mode</li>
+          <li>Large file uploads</li>
+          <li>Custom AI assistants</li>
+          <li>Early access to new AI features</li>
+          <li>Fastest response priority</li>
+          <li>VIP customer support</li>
+        </ul>
+        <button class="plan-cta">Upgrade to Max</button>
+        <button class="plan-remove" style="display:none">✕ Remove this plan</button>
+      </div>
+    </div>
+
+    <div class="redeem-wrap">
+      <button id="redeemToggle" class="redeem-toggle">Have an access code?</button>
+      <div id="redeemRow" class="redeem-row" style="display:none">
+        <input id="redeemInput" type="password" placeholder="Access code" autocomplete="off" />
+        <button id="redeemApply" class="btn-primary">Apply</button>
+      </div>
+      <p id="redeemError" class="redeem-error"></p>
+    </div>
+  </div>
+</div>
+
+<!-- Personalize Modal -->
+<div class="modal" id="personalizeModal">
+  <div class="modal-box personalize-box">
+    <button class="auth-close" id="personalizeClose" title="Close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <h3>Personalize</h3>
+    <p class="personalize-sub">Tailor how Almail AI responds to you.</p>
+
+    <label class="field-label" for="customInstructions">Custom instructions</label>
+    <textarea id="customInstructions" class="personalize-textarea" rows="4"
+      placeholder="e.g. Keep answers concise. I'm a beginner programmer. Use British English."></textarea>
+
+    <label class="field-label">Creativity</label>
+    <div class="segmented" id="creativitySeg">
+      <button type="button" class="seg-btn" data-temp="0.3">Precise</button>
+      <button type="button" class="seg-btn" data-temp="0.7">Balanced</button>
+      <button type="button" class="seg-btn" data-temp="1.0">Creative</button>
+    </div>
+
+    <div class="personalize-actions">
+      <button id="personalizeCancel" class="btn-secondary">Cancel</button>
+      <button id="personalizeSave" class="btn-primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- First-visit Welcome Modal -->
+<div class="modal" id="welcomeModal">
+  <div class="modal-box welcome-box">
+    <button class="auth-close" id="welcomeClose" title="Close" aria-label="Close">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+    <img src="Almail AI Logo.png" alt="Almail AI" class="brand-logo welcome-logo" />
+    <h3>Welcome to Almail AI</h3>
+    <p class="welcome-sub">Your intelligent assistant — fast, private, and always ready.</p>
+    <ul class="welcome-features">
+      <li>
+        <span class="wf-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></span>
+        <span class="wf-text"><strong>Real-time answers</strong>Replies stream in as they're written.</span>
+      </li>
+      <li>
+        <span class="wf-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span>
+        <span class="wf-text"><strong>Saved conversations</strong>Pin, rename, and revisit every chat.</span>
+      </li>
+      <li>
+        <span class="wf-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span>
+        <span class="wf-text"><strong>Rich formatting</strong>Highlighted code, tables, and Markdown.</span>
+      </li>
+    </ul>
+    <button id="welcomeStart" class="auth-continue">Get started</button>
+  </div>
+</div>
+
+<!-- Delete Chat Confirmation Modal -->
+<div class="modal" id="deleteChatModal">
+  <div class="modal-box delete-chat-modal-box">
+    <div class="delete-chat-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        <line x1="9" y1="10" x2="15" y2="10"/><line x1="12" y1="7" x2="12" y2="13"/>
+      </svg>
+    </div>
+    <h3>Delete conversation?</h3>
+    <p>This will permanently delete this conversation. This action cannot be undone.</p>
+    <div class="delete-chat-actions">
+      <button id="cancelDeleteChat" class="btn-secondary">Cancel</button>
+      <button id="confirmDeleteChat" class="btn-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Project Confirmation Modal -->
+<div class="modal" id="deleteProjectModal">
+  <div class="modal-box delete-chat-modal-box">
+    <div class="delete-chat-icon">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+      </svg>
+    </div>
+    <h3>Delete project?</h3>
+    <p>The project will be removed. Its chats are kept and moved back to Recents.</p>
+    <div class="delete-chat-actions">
+      <button id="cancelDeleteProject" class="btn-secondary">Cancel</button>
+      <button id="confirmDeleteProject" class="btn-danger">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="chat.js?v=84"></script>
 
 </body>
 </html>
