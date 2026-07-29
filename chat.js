@@ -9,7 +9,7 @@ import {
   signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=4";
+import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=5";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
