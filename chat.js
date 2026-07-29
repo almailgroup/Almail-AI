@@ -9,7 +9,7 @@ import {
   signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=4";
+import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=5";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
@@ -561,11 +561,11 @@ function buildChatItem(chat) {
   btn.className = `chat-item${chat.id === currentChatId ? " active" : ""}${chat.pinned ? " pinned" : ""}`;
   btn.dataset.chatId = chat.id;
 
+  // Text-only rows — no per-row icon; a clean list reads faster and quieter.
   const titleSpan = document.createElement("span");
   titleSpan.className = "chat-title";
   titleSpan.textContent = chat.title;
 
-  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
   btn.appendChild(titleSpan);
   btn.onclick = (e) => { e.stopPropagation(); switchToChat(chat.id); };
 
@@ -1370,8 +1370,31 @@ inputEl.addEventListener("input", () => { autoResize(); updateSendState(); });
 
 // ── Conversation search ───────────────────────────────────
 const chatSearch = document.getElementById("chatSearch");
+const chatSearchWrap = document.getElementById("chatSearchWrap");
+const chatSearchClear = document.getElementById("chatSearchClear");
+
+function applyChatSearch(value) {
+  chatFilter = value;
+  if (chatSearchWrap) chatSearchWrap.classList.toggle("has-text", !!value.trim());
+  renderChatList();
+}
 if (chatSearch) {
-  chatSearch.addEventListener("input", () => { chatFilter = chatSearch.value; renderChatList(); });
+  chatSearch.addEventListener("input", () => applyChatSearch(chatSearch.value));
+  // Esc clears the query first; a second Esc can then close whatever's next.
+  chatSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && chatSearch.value) {
+      e.stopPropagation();
+      chatSearch.value = "";
+      applyChatSearch("");
+    }
+  });
+}
+if (chatSearchClear) {
+  chatSearchClear.onclick = () => {
+    chatSearch.value = "";
+    applyChatSearch("");
+    chatSearch.focus();
+  };
 }
 
 // ── Attach popup ──────────────────────────────────────────

@@ -42,16 +42,16 @@ export const PROVIDERS = {
     apiKey: "9fJRIRAzrNEvMsciprVznKVYaCDO5gAq",
   },
 
-  openai: {
+  groq: {
     label: "Luxora 1.1",
     tagline: "Creative, with a long memory",
-    // Swap for whatever OpenAI model you have access to
-    // (e.g. "gpt-4o", "gpt-4.1-mini").
-    model: "gpt-4o-mini",
-    endpoint: "https://api.openai.com/v1/chat/completions",
-    // OpenAI API key (client-side — see security note above). Get one at
-    // https://platform.openai.com/api-keys
-    apiKey: "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",
+    // Groq — free, fast, OpenAI-compatible. Swap for any model in your
+    // Groq console (e.g. "llama-3.1-8b-instant" for lower latency).
+    model: "llama-3.3-70b-versatile",
+    endpoint: "https://api.groq.com/openai/v1/chat/completions",
+    // Groq API key (client-side — see security note above). Get one free
+    // at https://console.groq.com/keys
+    apiKey: "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",
   },
 };
 
