@@ -273,17 +273,24 @@ body::before {
   flex-direction: column;
   gap: 2px;
   padding: 10px 10px 0;
+  /* list melts into the bottom zone instead of hard-clipping */
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 14px), transparent);
 }
 
+/* Scrollbar stays invisible until the pointer is over the list. */
 .sidebar-nav::-webkit-scrollbar { width: 3px; }
 .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: var(--border-mid); border-radius: 20px; }
-.sidebar-nav { scrollbar-width: thin; scrollbar-color: var(--border-mid) transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: transparent; border-radius: 20px; }
+.sidebar-nav:hover::-webkit-scrollbar-thumb { background: var(--border-mid); }
+.sidebar-nav { scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.sidebar-nav:hover { scrollbar-color: var(--border-mid) transparent; }
 
 /* ── Account tab (sits above Settings) ──────────────────── */
 .sidebar-account-wrap {
   margin-top: auto;
-  padding: 8px 10px 2px;
+  padding: 10px 10px 2px;
+  border-top: 1px solid var(--border); /* hairline seats the bottom zone */
 }
 
 .account-nav {
@@ -496,6 +503,22 @@ body::before {
   box-shadow: var(--shadow-inset);
 }
 
+/* "New chat" is the sidebar's primary action — give it real presence. */
+#resetChatBtn {
+  background: var(--glass-2);
+  border-color: var(--border-mid);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: var(--shadow-inset);
+  margin-bottom: 2px;
+}
+#resetChatBtn:hover {
+  background: var(--glass-3);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+#resetChatBtn:active { transform: none; }
+
 /* ── Chat main area ─────────────────────────────────────── */
 .chat-main {
   flex: 1;
@@ -545,8 +568,8 @@ body::before {
   gap: 6px;
   padding: 7px 12px;
   border-radius: 50px;
-  border: 1px solid var(--border-mid);
-  background: var(--glass-2);
+  border: 1px solid var(--border);
+  background: transparent;
   color: var(--text);
   font-family: inherit;
   font-size: 0.82rem;
@@ -554,7 +577,7 @@ body::before {
   cursor: pointer;
   transition: background 0.14s, border-color 0.14s;
 }
-.model-switcher:hover { background: var(--glass-3); border-color: var(--border-strong); }
+.model-switcher:hover { background: var(--glass-2); border-color: var(--border-mid); }
 .model-switcher svg { color: var(--text-muted); flex-shrink: 0; transition: transform 0.16s ease; }
 .model-switcher-wrap:has(.model-menu.open) .model-switcher svg { transform: rotate(180deg); }
 
@@ -618,15 +641,14 @@ body::before {
   border-radius: var(--radius-sm);
   transition: background 0.13s;
 }
-.chat-item-wrap:hover { background: var(--glass-3); }
+.chat-item-wrap:hover { background: var(--glass-2); }
 
 .chat-item {
   flex: 1;
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 9px;
-  padding: 8px 12px;
+  padding: 7px 12px;
   border-radius: var(--radius-sm);
   font-size: 13px;
   color: var(--text-muted);
@@ -639,15 +661,34 @@ body::before {
   overflow: hidden;
 }
 
+/* Long titles melt away at the edge instead of a hard "…". */
 .chat-item span {
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   flex: 1;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - 18px), transparent);
 }
 
 .chat-item-wrap:hover .chat-item { color: var(--text); }
-.chat-item.active { background: var(--glass-3); color: var(--text); font-weight: 500; }
+
+/* The active conversation carries a slim accent bar. */
+.chat-item.active {
+  background: var(--glass-3);
+  color: var(--text);
+  font-weight: 500;
+  position: relative;
+}
+.chat-item.active::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 7px;
+  bottom: 7px;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--text);
+}
 
 .chat-item-actions {
   display: none;
@@ -655,8 +696,16 @@ body::before {
   gap: 1px;
   flex-shrink: 0;
   padding-right: 6px;
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
 }
 .chat-item-wrap:hover .chat-item-actions { display: flex; }
+
+/* Glide-in for browsers that support @starting-style; others show instantly. */
+@starting-style {
+  .chat-item-wrap:hover .chat-item-actions { opacity: 0; transform: translateX(5px); }
+}
 
 .chat-action-btn {
   width: 22px;
@@ -676,12 +725,12 @@ body::before {
 .chat-action-btn.delete:hover { color: #f87171; }
 
 .chat-section-label {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--text-faint);
-  padding: 10px 12px 4px;
+  padding: 14px 12px 5px;
 }
 
 .chat-rename-input {
@@ -2268,29 +2317,53 @@ a:focus-visible,
 .shortcuts-hint { font-size: 0.78rem; color: var(--text-muted); text-align: left; opacity: 0.8; }
 
 /* ── Sidebar conversation search ───────────────────────────── */
-.chat-search-wrap { position: relative; margin: 8px 10px 2px; }
+/* Pill search field: quiet at rest, comes alive on focus — the icon
+   brightens with it, and a clear ✕ appears once there's a query. */
+.chat-search-wrap { position: relative; margin: 10px 10px 4px; }
 .chat-search-icon {
-  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-  color: var(--text-muted); pointer-events: none;
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  color: var(--text-faint); pointer-events: none;
+  transition: color 0.16s ease;
 }
+.chat-search-wrap:focus-within .chat-search-icon { color: var(--text); }
+
 .chat-search {
   width: 100%;
-  padding: 8px 10px 8px 32px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border-mid);
-  background: var(--glass-2);
+  padding: 8px 30px 8px 33px;
+  border-radius: 50px;
+  border: 1px solid var(--border);
+  background: var(--glass-1);
   color: var(--text);
   font-size: 12.5px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.14s, box-shadow 0.14s;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 }
-.chat-search::placeholder { color: var(--text-muted); }
-.chat-search:focus { border-color: var(--border-strong); box-shadow: 0 0 0 3px rgba(255,255,255,0.05); }
+.chat-search::placeholder { color: var(--text-faint); }
+.chat-search:hover { border-color: var(--border-mid); }
+.chat-search:focus {
+  border-color: var(--border-strong);
+  background: var(--glass-2);
+  box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
+}
 .light .chat-search:focus { box-shadow: 0 0 0 3px rgba(0,0,0,0.05); }
 #app:not(.sidebar-open) .chat-search-wrap { display: none; }
 
-.chat-empty-hint { padding: 16px 12px; font-size: 12.5px; color: var(--text-muted); text-align: center; }
+.chat-search-clear {
+  position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+  width: 20px; height: 20px;
+  display: none;
+  place-items: center;
+  border: none; border-radius: 50%;
+  background: var(--glass-3);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s;
+}
+.chat-search-wrap.has-text .chat-search-clear { display: grid; }
+.chat-search-clear:hover { background: var(--glass-4); color: var(--text); }
+
+.chat-empty-hint { padding: 22px 12px; font-size: 12.5px; color: var(--text-faint); text-align: center; }
 
 /* ── Inline message edit ───────────────────────────────────── */
 .edit-wrap { display: flex; flex-direction: column; gap: 8px; }
@@ -2624,17 +2697,19 @@ a:focus-visible,
   border-radius: var(--radius-sm);
   transition: background 0.13s;
 }
-.project-row:hover { background: var(--glass-3); }
+.project-row:hover { background: var(--glass-2); }
 
 .project-item {
   flex: 1; min-width: 0;
   display: flex; align-items: center; gap: 7px;
-  padding: 8px 12px; border-radius: var(--radius-sm);
+  padding: 7px 12px; border-radius: var(--radius-sm);
   font-size: 13px; color: var(--text-muted);
   background: transparent; border: none; cursor: pointer;
   text-align: left; font-family: inherit;
   transition: color 0.13s; overflow: hidden;
 }
+.project-item > svg { opacity: 0.65; transition: opacity 0.13s; }
+.project-row:hover .project-item > svg { opacity: 1; }
 .project-row:hover .project-item { color: var(--text); }
 .project-chevron { flex-shrink: 0; transition: transform 0.18s ease; }
 .project-wrap.expanded .project-chevron { transform: rotate(90deg); }
