@@ -1323,7 +1323,7 @@ applyThemeUI();
 
 function applyLogoTheme() {
   document.querySelectorAll(".brand-logo, .empty-logo").forEach(img => {
-    img.src = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
+    img.src = isLight ? "assets/images/logo-black.png" : "assets/images/logo.png";
   });
 }
 
@@ -1738,7 +1738,7 @@ function renderMessages(list = currentMessages) {
   messagesEl.innerHTML = "";
 
   if (list.length === 0) {
-    const logoSrc = isLight ? "Almail-AI-Black-Logo.png" : "Almail AI Logo.png";
+    const logoSrc = isLight ? "assets/images/logo-black.png" : "assets/images/logo.png";
     const name = friendlyName(currentUser);
     const heading = name ? `${timeGreeting()}, ${name}` : timeGreeting();
     messagesEl.innerHTML = `

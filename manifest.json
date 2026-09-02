@@ -10,13 +10,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "Almail AI Logo.png",
+      "src": "assets/images/logo.png",
       "sizes": "783x783",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "Almail-AI-Black-Logo.png",
+      "src": "assets/images/logo-black.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"

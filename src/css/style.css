@@ -944,11 +944,11 @@ main#messages {
   height: 30px;
   border-radius: 9px;
   background: var(--glass-2) center / 20px 20px no-repeat;
-  background-image: url('Almail AI Logo.png');
+  background-image: url('../../assets/images/logo.png');
   border: 1px solid var(--border-mid);
   box-shadow: var(--shadow-inset);
 }
-.light .other:not(.grouped)::before { background-image: url('Almail-AI-Black-Logo.png'); }
+.light .other:not(.grouped)::before { background-image: url('../../assets/images/logo-black.png'); }
 
 /* Tail corner only on the last user message of a run */
 .self.group-tail  { border-bottom-right-radius: 5px; }
@@ -1216,11 +1216,11 @@ main#messages {
   border-radius: 9px;
   flex-shrink: 0;
   background: var(--glass-2) center / 20px 20px no-repeat;
-  background-image: url('Almail AI Logo.png');
+  background-image: url('../../assets/images/logo.png');
   border: 1px solid var(--border-mid);
   box-shadow: var(--shadow-inset);
 }
-.light .typing-avatar { background-image: url('Almail-AI-Black-Logo.png'); }
+.light .typing-avatar { background-image: url('../../assets/images/logo-black.png'); }
 
 .typing-shimmer {
   font-size: 0.92rem;

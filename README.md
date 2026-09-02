@@ -4,7 +4,7 @@ A clean, fast, sleek AI chatbot — vanilla HTML/CSS/JS with Firebase (Auth +
 Firestore) and the Mistral AI API. Liquid-glass monochrome UI with dark/light
 themes, a collapsible multi-chat sidebar, and streaming replies.
 
-![Almail AI](Almail%20AI%20Logo.png)
+![Almail AI](assets/images/logo.png)
 
 ## Features
 
@@ -25,16 +25,28 @@ themes, a collapsible multi-chat sidebar, and streaming replies.
 - ☁️ **Synced history** — messages persist per-user in Firestore
 - 📱 **Installable** (PWA web manifest)
 
-## Files
+## Project structure
 
 ```
-index.html      # Markup + library includes
-style.css       # Theme tokens + all styling
-config.js       # AI key / model / persona (isolated)
-firebase.js     # Firebase init (Auth + Firestore)
-chat.js         # App logic: chats, auth, rendering, streaming
-manifest.json   # PWA manifest (installable)
+index.html              # Markup + library includes (entry point)
+manifest.json           # PWA manifest (installable)
+src/
+  css/
+    style.css           # Theme tokens + all styling
+  js/
+    config.js           # AI key / model / persona (isolated)
+    firebase.js         # Firebase init (Auth + Firestore)
+    chat.js             # App logic: chats, auth, rendering, streaming
+assets/
+  images/
+    logo.png            # Brand logo (dark backgrounds)
+    logo-black.png      # Brand logo (light backgrounds)
 ```
+
+This is a static, build-free app — `index.html` and `manifest.json` stay at
+the repo root so it can be served as-is by any static host (GitHub Pages,
+Netlify, Vercel, etc.), while source and assets are organized under `src/`
+and `assets/`.
 
 ## Running locally
 
@@ -47,12 +59,12 @@ python3 -m http.server 8000      # then open http://localhost:8000
 
 ## Configuration
 
-- **AI** (key, model, persona, history length) → [`config.js`](config.js)
-- **Firebase** project → [`firebase.js`](firebase.js)
+- **AI** (key, model, persona, history length) → [`src/js/config.js`](src/js/config.js)
+- **Firebase** project → [`src/js/firebase.js`](src/js/firebase.js)
 
 ## ⚠️ Security: the Mistral API key
 
-Because this is a 100% client-side app, the Mistral key in `config.js` is
+Because this is a 100% client-side app, the Mistral key in `src/js/config.js` is
 **visible to anyone** who opens the site and can be abused. This is fine for
 local/personal use, but **before deploying publicly**:
 
