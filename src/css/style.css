@@ -1,21 +1,21 @@
 /* ── Design tokens ──────────────────────────────────────── */
 :root {
-  --bg: #0b0b0e;
-  --text: #f4f4f6;
-  --text-muted: #8a8a93;
-  --text-faint: #46464e;
+  --bg: #060607;
+  --text: #f5f5f6;
+  --text-muted: #8a8a90;
+  --text-faint: #45454a;
 
-  /* Brand accent — indigo/violet, used sparingly for primary actions,
+  /* Brand accent — rose/magenta, used sparingly for primary actions,
      active states and focus rings so it reads as intentional, not loud. */
-  --accent-h: 248;
-  --accent: hsl(var(--accent-h) 92% 68%);
-  --accent-hover: hsl(var(--accent-h) 96% 74%);
-  --accent-strong: hsl(var(--accent-h) 78% 58%);
+  --accent-h: 330;
+  --accent: hsl(var(--accent-h) 88% 68%);
+  --accent-hover: hsl(var(--accent-h) 92% 74%);
+  --accent-strong: hsl(var(--accent-h) 74% 56%);
   --accent-text: #ffffff;
-  --accent-soft: hsla(var(--accent-h), 92%, 68%, 0.14);
-  --accent-border: hsla(var(--accent-h), 92%, 68%, 0.4);
-  --accent-ring: hsla(var(--accent-h), 92%, 68%, 0.32);
-  --accent-gradient: linear-gradient(135deg, hsl(var(--accent-h) 90% 66%), hsl(268 90% 68%));
+  --accent-soft: hsla(var(--accent-h), 88%, 68%, 0.14);
+  --accent-border: hsla(var(--accent-h), 88%, 68%, 0.4);
+  --accent-ring: hsla(var(--accent-h), 88%, 68%, 0.32);
+  --accent-gradient: linear-gradient(135deg, hsl(var(--accent-h) 88% 68%), hsl(300 80% 62%));
 
   --danger: #fb6f84;
   --danger-strong: #f43f5e;
@@ -47,7 +47,7 @@
 
   /* Solid surface for dropdown menus (glass fails inside elements that
      already use backdrop-filter, leaving text unreadable). */
-  --menu-bg: #151417;
+  --menu-bg: #121013;
 
   /* Shadows */
   --shadow-sm:  0 1px 4px rgba(0,0,0,0.5);
@@ -70,13 +70,13 @@
   --text-muted: #75757f;
   --text-faint: #c7c7cf;
 
-  --accent: hsl(var(--accent-h) 78% 58%);
-  --accent-hover: hsl(var(--accent-h) 82% 64%);
-  --accent-strong: hsl(var(--accent-h) 68% 50%);
-  --accent-soft: hsla(var(--accent-h), 78%, 58%, 0.1);
-  --accent-border: hsla(var(--accent-h), 78%, 58%, 0.35);
-  --accent-ring: hsla(var(--accent-h), 78%, 58%, 0.22);
-  --accent-gradient: linear-gradient(135deg, hsl(var(--accent-h) 76% 60%), hsl(268 76% 62%));
+  --accent: hsl(var(--accent-h) 72% 56%);
+  --accent-hover: hsl(var(--accent-h) 76% 62%);
+  --accent-strong: hsl(var(--accent-h) 64% 48%);
+  --accent-soft: hsla(var(--accent-h), 72%, 56%, 0.1);
+  --accent-border: hsla(var(--accent-h), 72%, 56%, 0.35);
+  --accent-ring: hsla(var(--accent-h), 72%, 56%, 0.22);
+  --accent-gradient: linear-gradient(135deg, hsl(var(--accent-h) 72% 58%), hsl(300 68% 56%));
 
   --danger: #e0374f;
   --danger-strong: #c81e3a;
@@ -144,8 +144,8 @@ body::before {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 90% 55% at 50% -5%, hsla(var(--accent-h), 90%, 68%, 0.1) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 40% at 5%  95%, rgba(255,255,255,0.04) 0%, transparent 60%);
+    radial-gradient(ellipse 70% 40% at 50% -8%, hsla(var(--accent-h), 90%, 65%, 0.05) 0%, transparent 65%),
+    radial-gradient(ellipse 50% 40% at 5%  95%, rgba(255,255,255,0.02) 0%, transparent 60%);
   pointer-events: none;
   z-index: 0;
 }
@@ -538,21 +538,11 @@ body::before {
   box-shadow: var(--shadow-inset);
 }
 
-/* "New chat" is the sidebar's primary action — give it real presence. */
-#resetChatBtn {
-  background: var(--glass-2);
-  border-color: var(--border-mid);
-  color: var(--text);
-  font-weight: 600;
-  box-shadow: var(--shadow-inset);
-  margin-bottom: 2px;
-}
-#resetChatBtn svg { color: var(--accent); }
-#resetChatBtn:hover {
-  background: var(--accent-soft);
-  border-color: var(--accent-border);
-  transform: translateY(-1px);
-}
+/* "New chat" reads as a plain nav row, flush with the others — the
+   flat, minimal sidebar of a focused reading app rather than a
+   button-heavy tool. */
+#resetChatBtn { margin-bottom: 0; }
+#resetChatBtn:hover { background: var(--surface-hover); border-color: var(--border); }
 #resetChatBtn:active { transform: none; }
 
 /* ── Chat main area ─────────────────────────────────────── */
@@ -572,13 +562,11 @@ body::before {
   display: flex;
   align-items: center;
   gap: 12px;
-  height: 52px;
+  height: 60px;
   flex-shrink: 0;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--border);
-  background: var(--glass-1);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
+  padding: 0 22px;
+  border-bottom: none;
+  background: transparent;
   z-index: 10;
 }
 #app.projects-page .topbar { display: none; }
@@ -602,18 +590,18 @@ body::before {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 12px;
+  padding: 8px 16px;
   border-radius: 50px;
   border: 1px solid var(--border);
-  background: transparent;
+  background: var(--glass-2);
   color: var(--text);
   font-family: inherit;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.14s, border-color 0.14s;
 }
-.model-switcher:hover { background: var(--accent-soft); border-color: var(--accent-border); }
+.model-switcher:hover { background: var(--glass-3); border-color: var(--border-mid); }
 .model-switcher svg { color: var(--text-muted); flex-shrink: 0; transition: transform 0.16s ease; }
 .model-switcher-wrap:has(.model-menu.open) .model-switcher svg { transform: rotate(180deg); }
 
@@ -1033,11 +1021,15 @@ main#messages {
   animation: appear 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
+.empty-logo { display: none; }
+
 .empty-state h2 {
-  font-size: 2.3rem;
+  font-size: 2.7rem;
   font-weight: 700;
-  letter-spacing: -1px;
-  background: linear-gradient(100deg, var(--text) 45%, var(--accent) 120%);
+  letter-spacing: -1.2px;
+  max-width: 90vw;
+  white-space: normal;
+  background: linear-gradient(100deg, var(--text) 45%, color-mix(in oklab, var(--accent) 55%, var(--text) 45%) 90%, var(--accent) 160%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1048,6 +1040,7 @@ main#messages {
   color: var(--text-muted);
   max-width: 340px;
   line-height: 1.55;
+  display: none;
 }
 
 /* ── AI message action buttons ─────────────────────────── */
@@ -1880,38 +1873,38 @@ footer {
 
 /* ── Empty-state suggestion chips ──────────────────────────── */
 .suggestions {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
   gap: 10px;
-  margin-top: 22px;
+  margin-top: 24px;
   width: 100%;
-  max-width: 460px;
+  max-width: 620px;
 }
 .chip {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   text-align: left;
-  padding: 14px 16px;
-  border-radius: 15px;
-  background: var(--surface);
-  border: 1px solid var(--border-mid);
-  color: var(--text);
-  font-size: 0.86rem;
+  padding: 9px 16px;
+  border-radius: 50px;
+  background: var(--glass-2);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
-  box-shadow: var(--shadow-inset);
+  transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 .chip:hover {
-  transform: translateY(-2px);
-  border-color: var(--border-strong);
-  background: var(--surface-hover);
+  transform: translateY(-1px);
+  border-color: var(--border-mid);
+  background: var(--glass-3);
+  color: var(--text);
 }
-.chip svg { flex-shrink: 0; opacity: 0.65; }
-@media (max-width: 560px) { .suggestions { grid-template-columns: 1fr; } }
+.chip svg { flex-shrink: 0; opacity: 0.75; width: 14px; height: 14px; }
 
 /* ── Scroll-to-bottom button ───────────────────────────────── */
 .scroll-bottom-btn {
@@ -2244,17 +2237,17 @@ a:focus-visible,
 .orbs span {
   position: absolute;
   border-radius: 50%;
-  filter: blur(64px);
-  opacity: 0.5;
-  background: radial-gradient(circle at 50% 50%, hsla(var(--accent-h), 90%, 70%, 0.16), transparent 70%);
+  filter: blur(80px);
+  opacity: 0.22;
+  background: radial-gradient(circle at 50% 50%, hsla(var(--accent-h), 90%, 65%, 0.16), transparent 70%);
   will-change: transform;
 }
 .light .orbs span {
-  opacity: 0.55;
-  background: radial-gradient(circle at 50% 50%, hsla(var(--accent-h), 80%, 65%, 0.18), transparent 70%);
+  opacity: 0.3;
+  background: radial-gradient(circle at 50% 50%, hsla(var(--accent-h), 80%, 60%, 0.18), transparent 70%);
 }
 .orbs span:nth-child(1) { width: 440px; height: 440px; top: -90px;  left: -70px;  animation: drift1 26s ease-in-out infinite alternate; }
-.orbs span:nth-child(2) { width: 380px; height: 380px; bottom: -110px; right: -50px; animation: drift2 31s ease-in-out infinite alternate; background: radial-gradient(circle at 50% 50%, hsla(268, 85%, 70%, 0.14), transparent 70%); }
+.orbs span:nth-child(2) { width: 380px; height: 380px; bottom: -110px; right: -50px; animation: drift2 31s ease-in-out infinite alternate; background: radial-gradient(circle at 50% 50%, hsla(300, 80%, 65%, 0.14), transparent 70%); }
 .orbs span:nth-child(3) { width: 300px; height: 300px; top: 42%; left: 56%;          animation: drift3 36s ease-in-out infinite alternate; }
 
 @keyframes drift1 { from { transform: translate(0,0) scale(1); } to { transform: translate(70px, 48px) scale(1.16); } }
