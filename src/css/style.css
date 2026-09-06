@@ -268,10 +268,12 @@ body::before {
 
 .brand { display: flex; align-items: center; gap: 9px; }
 
+/* A wide wordmark logo — sized by height with the width following its
+   natural aspect ratio, instead of forcing it into a square icon box. */
 .brand-logo {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  height: 24px;
+  width: auto;
+  max-width: 140px;
   object-fit: contain;
   flex-shrink: 0;
 }
@@ -968,7 +970,9 @@ main#messages {
   width: 30px;
   height: 30px;
   border-radius: 9px;
-  background: var(--glass-2) center / 20px 20px no-repeat;
+  /* 80% width, height auto — the wordmark is wide, not square, so a fixed
+     square size would squish it; this keeps it undistorted, just smaller. */
+  background: var(--glass-2) center / 80% auto no-repeat;
   background-image: url('../../assets/images/maham-white.png');
   border: 1px solid var(--border-mid);
   box-shadow: var(--shadow-inset);
@@ -1248,7 +1252,8 @@ main#messages {
   height: 30px;
   border-radius: 9px;
   flex-shrink: 0;
-  background: var(--glass-2) center / 20px 20px no-repeat;
+  /* 80% width, height auto — matches .other::before's wordmark handling. */
+  background: var(--glass-2) center / 80% auto no-repeat;
   background-image: url('../../assets/images/maham-white.png');
   border: 1px solid var(--border-mid);
   box-shadow: var(--shadow-inset);
@@ -2116,9 +2121,9 @@ a:focus-visible,
 .splash-inner { display: flex; flex-direction: column; align-items: center; gap: 20px; }
 
 .splash-logo {
-  width: 88px;
-  height: 88px;
-  border-radius: 22px;
+  height: 72px;
+  width: auto;
+  max-width: 70vw;
   object-fit: contain;
   filter: drop-shadow(0 12px 32px rgba(0,0,0,0.45));
   animation: splashLogo 1s cubic-bezier(0.2, 0, 0, 1) both;
@@ -2169,9 +2174,9 @@ a:focus-visible,
 .welcome-box { max-width: 440px; padding: 40px 32px 30px; text-align: center; }
 
 .welcome-logo {
-  width: 64px;
-  height: 64px;
-  border-radius: 18px;
+  height: 44px;
+  width: auto;
+  max-width: 80%;
   object-fit: contain;
   margin: 0 auto 18px;
   display: block;
