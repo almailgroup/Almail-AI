@@ -36,10 +36,10 @@ export const PROVIDERS = {
     tagline: "Google's Gemini model",
     model: "gemini-2.5-flash",
     // Replace with your deployed Worker's URL (see cloudflare-worker/README.md).
-    endpoint: "https://almail-gemini-proxy.YOUR-SUBDOMAIN.workers.dev/v1/chat/completions",
+    endpoint: "https://maham-solutions-ai.steep-band-c624.workers.dev/",
     // Shared secret the Worker checks (PROXY_SHARED_SECRET) — NOT the real
     // Gemini key. Still visible client-side, so it only gates casual abuse.
-    apiKey: "REPLACE_WITH_YOUR_PROXY_SHARED_SECRET",
+    apiKey: "afdd96f242782b40d2245d4adf676345e9cbb3aab7f033fda5dc2454d4673344",
   },
 };
 
