@@ -1,0 +1,12 @@
+name = "almail-gemini-proxy"
+main = "src/index.js"
+compatibility_date = "2024-11-01"
+
+# Set the real values as secrets (never in this file, never in git):
+#   wrangler secret put GEMINI_API_KEY
+#   wrangler secret put PROXY_SHARED_SECRET   (optional but recommended)
+#
+# Non-secret config can live here as plain vars, e.g. to lock CORS down to
+# your real domain once you know it:
+# [vars]
+# ALLOWED_ORIGIN = "https://your-domain.com"

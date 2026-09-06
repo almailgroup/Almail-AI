@@ -2463,7 +2463,7 @@ function startPlaceholders() {
 }
 function stopPlaceholders() { if (phTimer) { clearInterval(phTimer); phTimer = null; } }
 
-// ── AI providers (Mistral / OpenAI) ───────────────────────
+// ── AI providers (Gemini, via the Cloudflare Worker proxy) ─
 // User personalization (custom instructions + creativity).
 function getUserSettings() {
   let s = {};
@@ -2546,7 +2546,7 @@ function fullSystemPrompt() {
     (instructions ? `\n\nThe user has provided these custom instructions — follow them:\n${instructions}` : "");
 }
 
-// Build the OpenAI-style message array (Mistral) — with optional file/image context.
+// Build the OpenAI-style message array (Gemini) — with optional file/image context.
 function buildOpenAIMessages(messages, attachment = null) {
   return [
     { role: "system", content: fullSystemPrompt() },
@@ -2626,8 +2626,8 @@ async function streamAssistantReply(history, attachment) {
   return finalText;
 }
 
-// SSE streaming — shared by every provider (Mistral, OpenAI, and anything
-// else OpenAI-compatible): data: {…delta…}\n\n … data: [DONE].
+// SSE streaming — works with any OpenAI-compatible provider (Gemini here,
+// via the Worker proxy): data: {…delta…}\n\n … data: [DONE].
 async function streamOpenAICompatible(p, apiMessages, signal, onDelta) {
   if (!p.apiKey) throw new Error(`No API key configured for ${p.label} — add one in config.js.`);
   const res = await fetch(p.endpoint, {

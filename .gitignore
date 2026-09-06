@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Cloudflare Workers (wrangler)
+.wrangler/
+.dev.vars
+.dev.vars.*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*

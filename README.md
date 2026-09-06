@@ -1,8 +1,9 @@
 # Almail AI
 
 A clean, fast, sleek AI chatbot — vanilla HTML/CSS/JS with Firebase (Auth +
-Firestore) and the Mistral AI API. Liquid-glass monochrome UI with dark/light
-themes, a collapsible multi-chat sidebar, and streaming replies.
+Firestore) and Google's Gemini API (via a Cloudflare Worker proxy). Liquid-glass
+monochrome UI with dark/light themes, a collapsible multi-chat sidebar, and
+streaming replies.
 
 ![Almail AI](assets/images/logo.png)
 
@@ -41,6 +42,10 @@ assets/
   images/
     logo.png            # Brand logo (dark backgrounds)
     logo-black.png      # Brand logo (light backgrounds)
+cloudflare-worker/       # Gemini proxy — keeps the real API key server-side
+  src/index.js
+  wrangler.toml
+  README.md             # Deployment steps
 ```
 
 This is a static, build-free app — `index.html` and `manifest.json` stay at
@@ -59,19 +64,20 @@ python3 -m http.server 8000      # then open http://localhost:8000
 
 ## Configuration
 
-- **AI** (key, model, persona, history length) → [`src/js/config.js`](src/js/config.js)
+- **AI** (model, persona, history length, Worker endpoint) → [`src/js/config.js`](src/js/config.js)
 - **Firebase** project → [`src/js/firebase.js`](src/js/firebase.js)
+- **Gemini proxy** (Cloudflare Worker) → [`cloudflare-worker/`](cloudflare-worker/README.md)
 
-## ⚠️ Security: the Mistral API key
+## AI: Gemini via a Cloudflare Worker proxy
 
-Because this is a 100% client-side app, the Mistral key in `src/js/config.js` is
-**visible to anyone** who opens the site and can be abused. This is fine for
-local/personal use, but **before deploying publicly**:
-
-1. Move the AI call behind a small **serverless proxy** (Cloud Function,
-   Vercel/Netlify function) that keeps the key server-side.
-2. Have the browser call *your* proxy instead of `api.mistral.ai` directly.
-3. Rotate the key if it has been committed publicly.
+Almail AI talks to a single model — Google's Gemini — through a small
+Cloudflare Worker (in [`cloudflare-worker/`](cloudflare-worker/README.md))
+instead of calling Google directly. The real Gemini API key lives server-side
+as a Worker secret and is never shipped to the browser; `config.js` only
+holds the Worker's URL and a lightweight shared secret the Worker checks
+before forwarding a request. See
+[`cloudflare-worker/README.md`](cloudflare-worker/README.md) for the full
+deploy steps.
 
 > The Firebase web config in `firebase.js` is **not** a secret — it's meant to
 > be public; access is controlled by your Firestore security rules.

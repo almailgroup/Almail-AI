@@ -2,14 +2,13 @@
  * Almail AI — AI configuration.
  *
  * ⚠️ SECURITY NOTE
- * This is a fully client-side app, so everything here ships to the browser and
- * is publicly visible. Every API key below can be read (and abused) by anyone
- * who opens the site. This is fine for personal/testing use.
- *
- * Before any public/production deploy, move the AI calls behind a small
- * serverless proxy (Cloud Function / Vercel / Netlify function) that holds
- * the keys server-side, and have the browser call your proxy instead of the
- * providers directly. See README.md for details.
+ * This is a fully client-side app, so everything here ships to the browser
+ * and is publicly visible. The Gemini provider below points at a Cloudflare
+ * Worker proxy instead of Google directly — the real Gemini API key lives
+ * server-side as a Worker secret and is never shipped to the browser. The
+ * `apiKey` value here is only a shared secret the Worker checks before
+ * forwarding a request; it is not the Gemini key itself. See
+ * cloudflare-worker/README.md for how to deploy the proxy.
  */
 
 // Shared behaviour — applies no matter which provider below is active.
@@ -26,35 +25,24 @@ export const AI_CONFIG = {
     "answer questions. You cannot generate images.",
 };
 
-// Which model answers your messages. Users can switch between these from the
-// model picker in the top bar; the choice is remembered in localStorage.
-// `label` + `tagline` are the user-facing branding; `model`/`endpoint` are
-// the real backend behind each one. Both are OpenAI-compatible chat-
-// completions APIs (same request/response shape), so they share one
-// implementation in chat.js (streamOpenAICompatible / getAIResponse).
+// A single provider — Google's Gemini, called through the Cloudflare Worker
+// proxy in cloudflare-worker/ so the real API key stays server-side. The
+// proxy forwards to Gemini's OpenAI-compatible endpoint, so this shares the
+// same streamOpenAICompatible/getAIResponse implementation in chat.js as
+// any other OpenAI-compatible backend.
 export const PROVIDERS = {
-  mistral: {
-    label: "Celestra 1.0",
-    tagline: "Fast, sharp everyday answers",
-    model: "mistral-small-latest",
-    endpoint: "https://api.mistral.ai/v1/chat/completions",
-    // Mistral API key (client-side — see security note above).
-    apiKey: "9fJRIRAzrNEvMsciprVznKVYaCDO5gAq",
-  },
-
-  groq: {
-    label: "Luxora 1.1",
-    tagline: "Creative, with a long memory",
-    // Groq — free, fast, OpenAI-compatible. Swap for any model in your
-    // Groq console (e.g. "llama-3.1-8b-instant" for lower latency).
-    model: "llama-3.3-70b-versatile",
-    endpoint: "https://api.groq.com/openai/v1/chat/completions",
-    // Groq API key (client-side — see security note above). Get one free
-    // at https://console.groq.com/keys
-    apiKey: "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",
+  gemini: {
+    label: "Gemini",
+    tagline: "Google's Gemini model",
+    model: "gemini-2.5-flash",
+    // Replace with your deployed Worker's URL (see cloudflare-worker/README.md).
+    endpoint: "https://almail-gemini-proxy.YOUR-SUBDOMAIN.workers.dev/v1/chat/completions",
+    // Shared secret the Worker checks (PROXY_SHARED_SECRET) — NOT the real
+    // Gemini key. Still visible client-side, so it only gates casual abuse.
+    apiKey: "REPLACE_WITH_YOUR_PROXY_SHARED_SECRET",
   },
 };
 
 // Which provider is used the very first time the app loads (before the user
 // has picked one themselves).
-export const DEFAULT_PROVIDER = "mistral";
+export const DEFAULT_PROVIDER = "gemini";
