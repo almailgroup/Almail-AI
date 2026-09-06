@@ -1,5 +1,5 @@
 /**
- * Almail AI — Gemini proxy (Cloudflare Worker)
+ * Maham AI Solutions — Gemini proxy (Cloudflare Worker)
  *
  * Keeps the real Gemini API key server-side. The browser calls this Worker
  * instead of Google directly; the Worker attaches the real key (stored as a

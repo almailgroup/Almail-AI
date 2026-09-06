@@ -969,11 +969,11 @@ main#messages {
   height: 30px;
   border-radius: 9px;
   background: var(--glass-2) center / 20px 20px no-repeat;
-  background-image: url('../../assets/images/logo.png');
+  background-image: url('../../assets/images/maham-white.png');
   border: 1px solid var(--border-mid);
   box-shadow: var(--shadow-inset);
 }
-.light .other:not(.grouped)::before { background-image: url('../../assets/images/logo-black.png'); }
+.light .other:not(.grouped)::before { background-image: url('../../assets/images/maham-black.png'); }
 
 /* Tail corner only on the last user message of a run */
 .self.group-tail  { border-bottom-right-radius: 5px; }
@@ -1249,11 +1249,11 @@ main#messages {
   border-radius: 9px;
   flex-shrink: 0;
   background: var(--glass-2) center / 20px 20px no-repeat;
-  background-image: url('../../assets/images/logo.png');
+  background-image: url('../../assets/images/maham-white.png');
   border: 1px solid var(--border-mid);
   box-shadow: var(--shadow-inset);
 }
-.light .typing-avatar { background-image: url('../../assets/images/logo-black.png'); }
+.light .typing-avatar { background-image: url('../../assets/images/maham-black.png'); }
 
 .typing-shimmer {
   font-size: 0.92rem;

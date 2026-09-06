@@ -1,11 +1,11 @@
-# Almail AI
+# Maham AI Solutions
 
 A clean, fast, sleek AI chatbot — vanilla HTML/CSS/JS with Firebase (Auth +
 Firestore) and Google's Gemini API (via a Cloudflare Worker proxy). Liquid-glass
 monochrome UI with dark/light themes, a collapsible multi-chat sidebar, and
 streaming replies.
 
-![Almail AI](assets/images/logo.png)
+![Maham AI Solutions](assets/images/maham-white.png)
 
 ## Features
 
@@ -40,8 +40,8 @@ src/
     chat.js             # App logic: chats, auth, rendering, streaming
 assets/
   images/
-    logo.png            # Brand logo (dark backgrounds)
-    logo-black.png      # Brand logo (light backgrounds)
+    maham-white.png     # Brand logo (dark backgrounds)
+    maham-black.png     # Brand logo (light backgrounds)
 cloudflare-worker/       # Gemini proxy — keeps the real API key server-side
   src/index.js
   wrangler.toml
@@ -70,7 +70,7 @@ python3 -m http.server 8000      # then open http://localhost:8000
 
 ## AI: Gemini via a Cloudflare Worker proxy
 
-Almail AI talks to a single model — Google's Gemini — through a small
+Maham AI Solutions talks to a single model — Google's Gemini — through a small
 Cloudflare Worker (in [`cloudflare-worker/`](cloudflare-worker/README.md))
 instead of calling Google directly. The real Gemini API key lives server-side
 as a Worker secret and is never shipped to the browser; `config.js` only

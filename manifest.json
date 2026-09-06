@@ -1,6 +1,6 @@
 {
-  "name": "Almail AI",
-  "short_name": "Almail AI",
+  "name": "Maham AI Solutions",
+  "short_name": "Maham AI",
   "description": "A fast, private, and intelligent AI assistant.",
   "start_url": "./index.html",
   "scope": "./",
@@ -10,13 +10,13 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "assets/images/logo.png",
+      "src": "assets/images/maham-white.png",
       "sizes": "783x783",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "assets/images/logo-black.png",
+      "src": "assets/images/maham-black.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
