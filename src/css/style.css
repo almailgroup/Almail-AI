@@ -1,9 +1,8 @@
 /* ── Design tokens ──────────────────────────────────────── */
 :root {
   --bg: #000000;
-  /* Clearly a distinct panel from the pure-black main content — not
-     just a hairline difference. */
-  --sidebar-bg: #171717;
+  /* The clay slab — light enough that shadows cast on it actually read. */
+  --sidebar-bg: #1c1c1c;
   --text: #f5f5f6;
   --text-muted: #8a8a90;
   --text-faint: #45454a;
@@ -64,6 +63,23 @@
   --radius-lg: 20px;
   --radius-xl: 28px;
 
+  /* ── Clay (soft 3D) surfaces ───────────────────────────
+     Matte fills lifted by a soft dark shadow on one side and a faint
+     light bounce on the other. Kept low-contrast on purpose — clay,
+     not glass: no gloss, no sheen, just depth. */
+  --clay-radius:    22px;
+  --clay-radius-sm: 16px;
+  /* Matte fill for raised elements — a touch lighter than the slab
+     they sit on, so the shadow reads as lift rather than a hole. */
+  --clay-btn:       #2a2a2a;
+  --clay-btn-hover: #333333;
+  /* In dark mode a black shadow has nothing to land on, so the light
+     bounce carries the shape — hence the stronger highlight side. */
+  --clay-raised:    10px 10px 22px rgba(0,0,0,0.7), -7px -7px 18px rgba(255,255,255,0.075);
+  --clay-raised-sm: 6px 6px 14px rgba(0,0,0,0.6), -4px -4px 11px rgba(255,255,255,0.065);
+  --clay-pressed:   inset 6px 6px 13px rgba(0,0,0,0.75), inset -4px -4px 11px rgba(255,255,255,0.06);
+  --clay-flat:      3px 3px 8px rgba(0,0,0,0.5), -2px -2px 6px rgba(255,255,255,0.05);
+
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -110,6 +126,15 @@
   --shadow-lg:  0 12px 48px rgba(20,20,30,0.14), 0 2px 10px rgba(20,20,30,0.08);
   --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04);
   --shadow-accent: 0 8px 24px hsla(var(--accent-h), 70%, 55%, 0.28), 0 2px 8px hsla(var(--accent-h), 70%, 55%, 0.18);
+
+  /* Clay in light mode: the light bounce does most of the work, with a
+     soft grey shadow grounding the shape. */
+  --clay-btn:       #fbfbfc;
+  --clay-btn-hover: #ffffff;
+  --clay-raised:    9px 9px 20px rgba(20,20,30,0.13), -6px -6px 16px rgba(255,255,255,0.95);
+  --clay-raised-sm: 5px 5px 12px rgba(20,20,30,0.1), -4px -4px 10px rgba(255,255,255,0.9);
+  --clay-pressed:   inset 5px 5px 12px rgba(20,20,30,0.12), inset -4px -4px 10px rgba(255,255,255,0.9);
+  --clay-flat:      2px 2px 6px rgba(20,20,30,0.08), -2px -2px 5px rgba(255,255,255,0.8);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -183,13 +208,22 @@ body::before { content: none; }
 #sidebarClose { transition: background 0.14s ease, color 0.14s ease; }
 
 /* ── Sidebar ────────────────────────────────────────────── */
+/* A slab of matte clay floating on the page rather than a panel welded
+   to the edge — the gap around it is what sells the depth. */
 #sidebar {
   width: 264px;
   flex-shrink: 0;
-  height: 100%;
+  height: calc(100% - 24px);
+  margin: 12px 0 12px 12px;
   background: var(--sidebar-bg);
-  border-right: 1px solid var(--border-strong);
-  box-shadow: 6px 0 28px rgba(0,0,0,0.35);
+  border: none;
+  border-radius: var(--clay-radius);
+  /* Outer lift plus a soft inner light along the top/left edge, which
+     is what makes the slab read as domed clay instead of a flat card. */
+  box-shadow:
+    var(--clay-raised),
+    inset 2px 2px 3px rgba(255,255,255,0.06),
+    inset -2px -3px 4px rgba(0,0,0,0.35);
   display: flex;
   flex-direction: column;
   padding: 0;
@@ -197,11 +231,16 @@ body::before { content: none; }
   transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 50;
 }
-.light #sidebar { box-shadow: 6px 0 28px rgba(0,0,0,0.06); }
+.light #sidebar {
+  box-shadow:
+    var(--clay-raised),
+    inset 2px 2px 3px rgba(255,255,255,0.9),
+    inset -2px -3px 4px rgba(20,20,30,0.05);
+}
 
 /* Desktop collapsed: show mini strip */
 @media (min-width: 900px) {
-  #app:not(.sidebar-open) #sidebar { width: 60px; }
+  #app:not(.sidebar-open) #sidebar { width: 64px; }
 
   /* Hide text and nav/footer, but keep logo and button visible */
   #app:not(.sidebar-open) .brand h2 { display: none; }
@@ -246,12 +285,14 @@ body::before { content: none; }
 /* Mobile: fully hide sidebar (handled via transform in mobile block below) */
 
 /* Sidebar inner padding wrapper */
+/* No hard rules inside the clay slab — separation comes from spacing
+   and shadow, not lines. */
 .sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 16px 14px;
-  border-bottom: 1px solid var(--border);
+  padding: 18px 16px 14px;
+  border-bottom: none;
 }
 
 .brand { display: flex; align-items: center; gap: 9px; }
@@ -315,8 +356,8 @@ body::before { content: none; }
 /* ── Account tab (sits above Settings) ──────────────────── */
 .sidebar-account-wrap {
   margin-top: auto;
-  padding: 10px 10px 2px;
-  border-top: 1px solid var(--border); /* hairline seats the bottom zone */
+  padding: 12px 10px 2px;
+  border-top: none;
 }
 
 .account-nav {
@@ -324,20 +365,25 @@ body::before { content: none; }
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 8px 9px;
-  background: var(--glass-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md);
+  padding: 9px 10px;
+  background: var(--clay-btn);
+  border: none;
+  border-radius: var(--clay-radius-sm);
   color: var(--text);
   font-family: inherit;
   text-align: left;
   cursor: pointer;
-  transition: background 0.14s ease, border-color 0.14s ease, box-shadow 0.14s ease;
+  box-shadow: var(--clay-raised-sm);
+  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease), background 0.18s ease;
 }
 .account-nav:hover {
-  background: var(--surface-hover);
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-inset);
+  background: var(--clay-btn-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--clay-raised);
+}
+.account-nav:active {
+  transform: translateY(0);
+  box-shadow: var(--clay-pressed);
 }
 
 .account-nav-avatar {
@@ -509,44 +555,49 @@ body::before { content: none; }
   width: 100%;
   padding: 10px 12px;
   background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: var(--clay-radius-sm);
   color: var(--text-muted);
   font-family: inherit;
   font-size: 0.9rem;
   font-weight: 500;
   text-align: left;
   cursor: pointer;
-  transition: all 0.14s ease;
+  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.18s var(--ease);
 }
 
 .nav-item svg { flex-shrink: 0; transition: color 0.14s; }
 
+/* Rows lift out of the clay on hover, sink in on press. */
 .nav-item:hover {
-  background: var(--surface-hover);
-  border-color: var(--border);
+  background: var(--clay-btn);
   color: var(--text);
-  box-shadow: var(--shadow-inset);
+  box-shadow: var(--clay-flat);
 }
+.nav-item:active { box-shadow: var(--clay-pressed); }
 
-/* "New chat" is the sidebar's primary action — it gets real button
-   presence (fill + border), not just a plain nav row like the items
-   below it. */
+/* "New chat" is the sidebar's primary action — a raised pad of clay
+   that presses into the surface when clicked. */
 #resetChatBtn {
-  background: var(--glass-3);
-  border-color: var(--border-mid);
+  background: var(--clay-btn);
+  border: none;
+  border-radius: var(--clay-radius-sm);
   color: var(--text);
   font-weight: 600;
-  margin-bottom: 4px;
-  box-shadow: var(--shadow-sm);
+  margin-bottom: 6px;
+  box-shadow: var(--clay-raised-sm);
+  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
 }
 #resetChatBtn svg { color: var(--accent); }
 #resetChatBtn:hover {
-  background: var(--glass-4);
-  border-color: var(--border-strong);
-  transform: translateY(-1px);
+  background: var(--clay-btn);
+  transform: translateY(-2px);
+  box-shadow: var(--clay-raised);
 }
-#resetChatBtn:active { transform: none; }
+#resetChatBtn:active {
+  transform: translateY(0);
+  box-shadow: var(--clay-pressed);
+}
 
 /* ── Chat main area ─────────────────────────────────────── */
 .chat-main {
@@ -1735,6 +1786,8 @@ footer {
 
 /* ── Mobile: sidebar overlays ───────────────────────────── */
 @media (max-width: 899px) {
+  /* Full-screen on mobile — drop the floating-slab margin and rounding
+     so it covers the viewport edge to edge. */
   #sidebar {
     position: fixed;
     top: 0;
@@ -1742,9 +1795,9 @@ footer {
     width: 100vw !important;
     height: 100%;
     height: 100dvh;
-    background: var(--bg);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    margin: 0;
+    border-radius: 0;
+    background: var(--sidebar-bg);
     box-shadow: none;
     z-index: 200;
     transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
@@ -2336,24 +2389,23 @@ a:focus-visible,
 }
 .chat-search-wrap:focus-within .chat-search-icon { color: var(--text); }
 
+/* Inputs read as grooves pressed into the clay, not raised pads. */
 .chat-search {
   width: 100%;
-  padding: 9px 30px 9px 34px;
+  padding: 10px 30px 10px 34px;
   border-radius: 50px;
-  border: 1px solid var(--border-mid);
-  background: var(--glass-2);
+  border: none;
+  background: var(--sidebar-bg);
   color: var(--text);
   font-size: 12.5px;
   font-family: inherit;
   outline: none;
-  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  box-shadow: var(--clay-pressed);
+  transition: box-shadow 0.18s var(--ease);
 }
 .chat-search::placeholder { color: var(--text-faint); }
-.chat-search:hover { border-color: var(--border-strong); }
 .chat-search:focus {
-  border-color: var(--accent-border);
-  background: var(--glass-2);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  box-shadow: var(--clay-pressed), 0 0 0 3px var(--accent-ring);
 }
 #app:not(.sidebar-open) .chat-search-wrap { display: none; }
 
@@ -2918,25 +2970,29 @@ a:focus-visible,
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 9px 11px;
-  margin-bottom: 6px;
-  background: var(--accent-soft);
-  border: 1px solid var(--accent-border);
-  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--clay-btn));
+  border: none;
+  border-radius: var(--clay-radius-sm);
   color: var(--accent);
   font-family: inherit;
   font-size: 0.86rem;
   font-weight: 600;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.14s, background 0.14s, transform 0.14s;
+  box-shadow: var(--clay-raised-sm);
+  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease), background 0.18s ease;
 }
 .upgrade-nav:hover {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-  transform: translateY(-1px);
+  background: color-mix(in srgb, var(--accent) 18%, var(--clay-btn));
+  transform: translateY(-2px);
+  box-shadow: var(--clay-raised);
 }
-.upgrade-nav:active { transform: none; }
+.upgrade-nav:active {
+  transform: translateY(0);
+  box-shadow: var(--clay-pressed);
+}
 .upgrade-nav svg { flex-shrink: 0; color: var(--accent); }
 
 /* ── Upgrade / plans modal ─────────────────────────────────── */
