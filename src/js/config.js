@@ -1,5 +1,5 @@
 /**
- * Maham AI Solutions — AI configuration.
+ * Almail AI — AI configuration.
  *
  * ⚠️ SECURITY NOTE
  * This is a fully client-side app, so everything here ships to the browser
@@ -18,7 +18,7 @@ export const AI_CONFIG = {
 
   // Assistant persona / behaviour.
   systemPrompt:
-    "You are Maham AI Solutions, a helpful, clever and friendly assistant. " +
+    "You are Almail AI, a helpful, clever and friendly assistant. " +
     "Answer clearly and concisely. Use Markdown formatting, and always put " +
     "code inside fenced code blocks with a language tag (e.g. ```python). " +
     "You can analyze uploaded text files and images (including photos) to " +

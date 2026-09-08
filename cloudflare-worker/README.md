@@ -1,8 +1,8 @@
-# Maham Gemini proxy (Cloudflare Worker)
+# Almail Gemini proxy (Cloudflare Worker)
 
 A thin reverse proxy in front of Gemini's OpenAI-compatible endpoint. It
 exists so the real Gemini API key lives server-side (as a Worker secret)
-instead of shipping to every browser that loads Maham AI Solutions.
+instead of shipping to every browser that loads Almail AI.
 
 The frontend (`src/js/config.js`) talks to this Worker using the same
 OpenAI-style chat-completions request/response shape `chat.js` already
@@ -53,7 +53,7 @@ npx wrangler deploy
 Wrangler prints the Worker's URL, something like:
 
 ```
-https://maham-gemini-proxy.<your-subdomain>.workers.dev
+https://almail-gemini-proxy.<your-subdomain>.workers.dev
 ```
 
 ## 5. Point the frontend at it
@@ -65,7 +65,7 @@ gemini: {
   label: "Gemini",
   tagline: "Google's Gemini model",
   model: "gemini-2.5-flash",
-  endpoint: "https://maham-gemini-proxy.<your-subdomain>.workers.dev/v1/chat/completions",
+  endpoint: "https://almail-gemini-proxy.<your-subdomain>.workers.dev/v1/chat/completions",
   apiKey: "<the PROXY_SHARED_SECRET you set above>",
 },
 ```

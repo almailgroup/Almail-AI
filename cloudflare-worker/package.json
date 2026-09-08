@@ -1,5 +1,5 @@
 {
-  "name": "maham-gemini-proxy",
+  "name": "almail-gemini-proxy",
   "private": true,
   "scripts": {
     "dev": "wrangler dev",

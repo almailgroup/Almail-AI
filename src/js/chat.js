@@ -9,7 +9,7 @@ import {
   signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=8";
+import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=9";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
@@ -436,7 +436,7 @@ function showToast(message, action) {
 function updateTopbar() {
   const titleEl = document.getElementById("topbarTitle");
   if (!titleEl) return;
-  let label = "Maham AI Solutions";
+  let label = "Almail AI";
   if (tempMode) {
     label = "Temporary chat";
   } else if (currentChatId) {
@@ -447,8 +447,8 @@ function updateTopbar() {
   }
   titleEl.textContent = label;
   // Keep the browser tab in sync with the conversation.
-  document.title = (label && label !== "Maham AI Solutions" && label !== "New chat")
-    ? `${label} — Maham AI Solutions` : "Maham AI Solutions";
+  document.title = (label && label !== "Almail AI" && label !== "New chat")
+    ? `${label} — Almail AI` : "Almail AI";
 }
 
 function renderProjects(allChats) {
@@ -856,7 +856,7 @@ document.getElementById("settingsWhatsNew").onclick = () => {
 
 document.getElementById("settingsFeedbackBtn").onclick = () => {
   settingsPopup.classList.remove("open");
-  window.location.href = "mailto:shelbysog@gmail.com?subject=" + encodeURIComponent("Maham AI Solutions feedback");
+  window.location.href = "mailto:shelbysog@gmail.com?subject=" + encodeURIComponent("Almail AI feedback");
 };
 
 document.getElementById("settingsHelpBtn").onclick = () => {
@@ -1158,8 +1158,8 @@ document.getElementById("accountDelete").onclick = async () => {
 // ── Plans & upgrade ───────────────────────────────────────
 const PLANS = {
   free:  { name: "Free" },
-  pro:   { name: "Maham Pro" },
-  max:   { name: "Maham Max" },
+  pro:   { name: "Almail Pro" },
+  max:   { name: "Almail Max" },
   admin: { name: "Admin" },
 };
 // SHA-256 of the private access code — the code itself never appears here.
@@ -1323,7 +1323,7 @@ applyThemeUI();
 
 function applyLogoTheme() {
   document.querySelectorAll(".brand-logo, .empty-logo").forEach(img => {
-    img.src = isLight ? "assets/images/maham-black.png" : "assets/images/maham-white.png";
+    img.src = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";
   });
 }
 
@@ -1689,7 +1689,7 @@ function renderStreamingBubble() {
     textDiv.append(stableDiv, tailDiv);
     const meta = document.createElement("div");
     meta.className = "meta";
-    meta.textContent = "Maham AI";
+    meta.textContent = "Almail AI";
     div.append(textDiv, meta);
     messagesEl.appendChild(div);
     // A full re-render wiped the bubble — rehydrate the finished part.
@@ -1738,12 +1738,12 @@ function renderMessages(list = currentMessages) {
   messagesEl.innerHTML = "";
 
   if (list.length === 0) {
-    const logoSrc = isLight ? "assets/images/maham-black.png" : "assets/images/maham-white.png";
+    const logoSrc = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";
     const name = friendlyName(currentUser);
     const heading = name ? `${timeGreeting()}, ${name}` : timeGreeting();
     messagesEl.innerHTML = `
       <div class="empty-state">
-        <img src="${logoSrc}" alt="Maham AI Solutions" class="empty-logo" />
+        <img src="${logoSrc}" alt="Almail AI" class="empty-logo" />
         <h2 id="greetingText"></h2>
         <p>How can I help you today?</p>
         <div class="suggestions" id="suggestionRow"></div>
@@ -1802,7 +1802,7 @@ function renderMessages(list = currentMessages) {
 
     const meta = document.createElement("div");
     meta.className = "meta";
-    meta.textContent = `${isOwn ? "You" : "Maham AI"} · ${relativeTime(msg.timestamp)}`;
+    meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${relativeTime(msg.timestamp)}`;
     if (msg.timestamp) meta.title = formatTime(msg.timestamp);
 
     div.append(textDiv, meta);
@@ -2827,9 +2827,9 @@ async function exportChat(chatId, title) {
     if (!msgs.length) { return; }
 
     const safeTitle = (title || "Conversation").trim();
-    let md = `# ${safeTitle}\n\n*Exported from Maham AI Solutions · ${new Date().toLocaleString()}*\n\n---\n\n`;
+    let md = `# ${safeTitle}\n\n*Exported from Almail AI · ${new Date().toLocaleString()}*\n\n---\n\n`;
     for (const m of msgs) {
-      md += `**${m.role === "user" ? "You" : "Maham AI"}**\n\n${m.content || ""}\n\n`;
+      md += `**${m.role === "user" ? "You" : "Almail AI"}**\n\n${m.content || ""}\n\n`;
     }
 
     const filename = (safeTitle.replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-").toLowerCase() || "chat") + ".md";

@@ -1007,11 +1007,11 @@ main#messages {
   /* 80% width, height auto — the wordmark is wide, not square, so a fixed
      square size would squish it; this keeps it undistorted, just smaller. */
   background: var(--clay-btn) center / 80% auto no-repeat;
-  background-image: url('../../assets/images/maham-white.png');
+  background-image: url('../../assets/images/AlmailAIWhite.png');
   border: none;
   box-shadow: var(--clay-flat);
 }
-.light .other:not(.grouped)::before { background-image: url('../../assets/images/maham-black.png'); }
+.light .other:not(.grouped)::before { background-image: url('../../assets/images/AlmailAIBlack.png'); }
 
 /* Tail corner only on the last user message of a run */
 .self.group-tail  { border-bottom-right-radius: 5px; }
@@ -1286,11 +1286,11 @@ main#messages {
   flex-shrink: 0;
   /* 80% width, height auto — matches .other::before's wordmark handling. */
   background: var(--clay-btn) center / 80% auto no-repeat;
-  background-image: url('../../assets/images/maham-white.png');
+  background-image: url('../../assets/images/AlmailAIWhite.png');
   border: none;
   box-shadow: var(--clay-flat);
 }
-.light .typing-avatar { background-image: url('../../assets/images/maham-black.png'); }
+.light .typing-avatar { background-image: url('../../assets/images/AlmailAIBlack.png'); }
 
 .typing-shimmer {
   font-size: 0.92rem;
