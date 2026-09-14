@@ -18,12 +18,16 @@ streaming replies.
 - ⌨️ **Keyboard shortcuts** with a help overlay (`?`)
 - 🎨 **Liquid-glass UI** — dark / light themes, responsive, swipe gestures, ambient orbs
 - ✨ **First-run experience** — splash screen, welcome tour, personalized greeting
-- 🧠 **Rich Markdown** — tables, lists, links, and **syntax-highlighted** code
+- 🧠 **Rich Markdown** — tables, lists, links, **syntax-highlighted** code, and LaTeX math
 - 📋 **Copy / regenerate / edit & resubmit** messages
 - 📎 **Attachments** — text files (read into context), images, drag-drop & paste
 - 📡 **Offline detection** + **retry** on failed replies
 - 🛡️ **Sanitized output** (DOMPurify) to prevent HTML/script injection
-- ☁️ **Synced history** — messages persist per-user in Firestore
+- ☁️ **Synced history** — messages *and* the chat list persist per-user in
+  Firestore, so history follows you across devices
+- 🏷️ **Generated chat titles** — the model names each conversation after the
+  first exchange
+- 🗂️ **Date-grouped sidebar** — Today / Yesterday / Previous 7 days / …
 - 📱 **Installable** (PWA web manifest)
 
 ## Project structure
@@ -84,13 +88,24 @@ deploy steps.
 
 ### Suggested Firestore rules
 
+Each user owns everything under their own `users/{userId}` document, and
+nothing else. The recursive wildcard covers both subcollections the app
+uses — `messages` (the conversation contents) and `chats` (the conversation
+list, which is what makes history appear on a second device).
+
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /users/{userId}/messages/{messageId} {
+    match /users/{userId}/{document=**} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
     }
   }
 }
 ```
+
+> **Upgrading:** if your project still has rules that name `messages`
+> explicitly, the chat list can't sync until you widen them as above.
+> The app degrades quietly in that case — history stays per-device and the
+> browser console logs `Chat list sync unavailable` — so it's worth
+> checking after deploying.

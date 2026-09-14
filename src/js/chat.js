@@ -1,6 +1,6 @@
 import { db, auth } from "./firebase.js";
 import {
-  collection, addDoc, query, onSnapshot,
+  collection, addDoc, query, onSnapshot, setDoc,
   serverTimestamp, deleteDoc, doc, updateDoc, getDocs, where
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
@@ -81,6 +81,7 @@ function loadChats() {
 function saveChats(c) {
   _chatsCache = c;
   try { localStorage.setItem(chatsKey(), JSON.stringify(c)); } catch (e) {}
+  syncChangedChats(c);
 }
 function genId()        { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
@@ -111,6 +112,160 @@ function saveProjects(p) {
 function resetStoreCaches() {
   _chatsCache = null;
   _projectsCache = null;
+}
+
+// ── Cross-device chat sync ────────────────────────────────
+// Messages have always lived in Firestore, but the chat list itself was
+// local-only — so signing in on a second device showed an empty sidebar
+// over a full message store. The list is now mirrored to
+// users/{uid}/chats/{chatId}.
+//
+// localStorage stays the working copy so every read stays synchronous and
+// the app still works offline; Firestore is the shared record. Conflicts
+// resolve last-write-wins on `ts`, which is enough because a chat's fields
+// are only ever edited by the person who owns it.
+//
+// Deletes write a tombstone instead of removing the doc. Without one, a
+// chat deleted on a phone is simply re-sent by the laptop that still has
+// it — the row reappears and looks like a bug.
+const CHAT_SYNC_FIELDS = ["id", "title", "ts", "pinned", "projectId", "autoTitle", "deleted"];
+
+function chatsCollection() {
+  return collection(db, "users", currentUser.uid, "chats");
+}
+
+// Strip to the synced fields and drop undefined — Firestore rejects
+// undefined values, and `projectId` is absent on most chats.
+function chatToDoc(chat) {
+  const out = {};
+  for (const k of CHAT_SYNC_FIELDS) {
+    if (chat[k] !== undefined) out[k] = chat[k];
+  }
+  return out;
+}
+
+// Coalesce the bursts of saveChats() that a single interaction produces
+// (send → title → touch) into one write per chat.
+const _pendingChatWrites = new Map();
+let _chatWriteTimer = null;
+
+// saveChats() hands over the whole list, so compare each chat against what
+// was last sent and queue only what actually differs. Otherwise renaming one
+// chat would rewrite every row in the collection.
+const _syncedChatDocs = new Map();   // id → serialized doc last sent/received
+
+function syncChangedChats(chats) {
+  if (!currentUser) return;
+  for (const c of chats) {
+    if (!c?.id) continue;
+    const serialized = JSON.stringify(chatToDoc(c));
+    if (_syncedChatDocs.get(c.id) === serialized) continue;
+    _syncedChatDocs.set(c.id, serialized);
+    queueChatSync(c);
+  }
+}
+
+function queueChatSync(chat) {
+  if (!currentUser || !chat?.id) return;
+  _pendingChatWrites.set(chat.id, chatToDoc(chat));
+  clearTimeout(_chatWriteTimer);
+  _chatWriteTimer = setTimeout(flushChatSync, 400);
+}
+
+async function flushChatSync() {
+  if (!currentUser || _pendingChatWrites.size === 0) return;
+  const batch = [..._pendingChatWrites.entries()];
+  _pendingChatWrites.clear();
+  await Promise.all(batch.map(([id, data]) =>
+    setDoc(doc(chatsCollection(), id), data, { merge: true })
+      .catch(err => console.error("Chat sync failed:", id, err))
+  ));
+}
+
+// Fold remote chats into the local list. Remote wins only when it is
+// strictly newer, so a local edit made while offline isn't clobbered by a
+// stale copy from the server.
+function mergeRemoteChats(remote) {
+  const local = loadChats();
+  const byId = new Map(local.map(c => [c.id, c]));
+  let changed = false;
+
+  for (const r of remote) {
+    if (!r?.id) continue;
+    // Record what the server holds so a later saveChats() doesn't echo
+    // unchanged remote rows straight back up.
+    _syncedChatDocs.set(r.id, JSON.stringify(chatToDoc(r)));
+
+    const l = byId.get(r.id);
+    if (r.deleted) {
+      if (l) { byId.delete(r.id); changed = true; }
+      continue;
+    }
+    if (!l) { byId.set(r.id, r); changed = true; continue; }
+    if ((r.ts || 0) > (l.ts || 0)) { byId.set(r.id, { ...l, ...r }); changed = true; }
+  }
+
+  if (!changed) return false;
+  const merged = [...byId.values()].sort((a, b) => (b.ts || 0) - (a.ts || 0));
+  _chatsCache = merged;
+  try { localStorage.setItem(chatsKey(), JSON.stringify(merged)); } catch (e) {}
+  return true;
+}
+
+// Push any chat the server hasn't seen. Covers the first run after this
+// feature shipped, and anything created while offline.
+function pushUnsyncedChats(remoteIds) {
+  for (const c of loadChats()) {
+    if (remoteIds.has(c.id)) continue;
+    _syncedChatDocs.set(c.id, JSON.stringify(chatToDoc(c)));
+    queueChatSync(c);
+  }
+}
+
+let chatsUnsubscribe = null;
+
+// Watch the remote list. onSnapshot fires once with the current contents,
+// which doubles as the initial pull, then again on every change from any
+// device.
+function startChatsListener() {
+  if (!currentUser) return;
+  if (chatsUnsubscribe) { chatsUnsubscribe(); chatsUnsubscribe = null; }
+
+  chatsUnsubscribe = onSnapshot(chatsCollection(), snap => {
+    const remote    = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const remoteIds = new Set(remote.map(r => r.id));
+
+    const didChange = mergeRemoteChats(remote);
+    pushUnsyncedChats(remoteIds);
+    if (!didChange) return;
+
+    // The open chat may have been deleted on another device.
+    const chats = loadChats();
+    if (currentChatId && !chats.some(c => c.id === currentChatId)) {
+      switchToChat(chats.length ? chats[0].id : createChat());
+    } else {
+      renderChatList();
+    }
+  }, err => {
+    // Offline or rules-denied: the local list keeps working on its own.
+    console.error("Chat list sync unavailable:", err);
+  });
+}
+
+function stopChatsListener() {
+  if (chatsUnsubscribe) { chatsUnsubscribe(); chatsUnsubscribe = null; }
+  _pendingChatWrites.clear();
+  _syncedChatDocs.clear();   // the next user's rows are not these rows
+  clearTimeout(_chatWriteTimer);
+}
+
+// Tombstone a deleted chat so the delete propagates instead of being undone
+// by another device that still holds the row.
+function syncChatDeletion(chatId) {
+  if (!currentUser || !chatId) return;
+  _pendingChatWrites.delete(chatId);
+  setDoc(doc(chatsCollection(), chatId), { deleted: true, ts: Date.now() }, { merge: true })
+    .catch(err => console.error("Chat delete sync failed:", chatId, err));
 }
 
 // Another tab changed chats/projects — drop caches and re-render.
@@ -324,6 +479,7 @@ function confirmDeleteChat() {
 
   const removedChat = loadChats().find(c => c.id === chatId);
   saveChats(loadChats().filter(c => c.id !== chatId));
+  syncChatDeletion(chatId);   // tombstone, so other devices drop it too
   if (currentChatId === chatId) {
     const remaining = loadChats();
     const newId = remaining.length ? remaining[0].id : createChat();
@@ -345,7 +501,9 @@ function confirmDeleteChat() {
       }
       if (removedChat && !loadChats().some(c => c.id === chatId)) {
         const chats = loadChats();
-        chats.unshift(removedChat);
+        // Clear the tombstone explicitly: a merge write can't remove a
+        // field, so without this the restored chat syncs as still deleted.
+        chats.unshift({ ...removedChat, deleted: false });
         saveChats(chats);
         renderChatList();
         showToast("Chat restored");
@@ -863,6 +1021,7 @@ function initChats() {
   localStorage.setItem("currentChatId", currentChatId);
   renderChatList();
   startMsgListener();
+  startChatsListener();   // pulls the remote list, then keeps it in step
 }
 
 // ── Elements ──────────────────────────────────────────────
@@ -2336,6 +2495,7 @@ onAuthStateChanged(auth, user => {
     tempMode = false;
     appEl.classList.remove("temp-mode");
     if (msgUnsubscribe) { msgUnsubscribe(); msgUnsubscribe = null; }
+    stopChatsListener();
     currentChatId     = null;
     currentMessages   = [];
     isResponding      = false;
