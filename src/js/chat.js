@@ -9,7 +9,7 @@ import {
   signOut, onAuthStateChanged, sendPasswordResetEmail, deleteUser
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=9";
+import { AI_CONFIG, PROVIDERS, DEFAULT_PROVIDER } from "./config.js?v=10";
 
 // ── State ─────────────────────────────────────────────────
 let currentUser       = null;
@@ -2913,7 +2913,12 @@ updateModelSwitcherUI();
 
 function fullSystemPrompt() {
   const { instructions } = getUserSettings();
+  // Models have no clock, so without this they answer "what's today's date"
+  // from their training data and get it wrong by months. Also lets them
+  // reason about relative dates ("next Friday") correctly.
+  const today = new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD
   return AI_CONFIG.systemPrompt +
+    `\n\nToday's date is ${today}.` +
     (instructions ? `\n\nThe user has provided these custom instructions — follow them:\n${instructions}` : "");
 }
 
