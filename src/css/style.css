@@ -2466,6 +2466,18 @@ a:focus-visible,
   transition: background 0.16s ease, border-color 0.16s ease;
 }
 .chat-search:hover { background: var(--glass-3); }
+
+/* type="search" brings a native clear button and platform styling. There's
+   already a custom clear button (#chatSearchClear), so strip both. */
+.chat-search::-webkit-search-cancel-button,
+.chat-search::-webkit-search-decoration,
+.chat-search::-webkit-search-results-button,
+.chat-search::-webkit-search-results-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
+.chat-search { -webkit-appearance: none; appearance: none; }
 .chat-search::placeholder { color: var(--text-muted); }
 .chat-search:hover { background: var(--clay-surface); }
 .chat-search:focus {
@@ -2966,6 +2978,14 @@ a:focus-visible,
 }
 .pv-search input::placeholder { color: var(--text-muted); }
 .pv-search input:focus { box-shadow: var(--clay-pressed), 0 0 0 3px var(--accent-ring); }
+/* type="search" — strip the native clear button and platform styling. */
+.pv-search input { -webkit-appearance: none; appearance: none; }
+.pv-search input::-webkit-search-cancel-button,
+.pv-search input::-webkit-search-decoration {
+  -webkit-appearance: none;
+  appearance: none;
+  display: none;
+}
 
 .pv-new {
   padding: 12px 26px; border-radius: 50px; border: none;

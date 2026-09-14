@@ -1927,6 +1927,12 @@ registerBtn.onclick = () => handleAuth(true);
 emailInput.addEventListener("keydown", e => { if (e.key === "Enter") passInput.focus(); });
 passInput.addEventListener("keydown", e => { if (e.key === "Enter") handleAuth(!isLoginMode); });
 
+// The credential fields sit in a <form> so the browser's password manager
+// has a correct target (see index.html). Those two keydown handlers are the
+// only submit path — this just stops a stray implicit submission from
+// navigating away and losing the page.
+document.getElementById("authForm")?.addEventListener("submit", e => e.preventDefault());
+
 // ── Markdown, sanitizing & code highlighting ──────────────
 // Open links in a new tab safely.
 if (window.DOMPurify) {

@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/css/style.css?v=108" />
+  <link rel="stylesheet" href="src/css/style.css?v=109" />
   <!-- Markdown (pinned) + HTML sanitizer. Deferred: neither is needed before
        first paint, and deferred classic scripts still run in document order
        ahead of the module scripts at the end of <body> that consume them.
@@ -102,7 +102,13 @@
         <svg class="chat-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
         </svg>
-        <input id="chatSearch" class="chat-search" type="text" placeholder="Search chats" autocomplete="off" />
+        <!-- type="search" + a non-credential name, plus the opt-out hints
+             the major password managers honour. Belt and braces with the
+             <form> around the real credential fields below: this field is
+             never a username, whatever a browser's heuristics decide. -->
+        <input id="chatSearch" class="chat-search" type="search" name="chat-search"
+               placeholder="Search chats" autocomplete="off" spellcheck="false"
+               data-form-type="other" data-lpignore="true" data-1p-ignore />
         <button id="chatSearchClear" class="chat-search-clear" title="Clear search" aria-label="Clear search">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
@@ -250,7 +256,9 @@
           <div class="pv-controls">
             <div class="pv-search">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="pvSearch" type="text" placeholder="Search projects" autocomplete="off" />
+              <input id="pvSearch" type="search" name="project-search" placeholder="Search projects"
+                     autocomplete="off" spellcheck="false"
+                     data-form-type="other" data-lpignore="true" data-1p-ignore />
             </div>
             <button id="pvNew" class="pv-new">New</button>
           </div>
@@ -364,11 +372,20 @@
       </button>
     </div>
     <div class="auth-divider"><span>OR</span></div>
-    <input id="emailInput"    type="email"    placeholder="Email address" autocomplete="email"/>
-    <input id="passwordInput" type="password" placeholder="Password"       autocomplete="current-password"/>
-    <p id="authError"></p>
-    <button id="loginBtn"    class="auth-continue">Continue</button>
-    <button id="registerBtn" class="auth-continue" style="display:none">Create account</button>
+    <!-- These inputs must live inside a real <form>. Without one, Chrome's
+         password manager scopes credential autofill to the whole document
+         and fills the first text input it finds — which is the sidebar's
+         "Search chats" box — with the saved email, re-running every time
+         the DOM changes. The form gives the fill somewhere correct to go.
+         Buttons are type="button" so the existing click handlers stay the
+         only submit path. -->
+    <form id="authForm" class="auth-form">
+      <input id="emailInput"    name="email"    type="email"    placeholder="Email address" autocomplete="username"/>
+      <input id="passwordInput" name="password" type="password" placeholder="Password"      autocomplete="current-password"/>
+      <p id="authError"></p>
+      <button id="loginBtn"    type="button" class="auth-continue">Continue</button>
+      <button id="registerBtn" type="button" class="auth-continue" style="display:none">Create account</button>
+    </form>
     <button id="toggleAuthMode" class="auth-switch">Don't have an account? Register</button>
   </div>
 </div>
@@ -560,7 +577,12 @@
     <div class="redeem-wrap">
       <button id="redeemToggle" class="redeem-toggle">Have an access code?</button>
       <div id="redeemRow" class="redeem-row" style="display:none">
-        <input id="redeemInput" type="password" placeholder="Access code" autocomplete="off" />
+        <!-- A masked one-off code, not a credential. Left as a bare
+             password field it reads to Chrome as a login with a missing
+             username box, which is what sends the saved email into the
+             sidebar search field. -->
+        <input id="redeemInput" type="password" name="access-code" placeholder="Access code"
+               autocomplete="one-time-code" data-form-type="other" data-lpignore="true" data-1p-ignore />
         <button id="redeemApply" class="btn-primary">Apply</button>
       </div>
       <p id="redeemError" class="redeem-error"></p>
@@ -660,7 +682,7 @@
 </div>
 
 <script type="module" src="src/js/firebase.js"></script>
-<script type="module" src="src/js/chat.js?v=108"></script>
+<script type="module" src="src/js/chat.js?v=109"></script>
 
 </body>
 </html>
