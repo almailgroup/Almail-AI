@@ -1,141 +1,145 @@
-/* ── Design tokens ──────────────────────────────────────── */
+/* ── Design tokens ──────────────────────────────────────────
+   Flat design system. Depth comes from a one-step surface ladder
+   (page → panel → control) and hairline borders — never from shadows
+   or gloss. Colour is near-monochrome; the accent appears only where
+   something is genuinely primary or selected.
+
+   The clay/glass token names are kept so the whole stylesheet keeps
+   resolving, but they now carry flat values. Shadow tokens resolve to
+   `0 0 #0000` rather than `none` so the handful of composite
+   `box-shadow: var(--clay-…), 0 0 0 3px …` focus rings stay valid CSS
+   and render only their ring. */
 :root {
   --bg: #000000;
-  --sidebar-bg: var(--clay-surface);
-  --text: #f5f5f6;
-  --text-muted: #8a8a90;
-  --text-faint: #45454a;
+  --sidebar-bg: #0a0a0a;
+  --text: #ececf1;
+  --text-muted: #9a9aa3;
+  --text-faint: #5c5c66;
 
-  /* Brand accent — rose/magenta, used sparingly for primary actions,
-     active states and focus rings so it reads as intentional, not loud. */
+  /* Brand accent — rose. Reserved for primary actions, the selected
+     state and focus rings. Everything else is monochrome. */
   --accent-h: 330;
-  --accent: hsl(var(--accent-h) 88% 68%);
-  --accent-hover: hsl(var(--accent-h) 92% 74%);
+  --accent: hsl(var(--accent-h) 84% 66%);
+  --accent-hover: hsl(var(--accent-h) 88% 72%);
   --accent-strong: hsl(var(--accent-h) 74% 56%);
   --accent-text: #ffffff;
-  --accent-soft: hsla(var(--accent-h), 88%, 68%, 0.14);
-  --accent-border: hsla(var(--accent-h), 88%, 68%, 0.4);
-  --accent-ring: hsla(var(--accent-h), 88%, 68%, 0.32);
-  --accent-gradient: linear-gradient(135deg, hsl(var(--accent-h) 88% 68%), hsl(300 80% 62%));
+  --accent-soft: hsla(var(--accent-h), 84%, 66%, 0.13);
+  --accent-border: hsla(var(--accent-h), 84%, 66%, 0.38);
+  --accent-ring: hsla(var(--accent-h), 84%, 66%, 0.3);
+  --accent-gradient: hsl(var(--accent-h) 84% 66%);
 
   --danger: #fb6f84;
   --danger-strong: #f43f5e;
-  --danger-soft: rgba(251, 111, 132, 0.14);
+  --danger-soft: rgba(251, 111, 132, 0.13);
   --success: #34d399;
 
-  /* Glass layers */
-  --glass-1: rgba(255,255,255,0.035);
-  --glass-2: rgba(255,255,255,0.065);
+  /* Neutral fill ladder (was "glass") — flat, opaque-reading steps. */
+  --glass-1: rgba(255,255,255,0.04);
+  --glass-2: rgba(255,255,255,0.07);
   --glass-3: rgba(255,255,255,0.11);
-  --glass-4: rgba(255,255,255,0.17);
+  --glass-4: rgba(255,255,255,0.15);
 
-  /* Borders */
-  --border:        rgba(255,255,255,0.08);
-  --border-mid:    rgba(255,255,255,0.12);
-  --border-strong: rgba(255,255,255,0.22);
+  /* Hairline borders do the work shadows used to. */
+  --border:        rgba(255,255,255,0.09);
+  --border-mid:    rgba(255,255,255,0.14);
+  --border-strong: rgba(255,255,255,0.24);
 
-  /* Surfaces */
-  --surface:       rgba(255,255,255,0.045);
-  --surface-hover: rgba(255,255,255,0.08);
+  --surface:       rgba(255,255,255,0.05);
+  --surface-hover: rgba(255,255,255,0.09);
 
-  /* Message bubbles */
-  --msg-self-bg:   var(--accent-gradient);
-  --msg-self-text: #ffffff;
-  --msg-ai-bg:     rgba(255,255,255,0.06);
+  /* User turn: a quiet neutral pill, not a coloured bubble. */
+  --msg-self-bg:   #1e1e20;
+  --msg-self-text: var(--text);
+  --msg-ai-bg:     transparent;
 
-  /* Blur */
-  --blur: blur(28px) saturate(180%);
+  --blur: none;
 
-  /* Solid surface for dropdown menus (glass fails inside elements that
-     already use backdrop-filter, leaving text unreadable). */
-  --menu-bg: #121013;
+  --menu-bg: #18181a;
 
-  /* Shadows */
-  --shadow-sm:  0 1px 4px rgba(0,0,0,0.5);
-  --shadow-md:  0 6px 24px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.4);
-  --shadow-lg:  0 12px 48px rgba(0,0,0,0.6), 0 2px 10px rgba(0,0,0,0.4);
-  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.3);
-  --shadow-accent: 0 8px 24px hsla(var(--accent-h), 85%, 60%, 0.35), 0 2px 8px hsla(var(--accent-h), 85%, 60%, 0.25);
+  /* Overlays keep a real shadow — a floating popover needs to read as
+     floating. Inline surfaces get none. */
+  --shadow-sm:  0 0 #0000;
+  --shadow-md:  0 10px 32px rgba(0,0,0,0.5);
+  --shadow-lg:  0 18px 56px rgba(0,0,0,0.62);
+  --shadow-inset: 0 0 #0000;
+  --shadow-accent: 0 0 #0000;
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 
-  /* ── Clay (soft 3D) surfaces ───────────────────────────
-     Matte fills with a whisper-soft shadow on one side and a faint
-     light bounce on the other. Shadows sit at ~5% — the shape reads
-     from the fill and the softness, not from heavy contrast. */
-  --clay-radius:    22px;
-  --clay-radius-sm: 16px;
-  --clay-radius-xs: 12px;
-  /* Matte fills. Raised elements are a touch lighter than the surface
-     they sit on, so the lift reads without needing a hard shadow. */
-  --clay-surface:   #161616;
-  --clay-btn:       #212121;
-  --clay-btn-hover: #292929;
-  --clay-inset:     #0e0e0e;
-  --clay-raised:    0 10px 24px rgba(0,0,0,0.05), 0 3px 8px rgba(0,0,0,0.05);
-  --clay-raised-sm: 0 5px 14px rgba(0,0,0,0.05), 0 2px 5px rgba(0,0,0,0.05);
-  --clay-pressed:   inset 0 3px 8px rgba(0,0,0,0.05), inset 0 1px 3px rgba(0,0,0,0.05);
-  --clay-flat:      0 2px 6px rgba(0,0,0,0.05);
+  /* Flat surfaces (clay names retained; values no longer sculpted) */
+  --clay-radius:    16px;
+  --clay-radius-sm: 12px;
+  --clay-radius-xs: 8px;
+  --clay-surface:   #121212;
+  --clay-btn:       #1c1c1e;
+  --clay-btn-hover: #262629;
+  --clay-inset:     #141416;
+  --clay-raised:    0 0 #0000;
+  --clay-raised-sm: 0 0 #0000;
+  --clay-pressed:   0 0 #0000;
+  --clay-flat:      0 0 #0000;
+
+  /* Reading column shared by messages, composer and typing indicator. */
+  --col: 768px;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .light {
   --bg: #ffffff;
-  --sidebar-bg: var(--clay-surface);
-  --text: #131318;
-  --text-muted: #75757f;
-  --text-faint: #c7c7cf;
+  --sidebar-bg: #f8f8f8;
+  --text: #121216;
+  --text-muted: #6e6e79;
+  --text-faint: #a8a8b2;
 
-  --accent: hsl(var(--accent-h) 72% 56%);
-  --accent-hover: hsl(var(--accent-h) 76% 62%);
-  --accent-strong: hsl(var(--accent-h) 64% 48%);
-  --accent-soft: hsla(var(--accent-h), 72%, 56%, 0.1);
-  --accent-border: hsla(var(--accent-h), 72%, 56%, 0.35);
-  --accent-ring: hsla(var(--accent-h), 72%, 56%, 0.22);
-  --accent-gradient: linear-gradient(135deg, hsl(var(--accent-h) 72% 58%), hsl(300 68% 56%));
+  --accent: hsl(var(--accent-h) 70% 52%);
+  --accent-hover: hsl(var(--accent-h) 74% 58%);
+  --accent-strong: hsl(var(--accent-h) 64% 45%);
+  --accent-soft: hsla(var(--accent-h), 70%, 52%, 0.1);
+  --accent-border: hsla(var(--accent-h), 70%, 52%, 0.34);
+  --accent-ring: hsla(var(--accent-h), 70%, 52%, 0.22);
+  --accent-gradient: hsl(var(--accent-h) 70% 52%);
 
-  --danger: #e0374f;
-  --danger-strong: #c81e3a;
-  --danger-soft: rgba(224, 55, 79, 0.1);
-  --success: #12b981;
+  --danger: #d92e47;
+  --danger-strong: #b81b34;
+  --danger-soft: rgba(217, 46, 71, 0.09);
+  --success: #0f9f6e;
 
-  --glass-1: rgba(255,255,255,0.4);
-  --glass-2: rgba(255,255,255,0.6);
-  --glass-3: rgba(255,255,255,0.78);
-  --glass-4: rgba(255,255,255,0.92);
+  --glass-1: rgba(15,15,25,0.03);
+  --glass-2: rgba(15,15,25,0.05);
+  --glass-3: rgba(15,15,25,0.08);
+  --glass-4: rgba(15,15,25,0.12);
 
-  --border:        rgba(20,20,30,0.08);
-  --border-mid:    rgba(20,20,30,0.12);
-  --border-strong: rgba(20,20,30,0.2);
+  --border:        rgba(15,15,25,0.1);
+  --border-mid:    rgba(15,15,25,0.14);
+  --border-strong: rgba(15,15,25,0.24);
 
-  --surface:       rgba(255,255,255,0.55);
-  --surface-hover: rgba(255,255,255,0.78);
+  --surface:       rgba(15,15,25,0.04);
+  --surface-hover: rgba(15,15,25,0.07);
 
-  --msg-self-bg:   var(--accent-gradient);
-  --msg-self-text: #ffffff;
-  --msg-ai-bg:     rgba(255,255,255,0.75);
+  --msg-self-bg:   #f1f1f3;
+  --msg-self-text: var(--text);
+  --msg-ai-bg:     transparent;
 
-  --menu-bg: #fdfdfd;
+  --menu-bg: #ffffff;
 
-  --shadow-sm:  0 1px 4px rgba(20,20,30,0.08);
-  --shadow-md:  0 6px 24px rgba(20,20,30,0.1), 0 1px 4px rgba(20,20,30,0.06);
-  --shadow-lg:  0 12px 48px rgba(20,20,30,0.14), 0 2px 10px rgba(20,20,30,0.08);
-  --shadow-inset: inset 0 1px 0 rgba(255,255,255,0.9), inset 0 -1px 0 rgba(0,0,0,0.04);
-  --shadow-accent: 0 8px 24px hsla(var(--accent-h), 70%, 55%, 0.28), 0 2px 8px hsla(var(--accent-h), 70%, 55%, 0.18);
+  --shadow-sm:  0 0 #0000;
+  --shadow-md:  0 10px 32px rgba(15,15,25,0.12);
+  --shadow-lg:  0 18px 56px rgba(15,15,25,0.16);
+  --shadow-inset: 0 0 #0000;
+  --shadow-accent: 0 0 #0000;
 
-  /* Clay in light mode — same ~5% shadow, with a soft white bounce. */
-  --clay-surface:   #f4f4f5;
-  --clay-btn:       #fafafb;
-  --clay-btn-hover: #ffffff;
-  --clay-inset:     #e9e9ec;
-  --clay-raised:    0 10px 24px rgba(20,20,30,0.05), 0 3px 8px rgba(20,20,30,0.05);
-  --clay-raised-sm: 0 5px 14px rgba(20,20,30,0.05), 0 2px 5px rgba(20,20,30,0.05);
-  --clay-pressed:   inset 0 3px 8px rgba(20,20,30,0.05), inset 0 1px 3px rgba(20,20,30,0.05);
-  --clay-flat:      0 2px 6px rgba(20,20,30,0.05);
+  --clay-surface:   #f6f6f7;
+  --clay-btn:       #f2f2f4;
+  --clay-btn-hover: #e9e9ec;
+  --clay-inset:     #f4f4f6;
+  --clay-raised:    0 0 #0000;
+  --clay-raised-sm: 0 0 #0000;
+  --clay-pressed:   0 0 #0000;
+  --clay-flat:      0 0 #0000;
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -207,22 +211,23 @@ body::before { content: none; }
 #sidebarClose { transition: background 0.14s ease, color 0.14s ease; }
 
 /* ── Sidebar ────────────────────────────────────────────── */
-/* A slab of matte clay floating on the page rather than a panel welded
-   to the edge — the gap around it is what sells the depth. */
+/* Flat panel welded to the edge, separated from the conversation by a
+   single hairline. No float, no radius, no shadow. */
 #sidebar {
-  width: 264px;
+  width: 260px;
   flex-shrink: 0;
-  height: calc(100% - 24px);
-  margin: 12px 0 12px 12px;
+  height: 100%;
+  margin: 0;
   background: var(--sidebar-bg);
   border: none;
-  border-radius: var(--clay-radius);
-  box-shadow: var(--clay-raised);
+  border-right: 1px solid var(--border);
+  border-radius: 0;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   padding: 0;
   overflow: hidden;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.26s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.26s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 50;
 }
 
@@ -366,7 +371,6 @@ body::before { content: none; }
 }
 .account-nav:hover {
   background: var(--clay-btn-hover);
-  transform: translateY(-2px);
   box-shadow: var(--clay-raised);
 }
 .account-nav:active {
@@ -552,35 +556,31 @@ body::before { content: none; }
 
 .nav-item svg { flex-shrink: 0; transition: color 0.14s; }
 
-/* Rows lift out of the clay on hover, sink in on press. */
+/* Hover is a fill change and nothing else. */
 .nav-item:hover {
-  background: var(--clay-btn);
+  background: var(--glass-2);
   color: var(--text);
-  box-shadow: var(--clay-flat);
+  box-shadow: none;
 }
-.nav-item:active { box-shadow: var(--clay-pressed); }
 
-/* "New chat" is the sidebar's primary action — a raised pad of clay
-   that presses into the surface when clicked. */
+/* "New chat" is the sidebar's primary action, but in a flat monochrome
+   system it earns emphasis from weight and a hairline — not a coloured
+   icon or a raised pad. */
 #resetChatBtn {
-  background: var(--clay-btn);
-  border: none;
-  border-radius: var(--clay-radius-sm);
+  background: transparent;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-md);
   color: var(--text);
-  font-weight: 600;
-  margin-bottom: 6px;
-  box-shadow: var(--clay-raised-sm);
-  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+  font-weight: 500;
+  margin-bottom: 2px;
+  box-shadow: none;
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
-#resetChatBtn svg { color: var(--accent); }
+#resetChatBtn svg { color: var(--text); }
 #resetChatBtn:hover {
-  background: var(--clay-btn);
-  transform: translateY(-2px);
-  box-shadow: var(--clay-raised);
-}
-#resetChatBtn:active {
-  transform: translateY(0);
-  box-shadow: var(--clay-pressed);
+  background: var(--glass-2);
+  border-color: var(--border-strong);
+  box-shadow: none;
 }
 
 /* ── Chat main area ─────────────────────────────────────── */
@@ -627,35 +627,34 @@ body::before { content: none; }
 .model-switcher {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 9px 17px;
-  border-radius: 50px;
+  gap: 5px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
   border: none;
-  background: var(--clay-btn);
+  background: transparent;
   color: var(--text);
   font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: var(--clay-raised-sm);
-  transition: background 0.16s ease, box-shadow 0.18s var(--ease), transform 0.18s var(--ease);
+  box-shadow: none;
+  transition: background 0.14s ease;
 }
-.model-switcher:hover { background: var(--clay-btn-hover); transform: translateY(-2px); box-shadow: var(--clay-raised); }
-.model-switcher:active { transform: translateY(0); box-shadow: var(--clay-pressed); }
+.model-switcher:hover { background: var(--glass-2); }
 .model-switcher svg { color: var(--text-muted); flex-shrink: 0; transition: transform 0.16s ease; }
 .model-switcher-wrap:has(.model-menu.open) .model-switcher svg { transform: rotate(180deg); }
 
 .model-menu {
   display: none;
   position: absolute;
-  top: calc(100% + 8px);
+  top: calc(100% + 6px);
   right: 0;
   min-width: 230px;
   background: var(--menu-bg);
-  border: none;
-  border-radius: var(--clay-radius-sm);
-  padding: 6px;
-  box-shadow: var(--clay-raised);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 5px;
+  box-shadow: var(--shadow-md);
   z-index: 100;
 }
 .model-menu.open { display: block; }
@@ -701,7 +700,7 @@ body::before { content: none; }
 .chat-item-wrap {
   display: flex;
   align-items: center;
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   transition: background 0.13s;
 }
 .chat-item-wrap:hover { background: var(--glass-2); }
@@ -711,10 +710,10 @@ body::before { content: none; }
   min-width: 0;
   display: flex;
   align-items: center;
-  padding: 7px 12px;
-  border-radius: var(--radius-md);
-  font-size: 13px;
-  color: var(--text-muted);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13.5px;
+  color: var(--text);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -735,23 +734,14 @@ body::before { content: none; }
 
 .chat-item-wrap:hover .chat-item { color: var(--text); }
 
-/* The active conversation carries a slim accent bar. */
+/* The open conversation is marked by a flat neutral fill — no bar, no
+   colour. Selection should read as "this row", not as decoration. */
 .chat-item.active {
-  background: var(--accent-soft);
+  background: var(--glass-3);
   color: var(--text);
   font-weight: 500;
-  position: relative;
 }
-.chat-item.active::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 7px;
-  bottom: 7px;
-  width: 2.5px;
-  border-radius: 2px;
-  background: var(--accent);
-}
+.chat-item-wrap:has(.chat-item.active) { background: var(--glass-3); }
 
 .chat-item-actions {
   display: none;
@@ -787,14 +777,24 @@ body::before { content: none; }
 .chat-action-btn.active { color: var(--text); }
 .chat-action-btn.delete:hover { color: var(--danger); }
 
+/* Date-group headings in the chat list ("Today", "Previous 7 days").
+   Sentence case at reading size — these are labels, not decoration. */
 .chat-section-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  padding: 14px 12px 5px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-muted);
+  padding: 14px 10px 4px;
 }
+.chat-group-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 14px 10px 4px;
+}
+/* The first group sits right under the search field — no double gap. */
+.chat-list > .chat-group-label:first-child { padding-top: 6px; }
 
 .chat-rename-input {
   flex: 1;
@@ -943,18 +943,15 @@ body::before { content: none; }
 /* ── Messages ───────────────────────────────────────────── */
 main#messages {
   flex: 1;
-  /* Centered, readable content column with comfortable gutters
-     (the signature layout of high-end AI chat apps). */
-  padding: 30px max(20px, calc((100% - 800px) / 2)) 18px;
+  /* One centered reading column, shared with the composer below, so the
+     conversation and the input line up on the same axis. */
+  padding: 24px max(16px, calc((100% - var(--col)) / 2)) 12px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  /* Content gently fades as it scrolls up beneath the top bar. */
-  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
-  mask-image: linear-gradient(to bottom, transparent 0, #000 16px);
+  gap: 0;
 }
 
 #messages::-webkit-scrollbar { width: 3px; }
@@ -965,64 +962,51 @@ main#messages {
 
 .message {
   max-width: 100%;
-  padding: 10px 15px;
-  border-radius: var(--radius-lg);
   position: relative;
-  font-size: 0.95rem;
-  line-height: 1.65;
-  animation: appear 0.24s cubic-bezier(0.2, 0, 0, 1);
+  /* Reading size, generous leading — the assistant's answer is the
+     product, so it gets document typography, not chat-bubble typography. */
+  font-size: 1rem;
+  line-height: 1.75;
+  animation: appear 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
 
-/* User turns: solid bubble aligned to the right of the column. */
+/* User turns: a quiet neutral pill hugging its own text on the right.
+   It marks who spoke without competing with the answer. */
 .self {
   align-self: flex-end;
-  max-width: 82%;
-  background: var(--accent);
-  color: var(--accent-text);
-  border-bottom-right-radius: var(--radius-lg); /* overridden by .group-tail */
-  box-shadow: var(--clay-raised-sm);
+  max-width: 75%;
+  width: fit-content;
+  padding: 10px 16px;
+  border-radius: var(--radius-xl);
+  background: var(--msg-self-bg);
+  color: var(--msg-self-text);
+  box-shadow: none;
+  font-size: 1rem;
+  line-height: 1.6;
 }
 
-/* Assistant turns: clean flowing text with a branded avatar — like
-   premium AI apps. No bubble; the logo identifies the speaker. */
+/* Assistant turns: plain full-width prose. No bubble, no avatar, no
+   frame — nothing between the reader and the answer. */
 .other {
   align-self: stretch;
   max-width: 100%;
+  width: 100%;
   background: transparent;
   border: none;
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  padding: 3px 2px 3px 46px;
+  padding: 0 2px;
   color: var(--text);
 }
-.other:not(.grouped)::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 2px;
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  /* 80% width, height auto — the wordmark is wide, not square, so a fixed
-     square size would squish it; this keeps it undistorted, just smaller. */
-  background: var(--clay-btn) center / 80% auto no-repeat;
-  background-image: url('../../assets/images/AlmailAIWhite.png');
-  border: none;
-  box-shadow: var(--clay-flat);
-}
-.light .other:not(.grouped)::before { background-image: url('../../assets/images/AlmailAIBlack.png'); }
+.other::before { content: none; }
 
-/* Tail corner only on the last user message of a run */
-.self.group-tail  { border-bottom-right-radius: 5px; }
-
-/* Consecutive user messages: tighten gap + flatten the joining corner */
-.self.grouped  { margin-top: 2px; border-top-right-radius: 8px; }
-.other.grouped { margin-top: 0; }
-
-/* First message of a new sender run gets breathing room */
-.self:not(.grouped)  { margin-top: 18px; }
-.other:not(.grouped) { margin-top: 16px; }
+/* Vertical rhythm: a clear break between turns, tighter within a run. */
+.self:not(.grouped)  { margin-top: 26px; }
+.other:not(.grouped) { margin-top: 26px; }
+.self.grouped        { margin-top: 6px; }
+.other.grouped       { margin-top: 10px; }
+#messages > .message:first-child { margin-top: 4px; }
 
 /* Sender + relative time. Hidden by default for a clean conversation;
    on precise pointers it floats in on hover without reserving space,
@@ -1053,24 +1037,22 @@ main#messages {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  padding: 40px 20px;
+  gap: 26px;
+  padding: 40px 8px;
   text-align: center;
-  animation: appear 0.3s cubic-bezier(0.2, 0, 0, 1);
+  animation: appear 0.26s cubic-bezier(0.2, 0, 0, 1);
 }
 
 .empty-logo { display: none; }
 
+/* Plain solid type — no gradient fill. At this size the words carry it. */
 .empty-state h2 {
-  font-size: 2.7rem;
-  font-weight: 700;
-  letter-spacing: -1.2px;
+  font-size: 1.85rem;
+  font-weight: 600;
+  letter-spacing: -0.5px;
   max-width: 90vw;
   white-space: normal;
-  background: linear-gradient(100deg, var(--text) 45%, color-mix(in oklab, var(--accent) 55%, var(--text) 45%) 90%, var(--accent) 160%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--text);
 }
 
 .empty-state p {
@@ -1086,9 +1068,9 @@ main#messages {
   display: flex;
   align-self: flex-start;
   gap: 2px;
-  padding-left: 44px; /* align under the assistant text, past the avatar */
-  margin-top: 2px;
-  margin-bottom: 12px;
+  padding-left: 0; /* flush with the assistant text above it */
+  margin-top: 6px;
+  margin-bottom: 0;
   opacity: 1;
 }
 
@@ -1121,9 +1103,9 @@ main#messages {
 .msg-action-btn.rated svg { fill: currentColor; }
 
 .msg-action-btn:hover {
-  background: var(--clay-btn);
+  background: var(--glass-2);
   color: var(--text);
-  box-shadow: var(--clay-flat);
+  box-shadow: none;
 }
 
 /* ── Error bubble ───────────────────────────────────────── */
@@ -1133,46 +1115,75 @@ main#messages {
   font-size: 0.88rem;
 }
 
-/* Message markdown */
-.message ul, .message ol { list-style: none; padding-left: 0; margin: 8px 0; }
-.message li { position: relative; padding-left: 18px; margin-bottom: 5px; }
-.message li::before { content: "·"; position: absolute; left: 4px; opacity: 0.6; font-size: 1.2em; line-height: 1; }
-.message p { margin: 5px 0; }
+/* ── Message markdown ───────────────────────────────────────
+   Assistant replies are read as documents, so lists, headings and
+   tables get real document spacing rather than chat-bubble spacing. */
+.message ul, .message ol { padding-left: 26px; margin: 12px 0; }
+.message ul { list-style: disc; }
+.message ol { list-style: decimal; }
+.message li { margin-bottom: 6px; padding-left: 2px; }
+.message li::marker { color: var(--text-muted); }
+.message li > ul, .message li > ol { margin: 6px 0; }
+.message p { margin: 12px 0; }
 .message p:first-child { margin-top: 0; }
 .message p:last-child { margin-bottom: 0; }
-.message a { color: inherit; text-decoration-line: underline; text-decoration-style: dotted; text-underline-offset: 3px; opacity: 0.8; }
+.message a {
+  color: var(--accent);
+  text-decoration-line: underline;
+  text-underline-offset: 2px;
+  opacity: 1;
+}
+.message a:hover { color: var(--accent-hover); }
 .message code {
-  background: rgba(255,255,255,0.1);
-  padding: 1px 6px;
-  border-radius: 5px;
-  font-size: 0.86em;
+  background: var(--glass-3);
+  padding: 1.5px 5px;
+  border-radius: 4px;
+  font-size: 0.875em;
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
 }
-.self .message code { background: rgba(0,0,0,0.1); }
-.light .other .message code { background: rgba(0,0,0,0.07); }
 .message pre {
-  background: rgba(0,0,0,0.28);
+  background: var(--clay-inset);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
   overflow-x: auto;
-  margin: 10px 0;
+  margin: 14px 0;
+  line-height: 1.6;
 }
-.message pre code { background: transparent; padding: 0; font-size: 0.85em; }
-.self .message pre { background: rgba(0,0,0,0.18); }
-.light .other .message pre { background: rgba(0,0,0,0.05); }
-.message h1, .message h2, .message h3 { margin: 10px 0 4px; font-weight: 600; }
-.message h1 { font-size: 1.1em; }
-.message h2 { font-size: 1.0em; }
-.message h3 { font-size: 0.95em; }
+.message pre code { background: transparent; padding: 0; font-size: 0.855em; }
+
+/* Headings inside a reply: a clear step above body text. */
+.message h1, .message h2, .message h3 { margin: 22px 0 8px; font-weight: 600; line-height: 1.35; }
+.message h1:first-child, .message h2:first-child, .message h3:first-child { margin-top: 0; }
+.message h1 { font-size: 1.3em; }
+.message h2 { font-size: 1.17em; }
+.message h3 { font-size: 1.05em; }
 .message strong { font-weight: 600; }
 .message em { font-style: italic; }
+.message hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
 .message blockquote {
-  border-left: 3px solid var(--border-mid);
-  padding-left: 12px;
-  margin: 8px 0;
-  opacity: 0.8;
+  border-left: 2px solid var(--border-strong);
+  padding-left: 14px;
+  margin: 14px 0;
+  color: var(--text-muted);
 }
+
+/* Tables scroll inside their own box so a wide one never pushes the
+   whole conversation sideways. */
+.message table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 14px 0;
+  font-size: 0.92em;
+  display: block;
+  overflow-x: auto;
+}
+.message th, .message td {
+  border: 1px solid var(--border);
+  padding: 8px 11px;
+  text-align: left;
+}
+.message th { background: var(--glass-1); font-weight: 600; }
 
 /* edit mode */
 .edit-textarea {
@@ -1251,7 +1262,7 @@ main#messages {
 
 /* ── Typing indicator ───────────────────────────────────── */
 #typingIndicator {
-  padding: 0 max(22px, calc((100% - 800px) / 2));
+  padding: 0 max(18px, calc((100% - var(--col)) / 2));
   height: 0;
   display: flex;
   align-items: center;
@@ -1260,8 +1271,8 @@ main#messages {
 }
 
 #typingIndicator.active {
-  height: 42px;
-  padding: 4px max(22px, calc((100% - 800px) / 2)) 8px;
+  height: 34px;
+  padding: 2px max(18px, calc((100% - var(--col)) / 2)) 8px;
 }
 
 /* Inline "Thinking…" shimmer — sits where the reply will appear,
@@ -1271,7 +1282,7 @@ main#messages {
 .typing-inline {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 10px;
   flex-shrink: 0;
   opacity: 0;
   transform: translateY(4px);
@@ -1279,18 +1290,23 @@ main#messages {
 }
 #typingIndicator.active .typing-inline { opacity: 1; transform: translateY(0); }
 
+/* A single pulsing dot where the first token will land — the assistant
+   has no avatar in this layout, so the dot carries the "working" signal. */
 .typing-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
   flex-shrink: 0;
-  /* 80% width, height auto — matches .other::before's wordmark handling. */
-  background: var(--clay-btn) center / 80% auto no-repeat;
-  background-image: url('../../assets/images/AlmailAIWhite.png');
-  border: none;
-  box-shadow: var(--clay-flat);
+  background: var(--text);
+  animation: typingPulse 1.2s ease-in-out infinite;
 }
-.light .typing-avatar { background-image: url('../../assets/images/AlmailAIBlack.png'); }
+@keyframes typingPulse {
+  0%, 100% { opacity: 0.25; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .typing-avatar { animation: none; opacity: 0.6; }
+}
 
 .typing-shimmer {
   font-size: 0.92rem;
@@ -1313,12 +1329,12 @@ main#messages {
 
 /* ── Footer / input ─────────────────────────────────────── */
 footer {
-  /* Composer shares the centered content column with the messages. */
-  padding: 10px max(16px, calc((100% - 800px) / 2)) calc(16px + env(safe-area-inset-bottom));
+  /* Composer shares the centered reading column with the messages. */
+  padding: 6px max(16px, calc((100% - var(--col)) / 2)) calc(12px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  background: linear-gradient(to top, var(--bg) 35%, transparent);
+  gap: 8px;
+  background: var(--bg);
   flex-shrink: 0;
 }
 
@@ -1331,20 +1347,21 @@ footer {
 }
 
 /* Two-row composer: textarea on top, action toolbar below (attach on the
-   left, mic + send on the right) — the layout of modern AI chat apps. */
-/* The composer is a raised pad of clay resting on the page. */
+   left, mic + send on the right). A flat well defined by a hairline —
+   the focus ring is the only state change. */
 .footer-input-row {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   background: var(--clay-surface);
-  border: none;
-  border-radius: var(--clay-radius);
-  padding: 13px 11px 9px 15px;
+  border: 1px solid var(--border-mid);
+  border-radius: 24px;
+  padding: 12px 12px 10px 16px;
   cursor: text;
-  box-shadow: var(--clay-raised);
-  transition: box-shadow 0.18s var(--ease);
+  box-shadow: none;
+  transition: border-color 0.16s ease;
 }
+.footer-input-row:hover { border-color: var(--border-strong); }
 
 .composer-toolbar {
   display: flex;
@@ -1354,26 +1371,26 @@ footer {
 .composer-spacer { flex: 1; }
 
 .footer-input-row:focus-within {
-  box-shadow: var(--clay-raised), 0 0 0 3px var(--accent-ring);
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
 .attach-btn {
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   border-radius: 50%;
-  background: var(--clay-btn);
-  border: none;
+  background: transparent;
+  border: 1px solid var(--border-mid);
   color: var(--text-muted);
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: var(--clay-raised-sm);
-  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.18s var(--ease);
+  box-shadow: none;
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
 }
-.attach-btn:hover { background: var(--clay-btn-hover); color: var(--text); }
-.attach-btn:active { box-shadow: var(--clay-pressed); }
+.attach-btn:hover { background: var(--glass-2); color: var(--text); border-color: var(--border-strong); }
 .attach-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .file-preview {
@@ -1418,31 +1435,34 @@ footer {
 
 #messageInput::placeholder { color: var(--text-muted); }
 
+/* Solid monochrome send button — the one high-contrast control in the
+   composer, so the primary action is unmistakable without colour. */
 #sendBtn {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
   border-radius: 50%;
-  background: var(--clay-btn);
-  color: var(--text);
+  background: var(--text);
+  color: var(--bg);
   border: none;
   cursor: pointer;
   display: grid;
   place-items: center;
-  transition: transform 0.18s var(--ease), background 0.16s ease, box-shadow 0.18s var(--ease);
-  box-shadow: var(--clay-raised-sm);
+  transition: opacity 0.16s ease;
+  box-shadow: none;
   touch-action: manipulation;
   flex-shrink: 0;
-  margin-right: 2px;
+  margin-right: 0;
 }
 
-#sendBtn:hover:not(:disabled) {
-  background: var(--clay-btn-hover);
-  transform: translateY(-2px);
-  box-shadow: var(--clay-raised);
+#sendBtn:hover:not(:disabled) { opacity: 0.82; }
+#sendBtn:active:not(:disabled) { opacity: 0.7; }
+#sendBtn:disabled {
+  background: var(--glass-3);
+  color: var(--text-faint);
+  opacity: 1;
+  cursor: not-allowed;
 }
-#sendBtn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--clay-pressed); }
-#sendBtn:disabled { opacity: 0.3; cursor: not-allowed; }
 #messageInput:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Modals ─────────────────────────────────────────────── */
@@ -1478,12 +1498,13 @@ footer {
 
 .modal-box {
   background: var(--clay-surface);
-  border: none;
+  border: 1px solid var(--border);
   border-radius: var(--clay-radius);
   padding: 44px 32px 32px;
   width: 100%;
   max-width: 420px;
-  box-shadow: var(--clay-raised);
+  /* A dialog floating over a scrim is the one place depth is honest. */
+  box-shadow: var(--shadow-lg);
   animation: modalIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: transform, opacity;
   position: relative;
@@ -1565,7 +1586,7 @@ footer {
   transition: background 0.16s ease, transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
 
-.social-btn:hover:not(:disabled) { background: var(--clay-btn-hover); transform: translateY(-2px); box-shadow: var(--clay-raised); }
+.social-btn:hover:not(:disabled) { background: var(--clay-btn-hover);  }
 .social-btn:active:not(:disabled) { transform: translateY(0); box-shadow: var(--clay-pressed); }
 .social-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -1637,7 +1658,7 @@ footer {
   margin-top: 4px;
 }
 
-.auth-continue:hover  { background: var(--accent-hover); transform: translateY(-2px); box-shadow: var(--clay-raised); }
+.auth-continue:hover  { background: var(--accent-hover);  }
 .auth-continue:active { transform: translateY(0); box-shadow: var(--clay-pressed); }
 
 /* Toggle link */
@@ -1735,7 +1756,7 @@ footer {
   box-shadow: var(--clay-raised-sm) !important;
 }
 
-.btn-secondary:hover { background: var(--clay-btn-hover) !important; transform: translateY(-2px); box-shadow: var(--clay-raised) !important; }
+.btn-secondary:hover { background: var(--clay-btn-hover) !important;  }
 .btn-secondary:active { transform: translateY(0); box-shadow: var(--clay-pressed) !important; }
 
 .btn-danger {
@@ -1745,7 +1766,7 @@ footer {
   box-shadow: var(--clay-raised-sm) !important;
 }
 
-.btn-danger:hover { transform: translateY(-2px) !important; filter: brightness(1.08); box-shadow: var(--clay-raised) !important; }
+.btn-danger:hover { filter: brightness(1.06); }
 .btn-danger:active { transform: translateY(0) !important; box-shadow: var(--clay-pressed) !important; }
 
 /* ── Wide screen layout ─────────────────────────────────── */
@@ -1927,7 +1948,6 @@ footer {
   transition: transform 0.18s var(--ease), background 0.16s ease, color 0.16s ease, box-shadow 0.18s var(--ease);
 }
 .chip:hover {
-  transform: translateY(-2px);
   background: var(--clay-btn-hover);
   color: var(--text);
   box-shadow: var(--clay-raised);
@@ -1957,7 +1977,7 @@ footer {
   transition: opacity 0.18s ease, transform 0.18s ease, background 0.15s ease;
 }
 .scroll-bottom-btn.visible { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
-.scroll-bottom-btn:hover { background: var(--clay-btn-hover); transform: translateX(-50%) translateY(-2px); box-shadow: var(--clay-raised); }
+.scroll-bottom-btn:hover { background: var(--clay-btn-hover); transform: translateX(-50%); }
 
 /* Green dot: a new reply arrived while scrolled up reading */
 .scroll-bottom-btn.has-new::after {
@@ -2058,7 +2078,6 @@ a:focus-visible,
 }
 #sendBtn.has-text:not(.generating):hover {
   background: var(--accent-hover);
-  transform: translateY(-2px);
   box-shadow: var(--clay-raised);
 }
 
@@ -2190,10 +2209,14 @@ a:focus-visible,
 @keyframes splashFade { to { opacity: 1; } }
 @keyframes splashBar  { 0% { transform: translateX(-130%); } 100% { transform: translateX(380%); } }
 
-/* Logo theme swap for the splash (JS hasn't run yet at first paint) */
+/* Logo theme swap in pure CSS, so the correct wordmark is painted before
+   any JS runs. Without this the white logo sits invisibly on the white
+   light-mode background until applyLogoTheme() catches up. */
 .logo-light { display: none; }
 .light .splash-logo.logo-dark  { display: none; }
 .light .splash-logo.logo-light { display: block; }
+.light .brand-logo.logo-dark   { display: none; }
+.light .brand-logo.logo-light  { display: block; }
 
 /* ── Welcome (first-visit) modal ───────────────────────────── */
 .welcome-box { max-width: 440px; padding: 40px 32px 30px; text-align: center; }
@@ -2258,26 +2281,24 @@ a:focus-visible,
 
 /* ── Ambient floating orbs ─────────────────────────────────── */
 /* Disabled — background is pure black/white, no ambient tint. */
-.orbs { display: none; }
 
 /* ── Mic (voice input) ─────────────────────────────────────── */
 .mic-btn {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   border-radius: 50%;
   border: none;
-  background: var(--clay-btn);
+  background: transparent;
   color: var(--text-muted);
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: var(--clay-raised-sm);
-  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.18s var(--ease);
+  box-shadow: none;
+  transition: background 0.16s ease, color 0.16s ease;
 }
-.mic-btn:hover:not(:disabled) { background: var(--clay-btn-hover); color: var(--text); }
-.mic-btn:active:not(:disabled) { box-shadow: var(--clay-pressed); }
+.mic-btn:hover:not(:disabled) { background: var(--glass-2); color: var(--text); }
 .mic-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .mic-btn.listening {
   background: var(--accent);
@@ -2364,23 +2385,25 @@ a:focus-visible,
    around it is what makes it read as carved rather than painted on. */
 .chat-search {
   width: 100%;
-  height: 38px;
-  padding: 0 34px 0 38px;
-  border-radius: 50px;
-  border: none;
-  background: var(--clay-inset);
+  height: 36px;
+  padding: 0 32px 0 34px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: var(--glass-2);
   color: var(--text);
   font-size: 13px;
   font-family: inherit;
   outline: none;
-  box-shadow: var(--clay-pressed);
-  transition: box-shadow 0.18s var(--ease), background 0.16s ease;
+  box-shadow: none;
+  transition: background 0.16s ease, border-color 0.16s ease;
 }
+.chat-search:hover { background: var(--glass-3); }
 .chat-search::placeholder { color: var(--text-muted); }
 .chat-search:hover { background: var(--clay-surface); }
 .chat-search:focus {
-  background: var(--clay-inset);
-  box-shadow: var(--clay-pressed), 0 0 0 2px var(--accent-border);
+  background: var(--glass-2);
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 2px var(--accent-ring);
 }
 #app:not(.sidebar-open) .chat-search-wrap { display: none; }
 
@@ -2517,7 +2540,7 @@ a:focus-visible,
   box-shadow: var(--clay-raised-sm);
   transition: background 0.16s ease, transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: var(--clay-raised); }
+.btn-primary:hover { background: var(--accent-hover);  }
 .btn-primary:active { transform: translateY(0); box-shadow: var(--clay-pressed); }
 
 /* ── Account modal ─────────────────────────────────────────── */
@@ -2810,13 +2833,14 @@ a:focus-visible,
 .move-menu button svg { flex-shrink: 0; opacity: 0.7; }
 
 /* ── Sidebar "Projects" header (opens the dashboard) ───────── */
+/* Matches the chat-list date headings so the sidebar has one label style. */
 .projects-title-btn {
   background: transparent; border: none; padding: 0;
-  font-family: inherit; font-size: 10.5px; font-weight: 600;
-  letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--text-faint); cursor: pointer; transition: color 0.13s;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  letter-spacing: 0; text-transform: none;
+  color: var(--text-muted); cursor: pointer; transition: color 0.13s;
 }
-.projects-title-btn:hover { color: var(--text-muted); }
+.projects-title-btn:hover { color: var(--text); }
 
 /* ── Projects dashboard page ───────────────────────────────── */
 .projects-view { display: none; }
@@ -2866,7 +2890,7 @@ a:focus-visible,
   box-shadow: var(--clay-raised-sm);
   transition: background 0.16s ease, transform 0.18s var(--ease), box-shadow 0.18s var(--ease);
 }
-.pv-new:hover { background: var(--accent-hover); transform: translateY(-2px); box-shadow: var(--clay-raised); }
+.pv-new:hover { background: var(--accent-hover);  }
 .pv-new:active { transform: translateY(0); box-shadow: var(--clay-pressed); }
 
 .pv-tabs { display: flex; align-items: center; gap: 2px; margin-bottom: 36px; }
@@ -2903,7 +2927,7 @@ a:focus-visible,
   box-shadow: var(--clay-raised-sm);
   transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.16s ease;
 }
-.pv-card:hover { transform: translateY(-3px); box-shadow: var(--clay-raised); background: var(--clay-btn-hover); }
+.pv-card:hover {  background: var(--clay-btn-hover); }
 .pv-card:active { transform: translateY(0); box-shadow: var(--clay-pressed); }
 .pv-card-icon {
   width: 44px; height: 44px; border-radius: var(--clay-radius-xs);
@@ -2947,34 +2971,29 @@ a:focus-visible,
 }
 
 /* ── Sidebar "Upgrade plan" button ─────────────────────────── */
+/* Upgrade is a quiet row like any other nav item — a tinted block here
+   competes with the conversation for attention every second it's on
+   screen. The accent survives only on the icon. */
 .upgrade-nav {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   padding: 10px 12px;
-  margin-bottom: 8px;
-  background: color-mix(in srgb, var(--accent) 12%, var(--clay-btn));
+  margin-bottom: 2px;
+  background: transparent;
   border: none;
-  border-radius: var(--clay-radius-sm);
-  color: var(--accent);
+  border-radius: var(--radius-sm);
+  color: var(--text);
   font-family: inherit;
-  font-size: 0.86rem;
-  font-weight: 600;
+  font-size: 0.875rem;
+  font-weight: 500;
   text-align: left;
   cursor: pointer;
-  box-shadow: var(--clay-raised-sm);
-  transition: box-shadow 0.18s var(--ease), transform 0.18s var(--ease), background 0.18s ease;
+  box-shadow: none;
+  transition: background 0.16s ease;
 }
-.upgrade-nav:hover {
-  background: color-mix(in srgb, var(--accent) 18%, var(--clay-btn));
-  transform: translateY(-2px);
-  box-shadow: var(--clay-raised);
-}
-.upgrade-nav:active {
-  transform: translateY(0);
-  box-shadow: var(--clay-pressed);
-}
+.upgrade-nav:hover { background: var(--glass-2); }
 .upgrade-nav svg { flex-shrink: 0; color: var(--accent); }
 
 /* ── Upgrade / plans modal ─────────────────────────────────── */
@@ -3135,8 +3154,7 @@ a:focus-visible,
   background: var(--accent);
   color: var(--accent-text);
 }
-.plan-cta:hover:not(:disabled) { transform: translateY(-2px); box-shadow: var(--clay-raised); }
-.plan-cta:active:not(:disabled) { transform: translateY(0); box-shadow: var(--clay-pressed); }
+.plan-cta:hover:not(:disabled) { filter: brightness(1.06); }
 .plan-cta:disabled { opacity: 0.55; cursor: default; }
 
 .redeem-wrap { margin-top: 18px; text-align: center; }
@@ -3181,3 +3199,21 @@ a:focus-visible,
   .upgrade-box { padding: 30px 16px 20px; max-height: 92vh; }
   .plan-card.featured { order: -1; } /* Pro first on mobile */
 }
+
+/* ── Math (KaTeX) ───────────────────────────────────────────
+   KaTeX's stylesheet is loaded on demand, so these rules only ever apply
+   once a reply contains a formula. */
+.message .katex { font-size: 1.04em; }
+
+/* A display formula is its own block: centred, and allowed to scroll
+   sideways on its own rather than widening the conversation column. */
+.message .katex-display {
+  margin: 16px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* KaTeX inherits colour, so it follows the theme with no overrides — but
+   its error state defaults to a red that clashes with the palette. */
+.message .katex-error { color: var(--danger); }

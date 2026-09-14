@@ -50,16 +50,37 @@ function hideModal(m) {
 // ── Chat metadata in localStorage ─────────────────────────
 // Chats/projects are memo-cached: renders skip the JSON round-trip, and a
 // cross-tab `storage` event invalidates the cache so tabs stay in sync.
+//
+// Both stores are keyed per user. They used to share one global key, which
+// meant that on a shared browser the next person to sign in saw the previous
+// account's chat titles and project names in the sidebar.
 let _chatsCache = null, _projectsCache = null;
+
+function chatsKey()    { return currentUser ? `chats_v2:${currentUser.uid}`    : "chats_v2"; }
+function projectsKey() { return currentUser ? `projects_v1:${currentUser.uid}` : "projects_v1"; }
+
+// Chats saved before per-user keys existed live under the old global key.
+// The first signed-in load adopts them, then clears the global key so they
+// aren't handed to whoever signs in next.
+function migrateLegacyStore(legacyKey, ownKey) {
+  try {
+    const legacy = localStorage.getItem(legacyKey);
+    if (!legacy || localStorage.getItem(ownKey)) return;
+    localStorage.setItem(ownKey, legacy);
+    localStorage.removeItem(legacyKey);
+  } catch (e) {}
+}
+
 function loadChats() {
   if (_chatsCache) return _chatsCache;
-  try { _chatsCache = JSON.parse(localStorage.getItem("chats_v2") || "[]"); }
+  if (currentUser) migrateLegacyStore("chats_v2", chatsKey());
+  try { _chatsCache = JSON.parse(localStorage.getItem(chatsKey()) || "[]"); }
   catch (e) { _chatsCache = []; }
   return _chatsCache;
 }
 function saveChats(c) {
   _chatsCache = c;
-  try { localStorage.setItem("chats_v2", JSON.stringify(c)); } catch (e) {}
+  try { localStorage.setItem(chatsKey(), JSON.stringify(c)); } catch (e) {}
 }
 function genId()        { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 
@@ -76,20 +97,27 @@ function createChat(projectId) {
 // ── Projects in localStorage ──────────────────────────────
 function loadProjects() {
   if (_projectsCache) return _projectsCache;
-  try { _projectsCache = JSON.parse(localStorage.getItem("projects_v1") || "[]"); }
+  if (currentUser) migrateLegacyStore("projects_v1", projectsKey());
+  try { _projectsCache = JSON.parse(localStorage.getItem(projectsKey()) || "[]"); }
   catch (e) { _projectsCache = []; }
   return _projectsCache;
 }
 function saveProjects(p) {
   _projectsCache = p;
-  try { localStorage.setItem("projects_v1", JSON.stringify(p)); } catch (e) {}
+  try { localStorage.setItem(projectsKey(), JSON.stringify(p)); } catch (e) {}
+}
+
+// Drop the memo caches so the next read reflects whoever is signed in now.
+function resetStoreCaches() {
+  _chatsCache = null;
+  _projectsCache = null;
 }
 
 // Another tab changed chats/projects — drop caches and re-render.
 window.addEventListener("storage", (e) => {
-  if (e.key === "chats_v2" || e.key === "projects_v1") {
-    _chatsCache = null;
-    _projectsCache = null;
+  if (!e.key) return;
+  if (e.key.startsWith("chats_v2") || e.key.startsWith("projects_v1")) {
+    resetStoreCaches();
     if (currentUser) renderChatList();
   }
 });
@@ -336,14 +364,52 @@ function togglePin(chatId) {
 function renameChat(chatId, newTitle) {
   const chats = loadChats();
   const c = chats.find(c => c.id === chatId);
-  if (c && newTitle.trim()) { c.title = newTitle.trim(); saveChats(chats); }
+  if (c && newTitle.trim()) {
+    c.title = newTitle.trim();
+    c.autoTitle = false;   // a hand-written title is never overwritten
+    saveChats(chats);
+  }
   renderChatList();
 }
 
+// Provisional title, set the moment the first message is sent so the sidebar
+// row isn't blank while the reply streams. Flagged as auto so the real
+// generated title can replace it afterwards.
 function setChatTitle(chatId, title) {
   const chats = loadChats();
   const c = chats.find(c => c.id === chatId);
-  if (c && c.title === "New chat" && title) { c.title = title; saveChats(chats); }
+  if (c && c.title === "New chat" && title) {
+    c.title = title;
+    c.autoTitle = true;
+    saveChats(chats);
+  }
+  renderChatList();
+}
+
+// Replace an auto-generated title with a better one. Leaves alone any title
+// the user typed themselves.
+function setAutoTitle(chatId, title) {
+  if (!title) return;
+  const chats = loadChats();
+  const c = chats.find(c => c.id === chatId);
+  if (!c || c.autoTitle === false) return;
+  c.title = title;
+  c.autoTitle = true;
+  saveChats(chats);
+  renderChatList();
+}
+
+// Mark a chat as just used: refresh its timestamp and float it to the top.
+// Without this, `ts` stays frozen at creation time and an old conversation
+// you're actively using still sorts (and groups) as old.
+function touchChat(chatId) {
+  const chats = loadChats();
+  const i = chats.findIndex(c => c.id === chatId);
+  if (i === -1) return;
+  const [c] = chats.splice(i, 1);
+  c.ts = Date.now();
+  chats.unshift(c);
+  saveChats(chats);
   renderChatList();
 }
 
@@ -357,9 +423,7 @@ function renderChatList() {
   const all = loadChats();
   const q   = chatFilter.trim().toLowerCase();
 
-  const recentsLabel = document.getElementById("recentsLabel");
   const projectsSection = document.getElementById("projectsSection");
-  if (recentsLabel) recentsLabel.style.display = q ? "none" : "";
   if (projectsSection) projectsSection.style.display = q ? "none" : "";
 
   // While searching, show a flat, filtered list across all chats.
@@ -382,25 +446,46 @@ function renderChatList() {
   const pinned = all.filter(c => c.pinned && !c.projectId);
   const normal = all.filter(c => !c.pinned && !c.projectId);
 
-  if (pinned.length) {
+  const addLabel = (text) => {
     const label = document.createElement("div");
-    label.className = "chat-section-label";
-    label.textContent = "Pinned";
+    label.className = "chat-group-label";
+    label.textContent = text;
     chatList.appendChild(label);
-    pinned.forEach(chat => chatList.appendChild(buildChatItem(chat)));
+  };
 
-    if (normal.length) {
-      const label2 = document.createElement("div");
-      label2.className = "chat-section-label";
-      label2.textContent = "Chats";
-      chatList.appendChild(label2);
-    }
+  if (pinned.length) {
+    addLabel("Pinned");
+    pinned.forEach(chat => chatList.appendChild(buildChatItem(chat)));
   }
 
-  normal.forEach(chat => chatList.appendChild(buildChatItem(chat)));
+  // Unpinned chats are grouped by recency, so "where was that conversation
+  // from Tuesday" is a glance instead of a scroll.
+  let lastGroup = null;
+  normal.forEach(chat => {
+    const group = chatGroupLabel(chat.ts);
+    if (group !== lastGroup) { addLabel(group); lastGroup = group; }
+    chatList.appendChild(buildChatItem(chat));
+  });
 
   if (projectsViewOpen()) renderProjectsView();
   updateTopbar();
+}
+
+// Bucket a chat by how long ago it was last touched. Anything older than a
+// month falls back to its month name (and year, once it isn't this year).
+function chatGroupLabel(ts) {
+  if (!ts) return "Earlier";
+  const then = new Date(ts);
+  const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((startOfDay(new Date()) - startOfDay(then)) / 86400000);
+
+  if (days <= 0)  return "Today";
+  if (days === 1) return "Yesterday";
+  if (days <= 7)  return "Previous 7 days";
+  if (days <= 30) return "Previous 30 days";
+
+  const sameYear = then.getFullYear() === new Date().getFullYear();
+  return then.toLocaleDateString(undefined, sameYear ? { month: "long" } : { month: "long", year: "numeric" });
 }
 
 // Brief, self-dismissing toast. Pass { label, fn } as `action` for an
@@ -1321,8 +1406,12 @@ function applyThemeUI() {
 }
 applyThemeUI();
 
+// Swap single-image logos to match the theme. Logos that ship both
+// variants (marked .logo-dark / .logo-light) are handled in CSS so they're
+// correct on first paint — rewriting their src here would break that.
 function applyLogoTheme() {
   document.querySelectorAll(".brand-logo, .empty-logo").forEach(img => {
+    if (img.classList.contains("logo-dark") || img.classList.contains("logo-light")) return;
     img.src = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";
   });
 }
@@ -1601,9 +1690,114 @@ if (window.DOMPurify) {
 }
 
 // marked already autolinks URLs (gfm); DOMPurify strips any unsafe HTML.
+// If the markdown CDN is unreachable (blocked network, offline first load),
+// fall back to escaped plain text so replies stay readable instead of the
+// whole render path throwing.
 function renderMarkdown(text) {
-  const raw = marked.parse(text || "", { breaks: true, gfm: true });
+  const src = text || "";
+  if (!window.marked) return escapeHtml(src).replace(/\n/g, "<br>");
+  const raw = marked.parse(src, { breaks: true, gfm: true });
   return window.DOMPurify ? DOMPurify.sanitize(raw) : raw;
+}
+
+function escapeHtml(s) {
+  const d = document.createElement("div");
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ── Lazy asset loading ────────────────────────────────────
+// Syntax highlighting and math typesetting together weigh more than the rest
+// of the app, and most conversations need neither. Fetch each the first time
+// a reply actually contains code or a formula, once per page load.
+const _assetPromises = new Map();
+
+function loadScriptOnce(src) {
+  if (_assetPromises.has(src)) return _assetPromises.get(src);
+  const p = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.async = true;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error(`Failed to load ${src}`));
+    document.head.appendChild(s);
+  });
+  _assetPromises.set(src, p);
+  return p;
+}
+
+function loadStyleOnce(href) {
+  if (_assetPromises.has(href)) return _assetPromises.get(href);
+  const p = new Promise((resolve) => {
+    const l = document.createElement("link");
+    l.rel = "stylesheet";
+    l.href = href;
+    // Resolve either way: a missing stylesheet degrades the look, and must
+    // not stop the markup it styles from being rendered.
+    l.onload = l.onerror = () => resolve();
+    document.head.appendChild(l);
+  });
+  _assetPromises.set(href, p);
+  return p;
+}
+
+const HLJS_SRC = "https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js";
+
+// Load highlight.js on the first code block, then colour anything that was
+// rendered plain while we waited.
+let _hljsRequested = false;
+function ensureHighlighter() {
+  if (window.hljs) return;
+  if (_hljsRequested) return;
+  _hljsRequested = true;
+  loadScriptOnce(HLJS_SRC)
+    .then(() => {
+      document.querySelectorAll(".code-block pre > code").forEach(el => {
+        try { hljs.highlightElement(el); } catch (_) {}
+      });
+    })
+    .catch(() => { _hljsRequested = false; });  // allow a retry on the next block
+}
+
+// ── Math ──────────────────────────────────────────────────
+const KATEX_VER = "0.16.9";
+const KATEX_CSS = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VER}/dist/katex.min.css`;
+const KATEX_JS  = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VER}/dist/katex.min.js`;
+const KATEX_AR  = `https://cdn.jsdelivr.net/npm/katex@${KATEX_VER}/dist/contrib/auto-render.min.js`;
+
+// Cheap pre-check so a reply with no math never touches the network.
+function looksLikeMath(text) {
+  return /\$\$[\s\S]+?\$\$|\$[^\s$][^$\n]*\$|\\\[[\s\S]+?\\\]|\\\((?:[\s\S]+?)\\\)|\\(?:frac|sqrt|sum|int|alpha|beta|theta|pi|cdot|times|leq|geq|neq|infty)\b/.test(text || "");
+}
+
+const KATEX_DELIMITERS = [
+  { left: "$$", right: "$$", display: true  },
+  { left: "\\[", right: "\\]", display: true  },
+  { left: "\\(", right: "\\)", display: false },
+  { left: "$",  right: "$",  display: false },
+];
+
+// Typeset formulas inside an already-rendered message. Runs after markdown so
+// KaTeX sees final text, and ignores code — a `$` in a shell snippet is a
+// prompt, not the start of an equation.
+function renderMathIn(container) {
+  if (!container || !looksLikeMath(container.textContent)) return;
+
+  const run = () => {
+    if (!window.renderMathInElement) return;
+    try {
+      window.renderMathInElement(container, {
+        delimiters: KATEX_DELIMITERS,
+        ignoredTags: ["script", "noscript", "style", "textarea", "pre", "code", "option"],
+        throwOnError: false,
+      });
+    } catch (_) { /* malformed TeX — leave the raw text visible */ }
+  };
+
+  if (window.renderMathInElement) { run(); return; }
+  Promise.all([loadStyleOnce(KATEX_CSS), loadScriptOnce(KATEX_JS).then(() => loadScriptOnce(KATEX_AR))])
+    .then(run)
+    .catch(() => { /* offline — raw TeX stays readable */ });
 }
 
 const COPY_SVG  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
@@ -1619,6 +1813,7 @@ function enhanceCodeBlocks(container) {
     const lang = langClass ? langClass.replace("language-", "") : "";
 
     if (window.hljs) { try { hljs.highlightElement(codeEl); } catch (_) {} }
+    else ensureHighlighter();   // first code block of the session — fetch it now
 
     const wrapper = document.createElement("div");
     wrapper.className = "code-block";
@@ -1799,6 +1994,9 @@ function renderMessages(list = currentMessages) {
     textDiv.className = "message-text";
     textDiv.innerHTML = renderMarkdown(msg.content);
     enhanceCodeBlocks(textDiv);
+    // Typeset math on the settled message rather than mid-stream — a half
+    // arrived "$" would otherwise be typeset as an empty formula.
+    renderMathIn(textDiv);
 
     const meta = document.createElement("div");
     meta.className = "meta";
@@ -2117,6 +2315,9 @@ onAuthStateChanged(auth, user => {
   if (uid === lastUserId) return;
   lastUserId = uid;
   currentUser = user;
+  // The signed-in user changed, so the cached chat/project lists belong to
+  // someone else now. Drop them before anything reads them again.
+  resetStoreCaches();
   updateSiAccount(user);
   updateAccountUI(user);
   applyAvatar();
@@ -2267,7 +2468,9 @@ async function sendMessage() {
       chatId: targetChatId, timestamp: serverTimestamp()
     });
 
-    setChatTitle(targetChatId, text.substring(0, 45) || attachment?.name || "New chat");
+    const wasFirstMessage = priorHistory.length === 0;
+    setChatTitle(targetChatId, truncateAtWord(text, 45) || attachment?.name || "New chat");
+    touchChat(targetChatId);
     scrollToBottom();
 
     const history = [...priorHistory, { role: "user", content: userContent }];
@@ -2278,6 +2481,14 @@ async function sendMessage() {
         role: "assistant", content: aiReply,
         chatId: targetChatId, timestamp: serverTimestamp()
       });
+
+      // Upgrade the provisional title once there's an exchange to name.
+      // Deliberately not awaited — the title landing a second late costs
+      // nothing, and a slow title call must never delay the composer.
+      if (wasFirstMessage) {
+        generateChatTitle(text || attachment?.name, aiReply)
+          .then(title => setAutoTitle(targetChatId, title));
+      }
     } else {
       document.getElementById("streamingMsg")?.remove();
     }
@@ -2568,6 +2779,58 @@ function buildOpenAIMessages(messages, attachment = null) {
       return { role, content: msg.content };
     })
   ];
+}
+
+// ── Chat titles ───────────────────────────────────────────
+// Trim to a whole word so a provisional title never ends mid-word.
+function truncateAtWord(text, max) {
+  const s = (text || "").replace(/\s+/g, " ").trim();
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  const sp  = cut.lastIndexOf(" ");
+  return (sp > max * 0.5 ? cut.slice(0, sp) : cut).replace(/[,;:.\-–—]+$/, "") + "…";
+}
+
+// Ask the model for a short label for the conversation — the thing that makes
+// a sidebar scannable instead of a wall of truncated first messages. One
+// cheap non-streaming call per chat; failure just leaves the provisional
+// title in place, so this never blocks or breaks a reply.
+async function generateChatTitle(userText, assistantText) {
+  const p = PROVIDERS[currentProvider];
+  if (!p?.apiKey) return "";
+
+  const excerpt = (s, n) => (s || "").replace(/\s+/g, " ").trim().slice(0, n);
+  const messages = [
+    {
+      role: "system",
+      content:
+        "Write a title for this conversation: 3 to 6 words, in the user's own language, " +
+        "describing the topic. No quotes, no trailing punctuation, no prefix like " +
+        "\"Title:\". Reply with the title and nothing else."
+    },
+    { role: "user", content: `User: ${excerpt(userText, 700)}\n\nAssistant: ${excerpt(assistantText, 700)}` }
+  ];
+
+  try {
+    const res = await fetch(p.endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${p.apiKey}` },
+      body: JSON.stringify({ model: p.model, messages, stream: false, temperature: 0.2, max_tokens: 24 }),
+      signal: AbortSignal.timeout(12000)
+    });
+    if (!res.ok) return "";
+    const json  = await res.json();
+    const raw   = json.choices?.[0]?.message?.content || "";
+    // Models sometimes wrap the title in quotes or add a full stop anyway.
+    const clean = raw.replace(/\s+/g, " ").trim()
+                     .replace(/^["'“”«]+|["'“”»]+$/g, "")
+                     .replace(/[.。]+$/, "")
+                     .trim();
+    if (!clean || clean.length > 60 || clean.includes("\n")) return "";
+    return clean;
+  } catch (_) {
+    return "";   // offline, timed out, rate-limited — keep the provisional title
+  }
 }
 
 // Drive a streamed reply: manages the live bubble, typing indicator, abort,
