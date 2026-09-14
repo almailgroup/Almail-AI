@@ -743,27 +743,36 @@ body::before { content: none; }
 }
 .chat-item-wrap:has(.chat-item.active) { background: var(--glass-3); }
 
+/* The "⋯" slot is always laid out, and only its visibility toggles, so a
+   title never reflows when the pointer enters the row. It also keeps the
+   button's bounding box measurable while hidden, which is what lets the
+   move menu anchor to it after the row's own menu has closed. */
 .chat-item-actions {
-  display: none;
+  display: flex;
   align-items: center;
-  gap: 1px;
   flex-shrink: 0;
-  padding-right: 6px;
-  opacity: 1;
-  transform: none;
-  transition: opacity 0.16s ease, transform 0.16s ease;
+  padding-right: 4px;
+  visibility: hidden;
+  transition: opacity 0.13s ease;
+  opacity: 0;
 }
-.chat-item-wrap:hover .chat-item-actions { display: flex; }
+.chat-item-wrap:hover .chat-item-actions,
+.chat-item-wrap.menu-open .chat-item-actions,
+.chat-item-wrap:focus-within .chat-item-actions {
+  visibility: visible;
+  opacity: 1;
+}
 
-/* Glide-in for browsers that support @starting-style; others show instantly. */
-@starting-style {
-  .chat-item-wrap:hover .chat-item-actions { opacity: 0; transform: translateX(5px); }
+/* Touch has no hover, so the affordance has to be permanently visible —
+   otherwise chats can't be renamed or deleted on a phone at all. */
+@media (hover: none) {
+  .chat-item-actions { visibility: visible; opacity: 1; }
 }
 
 .chat-action-btn {
-  width: 22px;
-  height: 22px;
-  border-radius: 5px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-sm);
   border: none;
   background: transparent;
   color: var(--text-muted);
@@ -775,7 +784,61 @@ body::before { content: none; }
 }
 .chat-action-btn:hover { background: var(--glass-4); color: var(--text); }
 .chat-action-btn.active { color: var(--text); }
+/* Still used by the project cards on the Projects dashboard. */
 .chat-action-btn.delete:hover { color: var(--danger); }
+.chat-item-wrap.menu-open .chat-more-btn,
+.project-row.menu-open .chat-more-btn { background: var(--glass-4); color: var(--text); }
+
+/* ── Chat row options menu ──────────────────────────────────
+   Fixed, so it escapes the sidebar's overflow clipping; JS clamps it to
+   the viewport. */
+.chat-menu {
+  position: fixed;
+  z-index: 350;
+  min-width: 196px;
+  background: var(--menu-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 5px;
+  animation: menuIn 0.12s ease-out;
+}
+
+@keyframes menuIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-menu { animation: none; }
+}
+
+.chat-menu button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.86rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.chat-menu button:hover { background: var(--glass-3); }
+.chat-menu button svg { flex-shrink: 0; opacity: 0.75; }
+.chat-menu button.danger { color: var(--danger); }
+.chat-menu button.danger:hover { background: var(--danger-soft); }
+.chat-menu button.danger svg { opacity: 1; }
+
+.chat-menu-sep {
+  height: 1px;
+  background: var(--border);
+  margin: 5px 4px;
+}
 
 /* Date-group headings in the chat list ("Today", "Previous 7 days").
    Sentence case at reading size — these are labels, not decoration. */
@@ -2774,12 +2837,26 @@ a:focus-visible,
 .project-wrap.expanded .project-chevron { transform: rotate(90deg); }
 .project-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; font-weight: 500; }
 
+/* Mirrors .chat-item-actions: the slot is always laid out so the project
+   name doesn't reflow on hover, and only visibility toggles. */
 .project-actions {
-  display: none;
-  align-items: center; gap: 1px;
-  flex-shrink: 0; padding-right: 6px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding-right: 4px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.13s ease;
 }
-.project-row:hover .project-actions { display: flex; }
+.project-row:hover .project-actions,
+.project-row.menu-open .project-actions,
+.project-row:focus-within .project-actions {
+  visibility: visible;
+  opacity: 1;
+}
+@media (hover: none) {
+  .project-actions { visibility: visible; opacity: 1; }
+}
 
 .project-chats {
   display: none; flex-direction: column; gap: 1px;
@@ -2808,24 +2885,26 @@ a:focus-visible,
 }
 
 /* Move-to-project popup */
+/* Matches .chat-menu — it's reached from that menu, so the two should not
+   look like they come from different apps. */
 .move-menu {
   position: fixed; z-index: 350;
-  min-width: 190px; max-height: 300px; overflow-y: auto;
+  min-width: 196px; max-height: 300px; overflow-y: auto;
   background: var(--menu-bg);
-  border: none;
-  border-radius: var(--clay-radius-sm);
-  box-shadow: var(--clay-raised);
-  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 5px;
 }
 .move-menu-label {
-  font-size: 10.5px; font-weight: 600; text-transform: uppercase;
-  letter-spacing: 0.06em; color: var(--text-faint); padding: 6px 10px 4px;
+  font-size: 11.5px; font-weight: 600; text-transform: none;
+  letter-spacing: 0; color: var(--text-muted); padding: 6px 10px 4px;
 }
 .move-menu button {
-  display: flex; align-items: center; gap: 8px; width: 100%;
+  display: flex; align-items: center; gap: 10px; width: 100%;
   padding: 8px 10px; border: none; background: transparent;
-  color: var(--text); font-size: 13px; font-family: inherit;
-  border-radius: 8px; cursor: pointer; text-align: left;
+  color: var(--text); font-size: 0.86rem; font-family: inherit;
+  border-radius: var(--radius-sm); cursor: pointer; text-align: left;
 }
 .move-menu button:hover:not(:disabled) { background: var(--glass-3); }
 .move-menu button.current { color: var(--text-muted); }

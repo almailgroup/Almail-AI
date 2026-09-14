@@ -718,10 +718,18 @@ function startProjectRename(project, nameSpan) {
   nameSpan.replaceWith(input);
   input.focus();
   input.select();
-  const save = () => renameProject(project.id, input.value || project.name);
+  // `done` guards the Enter-then-blur double save, and stopPropagation keeps
+  // Escape from reaching the global "close the topmost overlay" handler.
+  let done = false;
+  const save = () => {
+    if (done) return;
+    done = true;
+    renameProject(project.id, input.value || project.name);
+  };
   input.addEventListener("keydown", ev => {
+    ev.stopPropagation();
     if (ev.key === "Enter") { ev.preventDefault(); save(); }
-    if (ev.key === "Escape") renderChatList();
+    if (ev.key === "Escape") { done = true; renderChatList(); }
   });
   input.addEventListener("blur", save);
 }
@@ -747,25 +755,20 @@ function buildProjectRow(project, allChats) {
   const actions = document.createElement("div");
   actions.className = "project-actions";
 
-  const newBtn = document.createElement("button");
-  newBtn.className = "chat-action-btn";
-  newBtn.title = "New chat in project";
-  newBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`;
-  newBtn.onclick = (e) => { e.stopPropagation(); switchToChat(createChat(project.id)); };
+  // Same "⋯" treatment as the chat rows — these sit directly above them in
+  // the sidebar, so a second pattern here would read as unfinished.
+  const moreBtn = document.createElement("button");
+  moreBtn.className = "chat-action-btn chat-more-btn";
+  moreBtn.title = "Options";
+  moreBtn.setAttribute("aria-label", `Options for project ${project.name}`);
+  moreBtn.setAttribute("aria-haspopup", "menu");
+  moreBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`;
+  moreBtn.onclick = (e) => {
+    e.stopPropagation();
+    openProjectMenu(project, moreBtn, nameSpan);
+  };
 
-  const renBtn = document.createElement("button");
-  renBtn.className = "chat-action-btn";
-  renBtn.title = "Rename project";
-  renBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  renBtn.onclick = (e) => { e.stopPropagation(); startProjectRename(project, nameSpan); };
-
-  const delBtn = document.createElement("button");
-  delBtn.className = "chat-action-btn delete";
-  delBtn.title = "Delete project";
-  delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  delBtn.onclick = (e) => { e.stopPropagation(); deleteProject(project.id); };
-
-  actions.append(newBtn, renBtn, delBtn);
+  actions.append(moreBtn);
   row.append(item, actions);
   wrap.appendChild(row);
 
@@ -812,57 +815,139 @@ function buildChatItem(chat) {
   btn.appendChild(titleSpan);
   btn.onclick = (e) => { e.stopPropagation(); switchToChat(chat.id); };
 
-  // Actions: pin, rename, delete
+  // One "⋯" button opening a menu, rather than a row of five icons. Five
+  // icons ate most of the row's width, so titles were truncated to make
+  // room for controls that are used rarely.
   const actions = document.createElement("div");
   actions.className = "chat-item-actions";
 
-  const pinBtn = document.createElement("button");
-  pinBtn.className = `chat-action-btn${chat.pinned ? " active" : ""}`;
-  pinBtn.title = chat.pinned ? "Unpin" : "Pin";
-  pinBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="${chat.pinned ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
-  pinBtn.onclick = (e) => { e.stopPropagation(); togglePin(chat.id); };
-
-  const renBtn = document.createElement("button");
-  renBtn.className = "chat-action-btn";
-  renBtn.title = "Rename";
-  renBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
-  renBtn.onclick = (e) => {
+  const moreBtn = document.createElement("button");
+  moreBtn.className = "chat-action-btn chat-more-btn";
+  moreBtn.title = "Options";
+  moreBtn.setAttribute("aria-label", `Options for ${chat.title}`);
+  moreBtn.setAttribute("aria-haspopup", "menu");
+  moreBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"/><circle cx="12" cy="12" r="1.7"/><circle cx="19" cy="12" r="1.7"/></svg>`;
+  moreBtn.onclick = (e) => {
     e.stopPropagation();
-    const input = document.createElement("input");
-    input.className = "chat-rename-input";
-    input.value = chat.title;
-    titleSpan.replaceWith(input);
-    input.focus();
-    input.select();
-    const save = () => renameChat(chat.id, input.value || chat.title);
-    input.addEventListener("keydown", ev => {
-      if (ev.key === "Enter") { ev.preventDefault(); save(); }
-      if (ev.key === "Escape") renderChatList();
-    });
-    input.addEventListener("blur", save);
+    openChatMenu(chat, moreBtn, () => startRename(chat, titleSpan));
   };
 
-  const moveBtn = document.createElement("button");
-  moveBtn.className = "chat-action-btn";
-  moveBtn.title = "Move to project";
-  moveBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
-  moveBtn.onclick = (e) => { e.stopPropagation(); openMoveMenu(chat.id, moveBtn); };
-
-  const expBtn = document.createElement("button");
-  expBtn.className = "chat-action-btn";
-  expBtn.title = "Export as Markdown";
-  expBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`;
-  expBtn.onclick = (e) => { e.stopPropagation(); exportChat(chat.id, chat.title); };
-
-  const delBtn = document.createElement("button");
-  delBtn.className = "chat-action-btn delete";
-  delBtn.title = "Delete";
-  delBtn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
-  delBtn.onclick = (e) => { e.stopPropagation(); deleteChat(chat.id); };
-
-  actions.append(pinBtn, renBtn, moveBtn, expBtn, delBtn);
+  actions.append(moreBtn);
   wrap.append(btn, actions);
   return wrap;
+}
+
+// Swap the title for an input in place. Kept separate from the menu so the
+// rename starts on the row itself, where the user is already looking.
+function startRename(chat, titleSpan) {
+  const input = document.createElement("input");
+  input.className = "chat-rename-input";
+  input.value = chat.title;
+  titleSpan.replaceWith(input);
+  input.focus();
+  input.select();
+
+  let done = false;
+  const save = () => {
+    if (done) return;
+    done = true;
+    renameChat(chat.id, input.value || chat.title);
+  };
+  input.addEventListener("keydown", ev => {
+    ev.stopPropagation();   // don't let Esc/Enter reach the global handlers
+    if (ev.key === "Enter") { ev.preventDefault(); save(); }
+    if (ev.key === "Escape") { done = true; renderChatList(); }
+  });
+  input.addEventListener("blur", save);
+  input.addEventListener("click", ev => ev.stopPropagation());
+}
+
+// ── Sidebar row "⋯" menus ─────────────────────────────────
+// One menu element exists at a time, anchored to whichever row opened it.
+// Chats and projects share it so both rows behave identically.
+
+const ICON = {
+  pin:    `<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>`,
+  rename: `<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>`,
+  folder: `<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>`,
+  export: `<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>`,
+  trash:  `<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>`,
+  plus:   `<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>`,
+};
+
+function closeChatMenu() {
+  document.getElementById("chatMenu")?.remove();
+  document.querySelectorAll(".menu-open").forEach(el => el.classList.remove("menu-open"));
+}
+
+// items: array of { label, icon, onClick, danger } — or null for a separator.
+function openRowMenu(anchorBtn, ownerKey, items) {
+  // A second click on the same row's button closes the menu again.
+  const existing = document.getElementById("chatMenu");
+  if (existing) {
+    const sameRow = existing.dataset.owner === ownerKey;
+    closeChatMenu();
+    if (sameRow) return;
+  }
+  closeMoveMenu();
+
+  const menu = document.createElement("div");
+  menu.className = "chat-menu";
+  menu.id = "chatMenu";
+  menu.dataset.owner = ownerKey;
+  menu.setAttribute("role", "menu");
+
+  for (const it of items) {
+    if (!it) {
+      const sep = document.createElement("div");
+      sep.className = "chat-menu-sep";
+      menu.appendChild(sep);
+      continue;
+    }
+    const b = document.createElement("button");
+    b.setAttribute("role", "menuitem");
+    if (it.danger) b.className = "danger";
+    b.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${it.icon}</svg>`;
+    // textContent, not innerHTML — labels can carry a user-typed name.
+    b.appendChild(document.createTextNode(it.label));
+    b.onclick = (e) => { e.stopPropagation(); closeChatMenu(); it.onClick(); };
+    menu.appendChild(b);
+  }
+
+  // Fixed positioning so the menu escapes the sidebar's `overflow: hidden`,
+  // then clamped to the viewport so a row near the bottom still opens fully.
+  document.body.appendChild(menu);
+  const r = anchorBtn.getBoundingClientRect();
+  const top  = Math.min(r.bottom + 6, window.innerHeight - menu.offsetHeight - 10);
+  const left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 10);
+  menu.style.top  = `${Math.max(10, top)}px`;
+  menu.style.left = `${Math.max(10, left)}px`;
+
+  // Keep the row's button visible while its menu is open, so the row doesn't
+  // look unrelated to the floating menu once the pointer leaves it.
+  anchorBtn.closest(".chat-item-wrap, .project-row")?.classList.add("menu-open");
+}
+
+function openChatMenu(chat, anchorBtn, onRename) {
+  openRowMenu(anchorBtn, `chat:${chat.id}`, [
+    { label: chat.pinned ? "Unpin" : "Pin", icon: ICON.pin, onClick: () => togglePin(chat.id) },
+    { label: "Rename", icon: ICON.rename, onClick: onRename },
+    // Re-anchors the existing move menu to the same button, so this acts as
+    // a submenu without duplicating the project-picking logic.
+    { label: "Move to project", icon: ICON.folder, onClick: () => openMoveMenu(chat.id, anchorBtn) },
+    { label: "Export as Markdown", icon: ICON.export, onClick: () => exportChat(chat.id, chat.title) },
+    null,
+    { label: "Delete", icon: ICON.trash, danger: true, onClick: () => deleteChat(chat.id) },
+  ]);
+}
+
+function openProjectMenu(project, anchorBtn, nameSpan) {
+  openRowMenu(anchorBtn, `project:${project.id}`, [
+    { label: "New chat in project", icon: ICON.plus, onClick: () => switchToChat(createChat(project.id)) },
+    { label: "Rename", icon: ICON.rename, onClick: () => startProjectRename(project, nameSpan) },
+    null,
+    { label: "Delete project", icon: ICON.trash, danger: true, onClick: () => deleteProject(project.id) },
+  ]);
 }
 
 // ── Move-to-project popup ─────────────────────────────────
@@ -914,6 +999,9 @@ function openMoveMenu(chatId, anchorBtn) {
   const left = Math.min(r.left, window.innerWidth - menu.offsetWidth - 10);
   menu.style.top = `${Math.max(10, top)}px`;
   menu.style.left = `${Math.max(10, left)}px`;
+  // Keep the row's "⋯" visible while its move menu is open (this is reached
+  // from that menu, and the pointer has usually left the row by now).
+  anchorBtn.closest(".chat-item-wrap")?.classList.add("menu-open");
 }
 
 function switchToChat(chatId) {
@@ -1788,6 +1876,8 @@ document.addEventListener("click", (e) => {
   if (!e.target.closest(".menu-btn") && !e.target.closest(".menu"))
     document.querySelectorAll(".menu.open").forEach(m => m.classList.remove("open"));
   if (!e.target.closest(".move-menu")) closeMoveMenu();
+  // The "⋯" button toggles its own menu, so ignore clicks on it here.
+  if (!e.target.closest(".chat-menu") && !e.target.closest(".chat-more-btn")) closeChatMenu();
 });
 
 // ── Auth modal ────────────────────────────────────────────
@@ -3149,6 +3239,7 @@ deleteChatModal.addEventListener("click", e => { if (e.target === deleteChatModa
 document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if (document.getElementById("moveMenu")) { closeMoveMenu(); return; }
+  if (document.getElementById("chatMenu")) { closeChatMenu(); return; }
   if (settingsPopup.classList.contains("open")) { settingsPopup.classList.remove("open"); return; }
   if (attachPopup.classList.contains("open"))   { attachPopup.classList.remove("open");   return; }
   if (modelMenu.classList.contains("open"))     { closeModelMenu(); return; }
