@@ -29,13 +29,48 @@ streaming replies.
   first exchange
 - 🗂️ **Date-grouped sidebar** — Today / Yesterday / Previous 7 days / …
 - 📱 **Installable** (PWA web manifest)
-- 🫧 **Liquid-glass sidebar** — a real refracting lens, not a flat blur
+- 🌅 **Silk Aurora sidebar** — an animated WebGL backdrop behind the chat list
+
+## Silk Aurora (sidebar backdrop)
+
+`src/js/silk-aurora.js` renders the sidebar's background: a WebGL shader of
+drifting silk ribbons in the "Champagne" palette. It's a vanilla port of the
+Silk Aurora component from componentry.dev — the original is a React client
+component on Next.js/Tailwind/shadcn, so the GLSL is carried over verbatim and
+the React lifecycle is rewritten against the DOM.
+
+Three things differ from the original, deliberately:
+
+- **It pauses.** The loop stops when the tab is hidden and when the panel is
+  collapsed or slid off-screen. The original runs five octaves of fbm per
+  fragment every frame forever, which on a persistent chat sidebar is real
+  battery spend on pixels nobody is looking at. Device pixel ratio is capped
+  at 2 for the same reason.
+- **It has a scrim, and the scrim is measured.** The shader's sheen peaks near
+  white and a sidebar is twenty lines of 13px text, not a three-word hero
+  headline. Without it the chat list is unreadable wherever a ribbon crosses.
+  The scrim is tuned to the brightest point the shader actually produces:
+  primary text lands at 5.9:1 and muted text at 4.9:1, both clear of WCAG AA.
+  Lighten `#sidebar.has-aurora::after` and that headroom is what you spend.
+- **The panel carries its own tokens.** The aurora is dark in both themes, so
+  text, border and fill variables are overridden inside the sidebar — including
+  the `--clay-*` fills, which are near-white in light mode and otherwise put a
+  white account row at the foot of a black panel.
+
+If WebGL is unavailable the canvas removes itself and the sidebar falls back to
+its normal themed background, rather than sitting behind a dead black rectangle.
+Context loss is handled, which a canvas alive for hours will eventually hit.
 
 ## Liquid glass
 
-The sidebar is a glass material: it frosts and tints the page behind it and —
-in Chromium — bends the live page through an SVG displacement map with
-chromatic aberration at the edges.
+The glass material is still in `src/js/liquid-glass.js`, but it **stands down
+while the aurora is mounted** — an opaque canvas across the panel hides any
+backdrop-filter beneath it, and a displacement filter nobody can see still costs
+a full re-filter on every repaint. Remove the aurora and the glass takes over
+again automatically.
+
+It frosts and tints the page behind the panel and — in Chromium — bends the live
+page through an SVG displacement map with chromatic aberration at the edges.
 
 `src/js/liquid-glass.js` is a from-scratch port of the SDF displacement-map
 technique from [samasante/liquid-glass](https://github.com/samasante/liquid-glass)

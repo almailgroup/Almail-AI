@@ -286,6 +286,95 @@ body::before { content: none; }
 
 /* The specular sheen layer that used to live here is gone — see above. */
 
+/* ── Silk Aurora backdrop ───────────────────────────────────
+   A WebGL canvas filling the panel, painted beneath everything in it.
+   `.has-aurora` is added by src/js/silk-aurora.js only once the shader has
+   actually compiled and linked, so a machine without WebGL never gets the
+   dark palette below with no aurora to justify it. */
+.sidebar-aurora {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  pointer-events: none;   /* the panel handles pointer tracking itself */
+  z-index: 0;
+}
+
+/* Scrim. The shader's sheen peaks near white, and a sidebar is twenty lines of
+   13px text across the whole panel — not a three-word hero headline — so the
+   aurora has to be knocked back or the chat list becomes unreadable wherever a
+   ribbon crosses it. The first two layers are the directional scrims the
+   original component ships; the flat third is the one a text panel needs on
+   top of them. */
+#sidebar.has-aurora::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(0,0,0,0.46), rgba(0,0,0,0.14) 42%, rgba(0,0,0,0.42)),
+    linear-gradient(to top, rgba(0,0,0,0.55), transparent 33%),
+    rgba(0, 0, 0, 0.58);
+}
+
+/* The canvas and scrim are absolutely positioned, so they would paint over the
+   panel's static children. Lift the content above both. */
+#sidebar.has-aurora > *:not(.sidebar-aurora) {
+  position: relative;
+  z-index: 2;
+}
+
+/* The aurora is a dark material whichever theme the app is in, so the panel
+   carries dark-surface tokens locally. Without this, light mode would put
+   near-black text on a near-black backdrop. Scoped to the sidebar so the rest
+   of the app keeps the active theme. */
+#sidebar.has-aurora {
+  /* Muted and faint carry more weight here than on a flat ground: measured
+     against the brightest point of the aurora, 0.62 alpha fell under 3:1. */
+  --text:        #f5f0e7;
+  --text-muted:  rgba(245, 240, 231, 0.86);
+  --text-faint:  rgba(245, 240, 231, 0.58);
+
+  --border:        rgba(255, 255, 255, 0.10);
+  --border-mid:    rgba(255, 255, 255, 0.16);
+  --border-strong: rgba(255, 255, 255, 0.30);
+
+  --glass-1: rgba(255, 255, 255, 0.04);
+  --glass-2: rgba(255, 255, 255, 0.08);
+  --glass-3: rgba(255, 255, 255, 0.14);
+  --glass-4: rgba(255, 255, 255, 0.20);
+
+  --surface:       rgba(255, 255, 255, 0.05);
+  --surface-hover: rgba(255, 255, 255, 0.09);
+
+  /* The clay fills need overriding too — in light mode they are near-white
+     (#f2f2f4), which put a white account row with light text on it at the
+     foot of a dark panel. Translucent so the aurora still shows through. */
+  --clay-surface:   rgba(255, 255, 255, 0.06);
+  --clay-btn:       rgba(255, 255, 255, 0.09);
+  --clay-btn-hover: rgba(255, 255, 255, 0.14);
+  --clay-inset:     rgba(255, 255, 255, 0.07);
+
+  /* Matches the shader's baseColor, so the panel is already the right colour
+     in the frame before the first draw. */
+  background: #060505;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+/* The wordmark follows the panel, not the page theme — the light-mode logo is
+   black and would vanish into the aurora. Outranks the `.light` swap. */
+#sidebar.has-aurora .brand-logo.logo-dark  { display: block; }
+#sidebar.has-aurora .brand-logo.logo-light { display: none; }
+
+/* Search field and New chat read against the aurora rather than the page. */
+#sidebar.has-aurora .chat-search { background: rgba(255, 255, 255, 0.08); }
+#sidebar.has-aurora .chat-search:hover { background: rgba(255, 255, 255, 0.12); }
+#sidebar.has-aurora #resetChatBtn { border-color: rgba(255, 255, 255, 0.18); }
+
 /* Desktop collapsed: show mini strip */
 @media (min-width: 900px) {
   #app:not(.sidebar-open) #sidebar { width: 64px; }

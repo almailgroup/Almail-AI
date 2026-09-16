@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/css/style.css?v=111" />
+  <link rel="stylesheet" href="src/css/style.css?v=112" />
   <!-- Markdown (pinned) + HTML sanitizer. Deferred: neither is needed before
        first paint, and deferred classic scripts still run in document order
        ahead of the module scripts at the end of <body> that consume them.
@@ -681,11 +681,14 @@
   </div>
 </div>
 
-<!-- Sidebar liquid-glass material. Standalone and additive: if it fails to
-     load, the sidebar stays the opaque flat panel. -->
-<script type="module" src="src/js/liquid-glass.js?v=2"></script>
+<!-- Sidebar backdrop + material. Both standalone and additive: if either fails
+     to load the sidebar is simply the plain flat panel. Order matters — the
+     aurora claims the panel first, and the glass stands down when it finds it
+     (an opaque canvas would hide the backdrop-filter anyway). -->
+<script type="module" src="src/js/silk-aurora.js?v=1"></script>
+<script type="module" src="src/js/liquid-glass.js?v=3"></script>
 <script type="module" src="src/js/firebase.js"></script>
-<script type="module" src="src/js/chat.js?v=111"></script>
+<script type="module" src="src/js/chat.js?v=112"></script>
 
 </body>
 </html>
