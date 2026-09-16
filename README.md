@@ -46,12 +46,18 @@ Three things differ from the original, deliberately:
   fragment every frame forever, which on a persistent chat sidebar is real
   battery spend on pixels nobody is looking at. Device pixel ratio is capped
   at 2 for the same reason.
-- **It has a scrim, and the scrim is measured.** The shader's sheen peaks near
-  white and a sidebar is twenty lines of 13px text, not a three-word hero
-  headline. Without it the chat list is unreadable wherever a ribbon crosses.
-  The scrim is tuned to the brightest point the shader actually produces:
-  primary text lands at 5.9:1 and muted text at 4.9:1, both clear of WCAG AA.
-  Lighten `#sidebar.has-aurora::after` and that headroom is what you spend.
+- **It has a scrim, and the scrim follows the layout.** The shader's sheen peaks
+  near white and a sidebar is twenty lines of 13px text, not a three-word hero
+  headline — without a veil the chat list is unreadable wherever a ribbon
+  crosses it. A *uniform* veil has to be set for the worst case everywhere,
+  which just makes the whole panel dim. So the scrim is heavy where words are
+  (the nav and list at the top, the account rows at the foot) and thins across
+  the middle, which is usually empty and is where the ribbons get to be bright.
+  Measured against the brightest pixel the shader actually produces in each
+  band: top 8.5:1, foot 13.2:1, both well clear of WCAG AA, while the middle
+  runs about 4× brighter than a flat veil allowed. A long chat list reaching
+  into that band is covered by a tight `text-shadow` rather than by darkening
+  the aurora for everyone.
 - **The panel carries its own tokens.** The aurora is dark in both themes, so
   text, border and fill variables are overridden inside the sidebar — including
   the `--clay-*` fills, which are near-white in light mode and otherwise put a

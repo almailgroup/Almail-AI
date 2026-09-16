@@ -316,9 +316,23 @@ body::before { content: none; }
   pointer-events: none;
   border-radius: inherit;
   background:
+    /* The original's horizontal edge darkening. */
     linear-gradient(90deg, rgba(0,0,0,0.46), rgba(0,0,0,0.14) 42%, rgba(0,0,0,0.42)),
-    linear-gradient(to top, rgba(0,0,0,0.55), transparent 33%),
-    rgba(0, 0, 0, 0.58);
+    /* The veil follows the layout instead of being flat. Text is dense at the
+       top (nav, search, chat list) and again at the foot (upgrade, account,
+       settings); between them the panel is empty. So the scrim is heavy where
+       words are and thins out across the middle, which is where the ribbons
+       get to be bright. A uniform veil had to be set for the worst case
+       everywhere, which is what made the whole thing dim. */
+    linear-gradient(
+      to bottom,
+      rgba(0,0,0,0.60) 0%,
+      rgba(0,0,0,0.56) 38%,
+      rgba(0,0,0,0.20) 58%,
+      rgba(0,0,0,0.22) 74%,
+      rgba(0,0,0,0.58) 88%,
+      rgba(0,0,0,0.62) 100%
+    );
 }
 
 /* The canvas and scrim are absolutely positioned, so they would paint over the
@@ -363,6 +377,21 @@ body::before { content: none; }
      in the frame before the first draw. */
   background: #060505;
   border-color: rgba(255, 255, 255, 0.10);
+}
+
+/* The scrim is shaped for the usual layout, but a long chat list runs down
+   into the brighter middle band. A tight dark shadow keeps those rows legible
+   there without darkening the aurora for everyone — it costs nothing where the
+   backdrop is already dark. */
+#sidebar.has-aurora .chat-item,
+#sidebar.has-aurora .chat-group-label,
+#sidebar.has-aurora .nav-item,
+#sidebar.has-aurora .project-item,
+#sidebar.has-aurora .projects-title-btn,
+#sidebar.has-aurora .upgrade-nav,
+#sidebar.has-aurora .account-nav-name,
+#sidebar.has-aurora .account-nav-sub {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85), 0 0 10px rgba(0, 0, 0, 0.55);
 }
 
 /* The wordmark follows the panel, not the page theme — the light-mode logo is

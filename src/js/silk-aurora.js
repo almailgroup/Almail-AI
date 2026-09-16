@@ -125,8 +125,8 @@ const SETTINGS = {
   midColor: "#19130f",
   sheenColor: "#ffe2a9",
   accentColor: "#c58d5d",
-  speed: 0.75,
-  intensity: 0.9,
+  speed: 1.7,      // reference is 0.75; the ribbons read as static at that rate
+  intensity: 1.05,
   grain: 0.85,
   vignette: 1,
   mouseInfluence: 1,
