@@ -91,17 +91,9 @@
      light is, a darker one opposite, which is what sells thickness. */
   --glass-tint:        rgba(30, 30, 34, 0.55);
   --glass-edge:        rgba(255, 255, 255, 0.14);
-  --glass-rim-light:   rgba(255, 255, 255, 0.22);
-  --glass-rim-dark:    rgba(0, 0, 0, 0.28);
-  --glass-sheen:       rgba(255, 255, 255, 0.07);
-  --glass-sheen-top:   rgba(255, 255, 255, 0.05);
-  --glass-sheen-bottom:rgba(255, 255, 255, 0.02);
-  --glass-lift:        0 18px 50px rgba(0, 0, 0, 0.45);
 
   /* Light for the ambient field to bend. Kept strictly neutral — this is
      luminance, not the coloured orbs that were removed earlier. */
-  --ambient-1: rgba(255, 255, 255, 0.055);
-  --ambient-2: rgba(255, 255, 255, 0.028);
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -161,15 +153,6 @@
 
   --glass-tint:        rgba(255, 255, 255, 0.5);
   --glass-edge:        rgba(15, 15, 25, 0.1);
-  --glass-rim-light:   rgba(255, 255, 255, 0.85);
-  --glass-rim-dark:    rgba(15, 15, 25, 0.05);
-  --glass-sheen:       rgba(255, 255, 255, 0.5);
-  --glass-sheen-top:   rgba(255, 255, 255, 0.4);
-  --glass-sheen-bottom:rgba(15, 15, 25, 0.015);
-  --glass-lift:        0 18px 50px rgba(15, 15, 25, 0.1);
-
-  --ambient-1: rgba(15, 15, 25, 0.05);
-  --ambient-2: rgba(15, 15, 25, 0.025);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -201,24 +184,10 @@ body.theme-anim *::after {
               border-color 0.35s ease, fill 0.35s ease, stroke 0.35s ease !important;
 }
 
-/* Ambient field — light for the sidebar glass to bend.
-   Glass refracts what is behind it, and behind the sidebar is pure black (or
-   pure white), so with a flat ground the bend has nothing to act on and the
-   panel reads as a plain frosted rectangle. This is a very soft neutral
-   luminance gradient, deliberately greyscale rather than the coloured orbs
-   that were removed earlier, sitting only in the left third where the sidebar
-   is. Delete this rule (restore `content: none`) to go back to a pure ground —
-   the glass keeps its frost, tint and rim, it just stops visibly bending. */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(60% 45% at 6% 12%,  var(--ambient-1) 0%, transparent 70%),
-    radial-gradient(45% 40% at 22% 88%, var(--ambient-2) 0%, transparent 72%);
-}
+/* Background is pure black/white — no ambient tint, no luminance field.
+   An ambient gradient behind the sidebar would give the lens something to
+   bend, but it reads as a glow around the panel, so the ground stays flat. */
+body::before { content: none; }
 
 .hidden { display: none !important; }
 
@@ -301,14 +270,10 @@ body::before {
      glass its body — pure transparency reads as a hole, not a pane. */
   background: var(--glass-tint);
   border-color: var(--glass-edge);
-  /* The rim: a bright inner hairline along the top-left where the light is,
-     fading to a darker one bottom-right. This is the CSS half of the specular
-     — the SVG filter adds the directional shine on top of the refraction, but
-     this part survives on Safari and Firefox, which can't run the filter. */
-  box-shadow:
-    inset 1px 1px 0 var(--glass-rim-light),
-    inset -1px -1px 0 var(--glass-rim-dark),
-    var(--glass-lift);
+  /* No rim highlight, no outer lift, no sheen — every luminous layer is gone
+     deliberately. The panel is defined by its 1px border alone, the same way
+     every other surface in this flat system is. */
+  box-shadow: none;
 }
 
 /* Engines without `backdrop-filter: url()` (Safari, Firefox) never get the
@@ -319,23 +284,7 @@ body::before {
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
-/* A specular sheen pooling toward the top-left light, plus the faint vertical
-   gradient a thick sheet picks up. Sits above the panel fill and below the
-   content, and is inert to the pointer. */
-#sidebar.glass::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-  background:
-    radial-gradient(120% 60% at 0% 0%, var(--glass-sheen) 0%, transparent 60%),
-    linear-gradient(to bottom, var(--glass-sheen-top) 0%, transparent 22%, transparent 78%, var(--glass-sheen-bottom) 100%);
-}
-
-/* The sidebar's own children need to sit above that sheen. */
-#sidebar.glass > * { position: relative; z-index: 1; }
+/* The specular sheen layer that used to live here is gone — see above. */
 
 /* Desktop collapsed: show mini strip */
 @media (min-width: 900px) {

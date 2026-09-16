@@ -86,11 +86,16 @@ const SIDEBAR_OPTICS = {
   bendWidth: 0.13,
   dispersion: 0.45,   // chromatic aberration strength
   strength: 0.03,     // max displacement as a fraction of the panel diagonal
-  sheen: 0.45,        // directional rim shine
+  // No specular. The technique can bake a directional rim shine and a soft
+  // inner glow into the map's B channel, but both read as a luminous haze over
+  // the panel, which this design doesn't want. With these at 0 the map carries
+  // displacement only and the filter skips the specular pass entirely, so the
+  // glass is pure optics: frost, tint, bend, chromatic edge.
+  sheen: 0,
   sheenWidth: 2.5,
   sheenFalloff: 1.4,
   sheenAngle: 45,
-  glow: 0.1,          // soft inner glow
+  glow: 0,
   glowSpread: 0.45,
   glowFalloff: 0.8,
   specular: 1,
@@ -437,17 +442,20 @@ export function mountSidebarGlass(target) {
     add("refractR", "refractG", "refractRG");
     add("refractRG", "refractB", "lensOut");
 
-    // Lift the map's B channel into a sheen mask (128→0, 255→1) and add it over
-    // the refracted backdrop: the rim shine and inner glow.
-    filter.appendChild(el("feColorMatrix", {
-      in: "map", type: "matrix",
-      values: `0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 ${-128 / 255}`,
-      result: "sheenMask",
-    }));
-    filter.appendChild(el("feComposite", {
-      in: "sheenMask", in2: "lensOut", operator: "arithmetic",
-      k1: 0, k2: o.specular, k3: 1, k4: 0,
-    }));
+    // Specular (rim shine + inner glow) would be lifted out of the map's B
+    // channel here. It's off by design — see SIDEBAR_OPTICS — so the pass is
+    // skipped rather than run as a no-op.
+    if (o.sheen > 0 || o.glow > 0) {
+      filter.appendChild(el("feColorMatrix", {
+        in: "map", type: "matrix",
+        values: `0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 ${-128 / 255}`,
+        result: "sheenMask",
+      }));
+      filter.appendChild(el("feComposite", {
+        in: "sheenMask", in2: "lensOut", operator: "arithmetic",
+        k1: 0, k2: o.specular, k3: 1, k4: 0,
+      }));
+    }
 
     defs.replaceChildren(filter);
 
