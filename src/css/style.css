@@ -85,6 +85,24 @@
   /* Reading column shared by messages, composer and typing indicator. */
   --col: 768px;
 
+  /* ── Liquid glass ──────────────────────────────────────
+     The tint is the glass's body — a pane with no fill reads as a hole. The
+     rim pair is the CSS half of the specular: a bright hairline where the
+     light is, a darker one opposite, which is what sells thickness. */
+  --glass-tint:        rgba(30, 30, 34, 0.55);
+  --glass-edge:        rgba(255, 255, 255, 0.14);
+  --glass-rim-light:   rgba(255, 255, 255, 0.22);
+  --glass-rim-dark:    rgba(0, 0, 0, 0.28);
+  --glass-sheen:       rgba(255, 255, 255, 0.07);
+  --glass-sheen-top:   rgba(255, 255, 255, 0.05);
+  --glass-sheen-bottom:rgba(255, 255, 255, 0.02);
+  --glass-lift:        0 18px 50px rgba(0, 0, 0, 0.45);
+
+  /* Light for the ambient field to bend. Kept strictly neutral — this is
+     luminance, not the coloured orbs that were removed earlier. */
+  --ambient-1: rgba(255, 255, 255, 0.055);
+  --ambient-2: rgba(255, 255, 255, 0.028);
+
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -140,6 +158,18 @@
   --clay-raised-sm: 0 0 #0000;
   --clay-pressed:   0 0 #0000;
   --clay-flat:      0 0 #0000;
+
+  --glass-tint:        rgba(255, 255, 255, 0.5);
+  --glass-edge:        rgba(15, 15, 25, 0.1);
+  --glass-rim-light:   rgba(255, 255, 255, 0.85);
+  --glass-rim-dark:    rgba(15, 15, 25, 0.05);
+  --glass-sheen:       rgba(255, 255, 255, 0.5);
+  --glass-sheen-top:   rgba(255, 255, 255, 0.4);
+  --glass-sheen-bottom:rgba(15, 15, 25, 0.015);
+  --glass-lift:        0 18px 50px rgba(15, 15, 25, 0.1);
+
+  --ambient-1: rgba(15, 15, 25, 0.05);
+  --ambient-2: rgba(15, 15, 25, 0.025);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -171,8 +201,24 @@ body.theme-anim *::after {
               border-color 0.35s ease, fill 0.35s ease, stroke 0.35s ease !important;
 }
 
-/* Background is pure black/white — no ambient tint. */
-body::before { content: none; }
+/* Ambient field — light for the sidebar glass to bend.
+   Glass refracts what is behind it, and behind the sidebar is pure black (or
+   pure white), so with a flat ground the bend has nothing to act on and the
+   panel reads as a plain frosted rectangle. This is a very soft neutral
+   luminance gradient, deliberately greyscale rather than the coloured orbs
+   that were removed earlier, sitting only in the left third where the sidebar
+   is. Delete this rule (restore `content: none`) to go back to a pure ground —
+   the glass keeps its frost, tint and rim, it just stops visibly bending. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(60% 45% at 6% 12%,  var(--ambient-1) 0%, transparent 70%),
+    radial-gradient(45% 40% at 22% 88%, var(--ambient-2) 0%, transparent 72%);
+}
 
 .hidden { display: none !important; }
 
@@ -219,6 +265,10 @@ body::before { content: none; }
    `overflow: hidden` clips the content to the radius. */
 #sidebar {
   --sidebar-inset: 8px;
+  /* Positioned so the glass sheen layer (`.glass::after`) resolves against the
+     panel. Without this it would resolve against #app, which is relative, and
+     spill the highlight across the whole window. */
+  position: relative;
   width: 260px;
   flex-shrink: 0;
   height: calc(100% - var(--sidebar-inset) * 2);
@@ -234,6 +284,58 @@ body::before { content: none; }
   transition: width 0.26s cubic-bezier(0.4, 0, 0.2, 1), margin-left 0.26s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 50;
 }
+
+/* ── Liquid glass ───────────────────────────────────────────
+   `.glass` is added by src/js/liquid-glass.js once it knows the engine can
+   carry the material. It is never in the markup, so if that script fails to
+   load the sidebar simply stays the opaque flat panel — the glass is additive,
+   never load-bearing.
+
+   The JS writes `backdrop-filter` itself (it has to: the SVG filter id changes
+   whenever the panel's shape does). These variables are what it interpolates,
+   so the frost can be tuned here alongside the rest of the design tokens. */
+#sidebar.glass {
+  --glass-blur: 22px;
+  --glass-saturate: 1.9;
+  /* Translucent, or there is no backdrop to filter. The tint is what gives the
+     glass its body — pure transparency reads as a hole, not a pane. */
+  background: var(--glass-tint);
+  border-color: var(--glass-edge);
+  /* The rim: a bright inner hairline along the top-left where the light is,
+     fading to a darker one bottom-right. This is the CSS half of the specular
+     — the SVG filter adds the directional shine on top of the refraction, but
+     this part survives on Safari and Firefox, which can't run the filter. */
+  box-shadow:
+    inset 1px 1px 0 var(--glass-rim-light),
+    inset -1px -1px 0 var(--glass-rim-dark),
+    var(--glass-lift);
+}
+
+/* Engines without `backdrop-filter: url()` (Safari, Firefox) never get the
+   bend, so they lean a little harder on frost and tint to read as glass. */
+#sidebar.glass.glass-no-bend {
+  --glass-blur: 26px;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+}
+
+/* A specular sheen pooling toward the top-left light, plus the faint vertical
+   gradient a thick sheet picks up. Sits above the panel fill and below the
+   content, and is inert to the pointer. */
+#sidebar.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(120% 60% at 0% 0%, var(--glass-sheen) 0%, transparent 60%),
+    linear-gradient(to bottom, var(--glass-sheen-top) 0%, transparent 22%, transparent 78%, var(--glass-sheen-bottom) 100%);
+}
+
+/* The sidebar's own children need to sit above that sheen. */
+#sidebar.glass > * { position: relative; z-index: 1; }
 
 /* Desktop collapsed: show mini strip */
 @media (min-width: 900px) {

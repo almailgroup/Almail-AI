@@ -29,6 +29,36 @@ streaming replies.
   first exchange
 - 🗂️ **Date-grouped sidebar** — Today / Yesterday / Previous 7 days / …
 - 📱 **Installable** (PWA web manifest)
+- 🫧 **Liquid-glass sidebar** — a real refracting lens, not a flat blur
+
+## Liquid glass
+
+The sidebar is a glass material: it frosts and tints the page behind it, rims
+itself with a specular edge, and — in Chromium — bends the live page through an
+SVG displacement map with chromatic aberration at the edges.
+
+`src/js/liquid-glass.js` is a from-scratch port of the SDF displacement-map
+technique from [samasante/liquid-glass](https://github.com/samasante/liquid-glass)
+(MIT, © 2026 Sam Asante). That library is React-only and this app has no build
+step, so the technique is reimplemented in plain ES modules rather than added as
+a dependency.
+
+Two things worth knowing:
+
+- **Bending the live page is Chromium-only.** `backdrop-filter: url()` ships in
+  Chrome/Edge; Safari and Firefox support `backdrop-filter: blur()` but not
+  `url()`, and a value they can't parse drops the *whole* declaration. So the
+  engine is sniffed, biased toward a false negative, and those browsers get
+  frost + saturate + tint + the CSS rim instead.
+- **Glass needs something behind it.** On a pure black or pure white ground
+  there is nothing to refract and the panel reads as a plain frosted rectangle.
+  `body::before` paints a soft neutral luminance field to give the lens
+  something to bend; delete that rule for a pure ground, and the material keeps
+  its frost, tint and rim but stops visibly bending.
+
+The whole effect is additive — the `.glass` class is applied by JS, never in the
+markup, so if the script fails to load the sidebar is simply the opaque flat
+panel it was before.
 
 ## Project structure
 
