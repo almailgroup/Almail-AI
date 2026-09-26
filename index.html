@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/css/style.css?v=113" />
+  <link rel="stylesheet" href="src/css/style.css?v=114" />
   <!-- Markdown (pinned) + HTML sanitizer. Deferred: neither is needed before
        first paint, and deferred classic scripts still run in document order
        ahead of the module scripts at the end of <body> that consume them.
@@ -58,6 +58,10 @@
 
   <!-- Sidebar -->
   <aside id="sidebar">
+    <!-- Animated backdrop: three soft colour fields drifting behind the
+         panel. Pure CSS, so there is nothing here that can fail to load. -->
+    <div class="sidebar-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+
     <div class="sidebar-header">
       <!-- Both wordmarks ship; CSS picks one by theme so the logo is correct
            on the very first paint instead of after JS swaps the src. -->
@@ -681,14 +685,12 @@
   </div>
 </div>
 
-<!-- Sidebar backdrop + material. Both standalone and additive: if either fails
-     to load the sidebar is simply the plain flat panel. Order matters — the
-     aurora claims the panel first, and the glass stands down when it finds it
-     (an opaque canvas would hide the backdrop-filter anyway). -->
-<script type="module" src="src/js/silk-aurora.js?v=2"></script>
-<script type="module" src="src/js/liquid-glass.js?v=3"></script>
+<!-- Sidebar liquid-glass material. Additive: if it fails to load the sidebar
+     is simply the plain panel. It stands down while the CSS backdrop owns the
+     sidebar — see the note in liquid-glass.js. -->
+<script type="module" src="src/js/liquid-glass.js?v=4"></script>
 <script type="module" src="src/js/firebase.js"></script>
-<script type="module" src="src/js/chat.js?v=112"></script>
+<script type="module" src="src/js/chat.js?v=114"></script>
 
 </body>
 </html>

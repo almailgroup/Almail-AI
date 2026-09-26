@@ -29,51 +29,36 @@ streaming replies.
   first exchange
 - 🗂️ **Date-grouped sidebar** — Today / Yesterday / Previous 7 days / …
 - 📱 **Installable** (PWA web manifest)
-- 🌅 **Silk Aurora sidebar** — an animated WebGL backdrop behind the chat list
+- 🌅 **Animated sidebar** — soft colour fields drifting behind the chat list
 
-## Silk Aurora (sidebar backdrop)
+## Sidebar backdrop
 
-`src/js/silk-aurora.js` renders the sidebar's background: a WebGL shader of
-drifting silk ribbons in the "Champagne" palette. It's a vanilla port of the
-Silk Aurora component from componentry.dev — the original is a React client
-component on Next.js/Tailwind/shadcn, so the GLSL is carried over verbatim and
-the React lifecycle is rewritten against the DOM.
+`.sidebar-glow` in `src/css/style.css`: three soft colour fields — Gemini blue,
+violet, and the app's own rose — drifting slowly behind the panel.
 
-Three things differ from the original, deliberately:
+Pure CSS, static markup, no JavaScript, so there is nothing that can fail to
+load. Three radial gradients animated on `transform` alone, which the
+compositor handles without repainting and without a blur filter; the gradients'
+own falloff is the softness. Honours `prefers-reduced-motion`.
 
-- **It pauses.** The loop stops when the tab is hidden and when the panel is
-  collapsed or slid off-screen. The original runs five octaves of fbm per
-  fragment every frame forever, which on a persistent chat sidebar is real
-  battery spend on pixels nobody is looking at. Device pixel ratio is capped
-  at 2 for the same reason.
-- **It has a scrim, and the scrim follows the layout.** The shader's sheen peaks
-  near white and a sidebar is twenty lines of 13px text, not a three-word hero
-  headline — without a veil the chat list is unreadable wherever a ribbon
-  crosses it. A *uniform* veil has to be set for the worst case everywhere,
-  which just makes the whole panel dim. So the scrim is heavy where words are
-  (the nav and list at the top, the account rows at the foot) and thins across
-  the middle, which is usually empty and is where the ribbons get to be bright.
-  Measured against the brightest pixel the shader actually produces in each
-  band: top 8.5:1, foot 13.2:1, both well clear of WCAG AA, while the middle
-  runs about 4× brighter than a flat veil allowed. A long chat list reaching
-  into that band is covered by a tight `text-shadow` rather than by darkening
-  the aurora for everyone.
-- **The panel carries its own tokens.** The aurora is dark in both themes, so
-  text, border and fill variables are overridden inside the sidebar — including
-  the `--clay-*` fills, which are near-white in light mode and otherwise put a
-  white account row at the foot of a black panel.
+This replaced a WebGL port of Silk Aurora that ran five octaves of fbm per
+fragment per frame, and needed a layout-shaped scrim, forced-dark text tokens
+and text shadows just to keep the chat list readable against its own
+highlights. The fields here never get bright enough to fight the text, so all
+of that is gone: measured worst case across the whole panel, dark mode is
+11.5:1 primary / 4.9:1 muted and light is 15.5:1 / 5.6:1, all clear of WCAG AA
+with no scrim at all.
 
-If WebGL is unavailable the canvas removes itself and the sidebar falls back to
-its normal themed background, rather than sitting behind a dead black rectangle.
-Context loss is handled, which a canvas alive for hours will eventually hit.
+Colours and pace live in four variables (`--glow-1..3`, `--glow-opacity`) and
+the three `glowDrift` keyframes.
 
 ## Liquid glass
 
-The glass material is still in `src/js/liquid-glass.js`, but it **stands down
-while the aurora is mounted** — an opaque canvas across the panel hides any
-backdrop-filter beneath it, and a displacement filter nobody can see still costs
-a full re-filter on every repaint. Remove the aurora and the glass takes over
-again automatically.
+The glass material is still in `src/js/liquid-glass.js`, but it is **currently
+dormant**: it stands down whenever `.sidebar-glow` is in the panel, because a
+backdrop painted over it hides any backdrop-filter beneath, and a displacement
+filter nobody can see still costs a full re-filter on every repaint. Delete that
+element from `index.html` and the glass takes over again on the next load.
 
 It frosts and tints the page behind the panel and — in Chromium — bends the live
 page through an SVG displacement map with chromatic aberration at the edges.

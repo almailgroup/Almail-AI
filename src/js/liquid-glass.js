@@ -337,13 +337,12 @@ export function mountSidebarGlass(target) {
     window.matchMedia?.("(prefers-reduced-transparency: reduce)")?.matches;
   if (reduceTransparency) return;
 
-  // The Silk Aurora backdrop owns the panel when it's mounted. It paints an
-  // opaque canvas across the whole sidebar, so a backdrop-filter underneath it
-  // is invisible — and a displacement filter that nobody can see still costs a
-  // full re-filter on every repaint. Stand down rather than pay for nothing.
-  // (silk-aurora.js is loaded first in index.html, and only sets this class
-  // once its shader has compiled, so absence here means there is no aurora.)
-  if (sidebar.classList.contains("has-aurora")) return;
+  // The CSS backdrop (.sidebar-glow) owns the panel. It paints across the
+  // whole sidebar, so a backdrop-filter underneath it is invisible — and a
+  // displacement filter nobody can see still costs a full re-filter on every
+  // repaint. Stand down rather than pay for nothing. Delete that element from
+  // index.html and the glass takes over again on the next load.
+  if (sidebar.querySelector(".sidebar-glow")) return;
 
   const canBend = supportsBackdropUrl();
   // The class is what the stylesheet keys its translucent fill off, so it goes
