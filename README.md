@@ -32,6 +32,28 @@ streaming replies.
 - 🪶 **Soft-depth design system** — an opaque surface ladder, generous radii, no outlines
 - 🌅 **Animated sidebar** — soft colour fields drifting behind the chat list
 
+## Layout
+
+The interface is a rail, an overlay panel and a document — not a sidebar and a
+chat.
+
+- **Rail (64px).** The only permanent chrome besides the conversation: new
+  chat, chats, temporary chat, account. Icons only.
+- **Chat list as an overlay panel.** Summoned from the rail, it slides over the
+  conversation and dismisses on backdrop click or Escape. It is not a column,
+  so the reading measure sits on the true centre of the window.
+- **Turns as a document.** No bubbles on either side. Each turn carries a small
+  label and is separated by space and a hairline; the user's own words read a
+  shade quieter than the answer. Opposing bubbles are a messaging idiom and
+  this is a reading tool — they also halve the line length for no gain.
+- **Composer as the hero.** With no conversation yet it centres under the
+  greeting; it docks to the foot once the first turn lands. Driven by an
+  `is-empty` class on `#app`.
+
+The rail reuses the ids of the old collapsed-sidebar strip (`si-new`,
+`si-chats`, `si-temp`, `si-account`), so every handler in `chat.js` still binds
+after the move.
+
 ## Sidebar backdrop
 
 `.sidebar-glow` in `src/css/style.css`: three soft colour fields — Gemini blue,

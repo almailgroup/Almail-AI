@@ -1247,19 +1247,23 @@ const isDesktop = () => window.matchMedia("(min-width: 900px)").matches;
 function openSidebar()  { appEl.classList.add("sidebar-open"); localStorage.setItem("sidebar", "open"); }
 function closeSidebar() { appEl.classList.remove("sidebar-open"); localStorage.setItem("sidebar", "closed"); }
 
-if (isDesktop()) {
-  appEl.classList.toggle("sidebar-open", localStorage.getItem("sidebar") !== "closed");
+// The chat list is an overlay panel now, not a permanent column, so it starts
+// closed on every size — the conversation owns the window until you ask for it.
+// (The stored preference is still honoured on desktop for anyone who wants it
+// pinned open.)
+if (isDesktop() && localStorage.getItem("sidebar") === "open") {
+  appEl.classList.add("sidebar-open");
 } else {
   appEl.classList.remove("sidebar-open");
 }
 
 sidebarToggle.onclick   = openSidebar;
-sidebarClose.onclick    = (e) => { e.stopPropagation(); appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar(); };
+sidebarClose.onclick    = (e) => { e.stopPropagation(); closeSidebar(); };
 sidebarBackdrop.onclick = closeSidebar;
 
-// Click on collapsed sidebar strip to open it (desktop only)
-document.getElementById("sidebar").addEventListener("click", () => {
-  if (window.innerWidth >= 900 && !appEl.classList.contains("sidebar-open")) openSidebar();
+// Escape closes the panel, like every other overlay in the app.
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && appEl.classList.contains("sidebar-open")) closeSidebar();
 });
 
 // ── Mobile swipe gestures for sidebar ────────────────────
@@ -2186,6 +2190,10 @@ function renderMessages(list = currentMessages) {
   );
 
   messagesEl.innerHTML = "";
+
+  // Drives the hero layout: with no turns yet the composer centres under the
+  // greeting instead of docking to the foot of an empty window.
+  appEl.classList.toggle("is-empty", list.length === 0);
 
   if (list.length === 0) {
     const logoSrc = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";

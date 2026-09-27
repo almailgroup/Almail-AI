@@ -3492,3 +3492,181 @@ a:focus-visible,
 /* KaTeX inherits colour, so it follows the theme with no overrides — but
    its error state defaults to a red that clashes with the palette. */
 .message .katex-error { color: var(--danger); }
+
+/* ══════════════════════════════════════════════════════════════════════
+   LAYOUT — rail + overlay panel + document conversation
+
+   Structural, not cosmetic. Three changes to how the app is arranged:
+
+   1. The chat list is no longer a permanent 260px column. It is an overlay
+      panel summoned from the rail, so the conversation owns the full window
+      and the reading column can sit in the true centre of the screen.
+   2. A 64px icon rail replaces it as the permanent chrome — the only thing
+      always on screen besides the conversation.
+   3. Turns are a document, not a chat. No bubbles on either side; each turn
+      is labelled in a gutter and separated by space and a hairline. A wall
+      of opposing bubbles is a messaging idiom, and this is a reading tool.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Rail ─────────────────────────────────────────────────── */
+#rail {
+  position: relative;
+  z-index: 60;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 0 12px;
+  background: var(--surface-1);
+}
+
+/* No mark in the rail. The wordmark is 3:1 and there is no square version, so
+   cropping it to a 64px column shows half a letter. The brand sits in the
+   panel header where it has room to be itself. */
+.rail-mark { display: none; }
+
+#rail .sidebar-icon-nav,
+#rail .sidebar-icon-profile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+/* si-expand duplicates si-chats now; the element stays so chat.js still binds
+   to it, but it has nothing to show. !important because the old collapsed-strip
+   rules are `#app:not(.sidebar-open) .sidebar-icon-*`, which outranks this. */
+#rail .sidebar-icon-account { display: none !important; }
+#rail .sidebar-icon-nav,
+#rail .sidebar-icon-profile { display: flex !important; }
+
+.rail-spacer { flex: 1; }
+
+#rail .si-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+#rail .si-btn:hover { background: var(--surface-3); color: var(--text); }
+#app.sidebar-open #rail #si-chats { background: var(--surface-3); color: var(--text); }
+
+/* ── Chat list as an overlay panel ────────────────────────── */
+#sidebar {
+  position: fixed;
+  top: 0;
+  left: 64px;
+  height: 100dvh;
+  width: 312px;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  background: var(--surface-1);
+  box-shadow: var(--shadow-lg);
+  transform: translateX(-104%);
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 55;
+}
+#app.sidebar-open #sidebar { transform: translateX(0); }
+
+#sidebarBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.42);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.24s ease;
+  z-index: 54;
+  display: block;
+}
+#app.sidebar-open #sidebarBackdrop { opacity: 1; pointer-events: auto; }
+
+/* The rail is the toggle now, so the old floating button is redundant. */
+#sidebarToggle { display: none !important; }
+
+/* The chat area is no longer squeezed by a column, so the reading measure can
+   widen and sit on the real centre of the window. */
+.chat-main { width: 100%; min-width: 0; }
+:root { --col: 820px; }
+
+/* ── Conversation as a document ───────────────────────────── */
+/* Both turns are plain text in the same column. Who is speaking is carried by
+   a label, which is cheaper than a shape and does not halve the line length. */
+.message {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.message .meta {
+  display: block !important;
+  position: static !important;
+  order: -1;            /* chat.js appends meta last; show it as the label */
+  opacity: 1 !important;
+  margin-bottom: 8px;
+  font-size: 0.75rem !important;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  pointer-events: auto !important;
+}
+.self .meta  { color: var(--text-faint); }
+.other .meta { color: var(--text-muted); }
+
+/* Space and a hairline carry the turn boundary instead of a bubble edge. */
+.self:not(.grouped),
+.other:not(.grouped) { margin-top: 34px; padding-top: 34px !important; }
+.self.grouped, .other.grouped { margin-top: 18px; }
+#messages > .message:first-child { margin-top: 6px; padding-top: 0 !important; }
+.message + .message:not(.grouped) { border-top: 1px solid var(--border); }
+
+/* The user's own words read a touch quieter than the answer. */
+.self .message-text { color: var(--text-muted); font-size: 1rem; }
+.other .message-text { color: var(--text); }
+
+.msg-actions { margin-top: 14px; }
+
+/* ── Empty state: the composer is the hero ────────────────── */
+/* With no conversation there is nothing to dock the composer to, so it moves
+   to the centre of the screen under the greeting, and slides back down to the
+   foot once the first turn lands. */
+/* Auto margins above the greeting and below the composer centre that pair
+   between the top bar and the foot. Centring .chat-main itself would drag the
+   top bar down with everything else. */
+#app.is-empty #messages {
+  flex: 0 1 auto;
+  margin-top: auto;
+  padding-bottom: 0;
+}
+#app.is-empty footer { margin-bottom: auto; }
+#app.is-empty .empty-state { flex: 0 1 auto; }
+#app.is-empty footer {
+  padding-top: 0;
+  padding-bottom: 26px;
+  background: transparent;
+}
+#app.is-empty .empty-state { padding-bottom: 6px; gap: 20px; }
+#app.is-empty .footer-disclaimer { opacity: 0; }
+
+@media (max-width: 899px) {
+  #rail { flex-basis: 56px; width: 56px; padding-top: 10px; }
+  #sidebar { left: 56px; width: calc(100vw - 56px); max-width: 340px; }
+  :root { --col: 820px; }
+  .self:not(.grouped), .other:not(.grouped) { margin-top: 26px; padding-top: 26px !important; }
+}
