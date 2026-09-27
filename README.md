@@ -29,13 +29,14 @@ streaming replies.
   first exchange
 - 🗂️ **Date-grouped sidebar** — Today / Yesterday / Previous 7 days / …
 - 📱 **Installable** (PWA web manifest)
-- 🪶 **Soft-depth design system** — an opaque surface ladder, generous radii, no outlines
+- 🛠️ **Workbench panel** — code from the reply gets a tabbed home on the right
+- 🪶 **Workbench design system** — slate surfaces, amber accent, monospace chrome
 - 🌅 **Animated sidebar** — soft colour fields drifting behind the chat list
 
 ## Layout
 
-The interface is a rail, an overlay panel and a document — not a sidebar and a
-chat.
+The interface is a rail, an overlay panel, a document and a workbench — not a
+sidebar and a chat.
 
 - **Rail (64px).** The only permanent chrome besides the conversation: new
   chat, chats, temporary chat, account. Icons only.
@@ -49,10 +50,38 @@ chat.
 - **Composer as the hero.** With no conversation yet it centres under the
   greeting; it docks to the foot once the first turn lands. Driven by an
   `is-empty` class on `#app`.
+- **Workbench on the right.** Code is the one thing a chat transcript handles
+  badly: the answer you need is three questions up the scroll. So fenced code
+  blocks are also routed into a tabbed panel that stays put. See below.
 
 The rail reuses the ids of the old collapsed-sidebar strip (`si-new`,
 `si-chats`, `si-temp`, `si-account`), so every handler in `chat.js` still binds
 after the move.
+
+## Workbench
+
+`enhanceCodeBlocks()` in `src/js/chat.js` hands every fenced block to
+`addToWorkbench()`, which gives it a tab in `#workbench`. The transcript keeps
+a preview trimmed to 132px that acts as a handle: clicking it makes that tab
+active and opens the panel.
+
+- **The panel belongs to the chat on screen**, not to the session —
+  `switchToChat()` calls `resetWorkbench()` first, so tabs never leak between
+  conversations.
+- **Snippets are deduplicated on content.** Streaming re-renders the stable
+  part of a reply on every paragraph boundary, and a re-render or a regenerate
+  re-runs the enhancer over blocks it has already seen; matching on the code
+  itself means those reuse their tab instead of stacking up. Eight tabs is the
+  cap.
+- **Previews only fade where lines are actually cut.** The mask is applied
+  from a `wb-clipped` class the enhancer sets after measuring, because a fade
+  under a block that already ends on its last line reads as a bug.
+- **Below 1100px it stops being a column** and becomes a sheet over the
+  conversation with a scrim, dismissed by the scrim, the close button or
+  Escape. It never covers the rail, so the way out is always on screen.
+
+Everything in the panel is written with `textContent`: it is model output, and
+the transcript's own sanitizing doesn't reach here.
 
 ## Sidebar backdrop
 

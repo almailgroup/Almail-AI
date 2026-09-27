@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/css/style.css?v=116" />
+  <link rel="stylesheet" href="src/css/style.css?v=118" />
   <!-- Markdown (pinned) + HTML sanitizer. Deferred: neither is needed before
        first paint, and deferred classic scripts still run in document order
        ahead of the module scripts at the end of <body> that consume them.
@@ -359,6 +359,19 @@
       <p class="footer-disclaimer">Almail AI can make mistakes.</p>
     </footer>
   </div>
+
+  <!-- Workbench panel. Code and other artifacts are lifted out of the reply
+       and land here, so an answer has somewhere to live instead of scrolling
+       away up the transcript. Collapsed until something is routed to it. -->
+  <div class="wb-scrim" id="wbScrim"></div>
+  <aside id="workbench" aria-label="Output panel">
+    <div class="wb-head">
+      <div class="wb-tabs" id="wbTabs"></div>
+      <button class="wb-btn" id="wbCopy" title="Copy">Copy</button>
+      <button class="wb-btn" id="wbClose" title="Close panel" aria-label="Close panel">&#215;</button>
+    </div>
+    <div class="wb-body" id="wbBody"></div>
+  </aside>
 
 </div>
 
@@ -701,7 +714,7 @@
      sidebar — see the note in liquid-glass.js. -->
 <script type="module" src="src/js/liquid-glass.js?v=4"></script>
 <script type="module" src="src/js/firebase.js"></script>
-<script type="module" src="src/js/chat.js?v=116"></script>
+<script type="module" src="src/js/chat.js?v=118"></script>
 
 </body>
 </html>

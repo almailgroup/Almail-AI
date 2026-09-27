@@ -3670,3 +3670,252 @@ a:focus-visible,
   :root { --col: 820px; }
   .self:not(.grouped), .other:not(.grouped) { margin-top: 26px; padding-top: 26px !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   WORKBENCH — the split canvas
+
+   Dialogue on the left, a persistent output panel on the right. Code and
+   other artifacts are lifted out of the reply and land in the panel, so an
+   answer has somewhere to live instead of scrolling away up the transcript.
+
+   Palette shifts with it: slate rather than pure black, amber rather than
+   rose. Chrome and labels are monospace; prose stays sans. The panel is
+   collapsed until something is routed into it, so short conversations do not
+   sit next to an empty box.
+   ══════════════════════════════════════════════════════════════════════ */
+:root {
+  --bg:        #0E1116;
+  --surface-1: #141920;
+  --surface-2: #1A202A;
+  --surface-3: #232B36;
+  --surface-4: #2E3845;
+
+  --text:       #D7DEE8;
+  --text-muted: #8B96A5;
+  --text-faint: #5A6472;
+
+  --accent:        #E0A030;
+  --accent-hover:  #EFB54E;
+  --accent-strong: #C8861B;
+  --accent-text:   #0E1116;
+  --accent-soft:   rgba(224, 160, 48, 0.14);
+  --accent-border: rgba(224, 160, 48, 0.42);
+  --accent-ring:   rgba(224, 160, 48, 0.26);
+  --accent-gradient: #E0A030;
+
+  --border:        rgba(215, 222, 232, 0.07);
+  --border-mid:    rgba(215, 222, 232, 0.12);
+  --border-strong: rgba(215, 222, 232, 0.22);
+
+  --glass-1: rgba(215,222,232,0.035);
+  --glass-2: rgba(215,222,232,0.06);
+  --glass-3: rgba(215,222,232,0.10);
+  --glass-4: rgba(215,222,232,0.15);
+
+  --menu-bg: #1A202A;
+
+  /* Quieter, squarer — a tool, not a card deck. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --clay-radius:    10px;
+  --clay-radius-sm: 8px;
+  --clay-radius-xs: 6px;
+
+  --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* The dialogue column is narrower because the panel takes the other half. */
+  --col: 680px;
+
+  --glow-1: #E0A030;
+  --glow-2: #5A6472;
+  --glow-3: #C8861B;
+  --glow-opacity: 0.16;
+}
+
+.light {
+  --bg:        #FBFBFC;
+  --surface-1: #F2F3F5;
+  --surface-2: #E9EBEF;
+  --surface-3: #DFE2E8;
+  --surface-4: #D2D7DF;
+
+  --text:       #151A21;
+  --text-muted: #5B6673;
+  --text-faint: #8D97A4;
+
+  --accent:        #A96A08;
+  --accent-hover:  #C07C10;
+  --accent-strong: #8A5606;
+  --accent-text:   #FFFFFF;
+  --accent-soft:   rgba(169, 106, 8, 0.11);
+  --accent-border: rgba(169, 106, 8, 0.34);
+  --accent-ring:   rgba(169, 106, 8, 0.2);
+  --accent-gradient: #A96A08;
+
+  --border:        rgba(21, 26, 33, 0.07);
+  --border-mid:    rgba(21, 26, 33, 0.11);
+  --border-strong: rgba(21, 26, 33, 0.2);
+
+  --glass-1: rgba(21,26,33,0.025);
+  --glass-2: rgba(21,26,33,0.045);
+  --glass-3: rgba(21,26,33,0.075);
+  --glass-4: rgba(21,26,33,0.11);
+
+  --menu-bg: #FFFFFF;
+  --glow-opacity: 0.1;
+}
+
+/* ── Chrome reads as a tool: monospace, small, quiet ─────── */
+.topbar-title,
+.chat-group-label,
+.message .meta,
+.model-switcher,
+.footer-disclaimer,
+#rail .si-btn {
+  font-family: var(--mono);
+}
+.topbar-title {
+  font-size: 0.82rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--text-muted);
+}
+.topbar { height: 46px; border-bottom: 1px solid var(--border); }
+.message .meta {
+  text-transform: lowercase;
+  letter-spacing: 0;
+  font-size: 0.74rem !important;
+  font-weight: 500;
+}
+.self .meta  { color: var(--accent); }
+.other .meta { color: var(--text-faint); }
+
+/* ── The split ────────────────────────────────────────────── */
+#workbench {
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--surface-1);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: flex-basis 0.26s cubic-bezier(0.32, 0.72, 0, 1),
+              width 0.26s cubic-bezier(0.32, 0.72, 0, 1);
+}
+#app.wb-open #workbench { flex: 0 0 46%; width: 46%; max-width: 620px; }
+
+.wb-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 46px;
+  flex-shrink: 0;
+  padding: 0 8px 0 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+}
+.wb-tabs { display: flex; gap: 2px; flex: 1; min-width: 0; overflow-x: auto; }
+.wb-tab {
+  flex-shrink: 0;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 6px 11px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faint);
+  font-family: inherit;
+  font-size: 0.74rem;
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.wb-tab:hover { background: var(--glass-2); color: var(--text-muted); }
+.wb-tab.active { background: var(--surface-3); color: var(--accent); }
+
+.wb-btn {
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-faint);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  padding: 6px 9px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.wb-btn:hover { background: var(--glass-2); color: var(--text); }
+#wbClose { font-size: 1rem; line-height: 1; padding: 4px 8px; }
+
+.wb-body {
+  flex: 1;
+  overflow: auto;
+  padding: 16px 18px;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.8;
+  /* Full-strength text: in the panel the snippet is the content, not a quote
+     of it, so it reads at the same weight the conversation does. */
+  color: var(--text);
+  white-space: pre;
+  tab-size: 2;
+}
+.wb-body .wb-empty {
+  font-family: inherit;
+  color: var(--text-faint);
+  white-space: normal;
+}
+
+/* A code block in the transcript is a handle to the panel, not a slab of
+   text to scroll past — so it is trimmed to a preview and opens on click. */
+.code-block.wb-linked { cursor: pointer; transition: border-color 0.14s ease; }
+.code-block.wb-linked pre { max-height: 132px; overflow: hidden; }
+/* Only the previews that actually lose lines get the fade — a block that fits
+   ends on its own last line, and a fade there would be a lie. The class is set
+   in enhanceCodeBlocks() after measuring. */
+.code-block.wb-clipped pre {
+  -webkit-mask-image: linear-gradient(to bottom, #000 76px, transparent 130px);
+          mask-image: linear-gradient(to bottom, #000 76px, transparent 130px);
+}
+.code-block.wb-linked:hover .code-block-header { color: var(--accent); }
+.code-block .wb-open-hint {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--accent);
+  margin-left: auto;
+  padding-right: 4px;
+}
+
+/* On a narrow window the panel stops being a column and becomes a sheet over
+   the conversation, the way the chat list already does — squeezing both into
+   half a window leaves neither readable. It never covers the rail, so the way
+   out of it is always on screen, and the scrim takes a click to dismiss. */
+.wb-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 57;
+  background: rgba(6, 8, 11, 0.5);
+}
+.light .wb-scrim { background: rgba(21, 26, 33, 0.28); }
+
+@media (max-width: 1100px) {
+  #app.wb-open #workbench {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: auto;
+    width: min(560px, calc(100vw - 64px));
+    max-width: none;
+    flex-basis: auto;
+    z-index: 58;
+    box-shadow: var(--shadow-lg);
+  }
+  #app.wb-open .wb-scrim { display: block; }
+}

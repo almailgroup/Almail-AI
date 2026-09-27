@@ -1006,6 +1006,7 @@ function openMoveMenu(chatId, anchorBtn) {
 
 function switchToChat(chatId) {
   closeProjectsView();
+  resetWorkbench();   // the panel belongs to the chat on screen
   if (tempMode) { tempMode = false; appEl.classList.remove("temp-mode"); }
   // Leaving a chat mid-generation: stop the stream so the reply doesn't bleed
   // into the new chat. (Re-selecting the current chat must NOT cancel it.)
@@ -2098,6 +2099,25 @@ function enhanceCodeBlocks(container) {
 
     pre.replaceWith(wrapper);
     wrapper.append(header, pre);
+
+    // Hand the snippet to the panel, and make the preview open it there.
+    const code = codeEl.innerText;
+    const id = addToWorkbench(lang || "snippet", code);
+    if (id) {
+      wrapper.classList.add("wb-linked");
+      // Fade the preview only where lines are actually being cut off.
+      if (pre.scrollHeight > pre.clientHeight + 2) wrapper.classList.add("wb-clipped");
+      const hint = document.createElement("span");
+      hint.className = "wb-open-hint";
+      hint.textContent = "open \u2192";
+      header.insertBefore(hint, copyBtn);
+      wrapper.addEventListener("click", (e) => {
+        if (e.target.closest(".copy-code")) return;   // copy is not "open"
+        wbActive = id;
+        renderWorkbench();
+        openWorkbench();
+      });
+    }
   });
 }
 
@@ -3049,6 +3069,98 @@ function buildOpenAIMessages(messages, attachment = null) {
     })
   ];
 }
+
+
+// ── Workbench panel ───────────────────────────────────────
+// Code blocks are lifted out of the transcript and given a home on the right,
+// so an answer stops scrolling away the moment the next one arrives. The
+// transcript keeps a trimmed preview that acts as a handle back to the panel.
+const wbEl     = document.getElementById("workbench");
+const wbTabsEl = document.getElementById("wbTabs");
+const wbBodyEl = document.getElementById("wbBody");
+const wbCopyEl = document.getElementById("wbCopy");
+const wbCloseEl = document.getElementById("wbClose");
+const wbScrimEl = document.getElementById("wbScrim");
+
+let wbItems = [];      // { id, label, code }
+let wbActive = null;
+let wbSeq = 0;         // ids must stay unique after the cap drops the oldest
+
+function openWorkbench() { appEl.classList.add("wb-open"); }
+function closeWorkbench() { appEl.classList.remove("wb-open"); }
+
+// Cleared whenever the conversation changes — the panel belongs to the chat
+// on screen, not to the session.
+function resetWorkbench() {
+  wbItems = [];
+  wbActive = null;
+  wbSeq = 0;
+  if (wbTabsEl) wbTabsEl.innerHTML = "";
+  if (wbBodyEl) wbBodyEl.textContent = "";
+  closeWorkbench();
+}
+
+function renderWorkbench() {
+  if (!wbTabsEl || !wbBodyEl) return;
+  wbTabsEl.innerHTML = "";
+  wbItems.forEach(item => {
+    const tab = document.createElement("button");
+    tab.className = "wb-tab" + (item.id === wbActive ? " active" : "");
+    tab.textContent = item.label;
+    tab.onclick = () => { wbActive = item.id; renderWorkbench(); };
+    wbTabsEl.appendChild(tab);
+  });
+  const item = wbItems.find(i => i.id === wbActive);
+  // textContent, never innerHTML: this is model output.
+  wbBodyEl.textContent = item ? item.code : "";
+  if (!item) {
+    const empty = document.createElement("div");
+    empty.className = "wb-empty";
+    empty.textContent = "Code from the conversation shows up here.";
+    wbBodyEl.appendChild(empty);
+  }
+}
+
+function addToWorkbench(label, code, { focus = false } = {}) {
+  if (!wbEl || !code.trim()) return null;
+  // Same snippet arriving twice (a re-render, a regenerate) reuses its tab.
+  const existing = wbItems.find(i => i.code === code);
+  const id = existing ? existing.id : `wb${++wbSeq}`;
+  if (!existing) {
+    wbItems.push({ id, label, code });
+    // Keep the strip honest — a dozen tabs is not a panel, it is a mess.
+    if (wbItems.length > 8) wbItems.shift();
+  }
+  if (focus || wbActive === null) wbActive = id;
+  // The cap may have dropped whatever was showing; fall back to the newest.
+  if (!wbItems.some(i => i.id === wbActive)) wbActive = wbItems[wbItems.length - 1].id;
+  renderWorkbench();
+  if (focus) openWorkbench();
+  return id;
+}
+
+if (wbCloseEl) wbCloseEl.onclick = closeWorkbench;
+if (wbScrimEl) wbScrimEl.onclick = closeWorkbench;
+
+// Escape dismisses the panel where it behaves like an overlay. On a wide
+// window it is a column, not a sheet, so Escape leaves it alone. Capture
+// phase, because the handlers that close the chat list and the modals run on
+// bubble and would already have cleared the state this checks.
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!appEl.classList.contains("wb-open")) return;
+  if (!window.matchMedia("(max-width: 1100px)").matches) return;
+  if (appEl.classList.contains("sidebar-open")) return;
+  if ([...document.querySelectorAll(".modal")].some(m => m.style.display === "flex")) return;
+  closeWorkbench();
+}, true);
+if (wbCopyEl) wbCopyEl.onclick = () => {
+  const item = wbItems.find(i => i.id === wbActive);
+  if (!item) return;
+  navigator.clipboard.writeText(item.code);
+  wbCopyEl.textContent = "Copied";
+  setTimeout(() => { wbCopyEl.textContent = "Copy"; }, 1400);
+};
 
 // ── Chat titles ───────────────────────────────────────────
 // Trim to a whole word so a provisional title never ends mid-word.
