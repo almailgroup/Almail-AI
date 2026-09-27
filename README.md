@@ -29,6 +29,7 @@ streaming replies.
   first exchange
 - 🗂️ **Date-grouped sidebar** — Today / Yesterday / Previous 7 days / …
 - 📱 **Installable** (PWA web manifest)
+- 🪶 **Soft-depth design system** — an opaque surface ladder, generous radii, no outlines
 - 🌅 **Animated sidebar** — soft colour fields drifting behind the chat list
 
 ## Sidebar backdrop

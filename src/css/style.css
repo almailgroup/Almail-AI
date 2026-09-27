@@ -1,82 +1,98 @@
 /* ── Design tokens ──────────────────────────────────────────
-   Flat design system. Depth comes from a one-step surface ladder
-   (page → panel → control) and hairline borders — never from shadows
-   or gloss. Colour is near-monochrome; the accent appears only where
-   something is genuinely primary or selected.
+   Soft-depth design system.
 
-   The clay/glass token names are kept so the whole stylesheet keeps
-   resolving, but they now carry flat values. Shadow tokens resolve to
-   `0 0 #0000` rather than `none` so the handful of composite
-   `box-shadow: var(--clay-…), 0 0 0 3px …` focus rings stay valid CSS
-   and render only their ring. */
+   Depth comes from an opaque surface ladder, not from lines or shadows:
+   page → panel → card → control, each a real step in tint. Hairline borders
+   are almost entirely gone — where two things need separating, they sit on
+   different rungs instead. Shadows are reserved for things that genuinely
+   float above the page (modals, popovers); nothing inline casts one.
+
+   The page ground stays pure (#000 / #fff) and the ladder climbs from it, so
+   the app keeps the pure black/white ground while still reading as layered.
+
+   Radii are generous — containers 22px, cards and controls 14–16px, chips
+   fully round — which is what separates this from the flat system it replaced.
+
+   Legacy token names (clay-*, glass-*) are kept so the whole stylesheet keeps
+   resolving; they now point at rungs of the ladder. Shadow tokens resolve to
+   `0 0 #0000` rather than `none` so composite focus rings stay valid CSS. */
 :root {
   --bg: #000000;
-  --sidebar-bg: #0a0a0a;
-  --text: #ececf1;
-  --text-muted: #9a9aa3;
-  --text-faint: #5c5c66;
 
-  /* Brand accent — rose. Reserved for primary actions, the selected
-     state and focus rings. Everything else is monochrome. */
+  /* The ladder. Opaque, so a rung reads the same wherever it sits. */
+  --surface-1: #121215;   /* sidebar, panels, page-level containers */
+  --surface-2: #1b1b20;   /* cards, composer, the user's own turn */
+  --surface-3: #26262d;   /* controls, hover */
+  --surface-4: #32323a;   /* pressed, selected */
+
+  --sidebar-bg: var(--surface-1);
+
+  --text: #f2f2f5;
+  --text-muted: #a2a2ad;
+  --text-faint: #63636e;
+
+  /* Brand accent — rose. Reserved for primary actions, the selected state
+     and focus rings. Everything else rides the neutral ladder. */
   --accent-h: 330;
   --accent: hsl(var(--accent-h) 84% 66%);
   --accent-hover: hsl(var(--accent-h) 88% 72%);
   --accent-strong: hsl(var(--accent-h) 74% 56%);
   --accent-text: #ffffff;
-  --accent-soft: hsla(var(--accent-h), 84%, 66%, 0.13);
+  --accent-soft: hsla(var(--accent-h), 84%, 66%, 0.15);
   --accent-border: hsla(var(--accent-h), 84%, 66%, 0.38);
-  --accent-ring: hsla(var(--accent-h), 84%, 66%, 0.3);
+  --accent-ring: hsla(var(--accent-h), 84%, 66%, 0.28);
   --accent-gradient: hsl(var(--accent-h) 84% 66%);
 
   --danger: #fb6f84;
   --danger-strong: #f43f5e;
-  --danger-soft: rgba(251, 111, 132, 0.13);
+  --danger-soft: rgba(251, 111, 132, 0.14);
   --success: #34d399;
 
-  /* Neutral fill ladder (was "glass") — flat, opaque-reading steps. */
-  --glass-1: rgba(255,255,255,0.04);
-  --glass-2: rgba(255,255,255,0.07);
-  --glass-3: rgba(255,255,255,0.11);
-  --glass-4: rgba(255,255,255,0.15);
+  /* Translucent overlays for hover on top of an unknown rung. */
+  --glass-1: rgba(255,255,255,0.035);
+  --glass-2: rgba(255,255,255,0.06);
+  --glass-3: rgba(255,255,255,0.10);
+  --glass-4: rgba(255,255,255,0.14);
 
-  /* Hairline borders do the work shadows used to. */
-  --border:        rgba(255,255,255,0.09);
-  --border-mid:    rgba(255,255,255,0.14);
-  --border-strong: rgba(255,255,255,0.24);
+  /* Borders are now a last resort — the ladder separates things. These stay
+     only for inputs and for the rare edge that needs definition. */
+  --border:        rgba(255,255,255,0.06);
+  --border-mid:    rgba(255,255,255,0.10);
+  --border-strong: rgba(255,255,255,0.18);
 
-  --surface:       rgba(255,255,255,0.05);
-  --surface-hover: rgba(255,255,255,0.09);
+  --surface:       var(--surface-2);
+  --surface-hover: var(--surface-3);
 
-  /* User turn: a quiet neutral pill, not a coloured bubble. */
-  --msg-self-bg:   #1e1e20;
+  /* The user's turn is a card on the ladder, not a coloured bubble. */
+  --msg-self-bg:   var(--surface-2);
   --msg-self-text: var(--text);
   --msg-ai-bg:     transparent;
 
   --blur: none;
 
-  --menu-bg: #18181a;
+  --menu-bg: var(--surface-2);
 
-  /* Overlays keep a real shadow — a floating popover needs to read as
-     floating. Inline surfaces get none. */
+  /* Only genuinely floating things cast a shadow. */
   --shadow-sm:  0 0 #0000;
-  --shadow-md:  0 10px 32px rgba(0,0,0,0.5);
-  --shadow-lg:  0 18px 56px rgba(0,0,0,0.62);
+  --shadow-md:  0 8px 28px rgba(0,0,0,0.44), 0 2px 8px rgba(0,0,0,0.3);
+  --shadow-lg:  0 20px 60px rgba(0,0,0,0.55), 0 4px 16px rgba(0,0,0,0.35);
   --shadow-inset: 0 0 #0000;
   --shadow-accent: 0 0 #0000;
 
-  --radius-sm: 8px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  --radius-pill: 999px;
 
-  /* Flat surfaces (clay names retained; values no longer sculpted) */
-  --clay-radius:    16px;
-  --clay-radius-sm: 12px;
-  --clay-radius-xs: 8px;
-  --clay-surface:   #121212;
-  --clay-btn:       #1c1c1e;
-  --clay-btn-hover: #262629;
-  --clay-inset:     #141416;
+  /* Legacy names, repointed at the ladder. */
+  --clay-radius:    22px;
+  --clay-radius-sm: 16px;
+  --clay-radius-xs: 12px;
+  --clay-surface:   var(--surface-1);
+  --clay-btn:       var(--surface-2);
+  --clay-btn-hover: var(--surface-3);
+  --clay-inset:     var(--surface-2);
   --clay-raised:    0 0 #0000;
   --clay-raised-sm: 0 0 #0000;
   --clay-pressed:   0 0 #0000;
@@ -85,81 +101,61 @@
   /* Reading column shared by messages, composer and typing indicator. */
   --col: 768px;
 
-  /* Sidebar backdrop — Gemini blue, violet, and the app's own rose. Kept
-     low enough that the chat list never has to fight it. */
+  /* Sidebar backdrop — Gemini blue, violet, and the app's own rose. */
   --glow-1: #4285f4;
   --glow-2: #9b72cb;
   --glow-3: hsl(var(--accent-h) 84% 62%);
   --glow-opacity: 0.30;
 
-  /* ── Liquid glass ──────────────────────────────────────
-     The tint is the glass's body — a pane with no fill reads as a hole. The
-     rim pair is the CSS half of the specular: a bright hairline where the
-     light is, a darker one opposite, which is what sells thickness. */
-  --glass-tint:        rgba(30, 30, 34, 0.55);
-  --glass-edge:        rgba(255, 255, 255, 0.14);
-
-  /* Light for the ambient field to bend. Kept strictly neutral — this is
-     luminance, not the coloured orbs that were removed earlier. */
+  --glass-tint: var(--surface-1);
+  --glass-edge: transparent;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .light {
   --bg: #ffffff;
-  --sidebar-bg: #f8f8f8;
-  --text: #121216;
-  --text-muted: #6e6e79;
-  --text-faint: #a8a8b2;
+
+  /* Light mode climbs the other way — away from white — but it is the same
+     ladder, same number of rungs, same job. */
+  --surface-1: #f6f6f8;
+  --surface-2: #eeeef2;
+  --surface-3: #e4e4eb;
+  --surface-4: #d7d7e0;
+
+  --text: #16161a;
+  --text-muted: #5a5a66;
+  --text-faint: #9a9aa6;
 
   --accent: hsl(var(--accent-h) 70% 52%);
   --accent-hover: hsl(var(--accent-h) 74% 58%);
   --accent-strong: hsl(var(--accent-h) 64% 45%);
-  --accent-soft: hsla(var(--accent-h), 70%, 52%, 0.1);
+  --accent-soft: hsla(var(--accent-h), 70%, 52%, 0.12);
   --accent-border: hsla(var(--accent-h), 70%, 52%, 0.34);
-  --accent-ring: hsla(var(--accent-h), 70%, 52%, 0.22);
+  --accent-ring: hsla(var(--accent-h), 70%, 52%, 0.2);
   --accent-gradient: hsl(var(--accent-h) 70% 52%);
 
   --danger: #d92e47;
   --danger-strong: #b81b34;
-  --danger-soft: rgba(217, 46, 71, 0.09);
+  --danger-soft: rgba(217, 46, 71, 0.1);
   --success: #0f9f6e;
 
-  --glass-1: rgba(15,15,25,0.03);
-  --glass-2: rgba(15,15,25,0.05);
-  --glass-3: rgba(15,15,25,0.08);
-  --glass-4: rgba(15,15,25,0.12);
+  --glass-1: rgba(15,15,25,0.025);
+  --glass-2: rgba(15,15,25,0.045);
+  --glass-3: rgba(15,15,25,0.075);
+  --glass-4: rgba(15,15,25,0.11);
 
-  --border:        rgba(15,15,25,0.1);
-  --border-mid:    rgba(15,15,25,0.14);
-  --border-strong: rgba(15,15,25,0.24);
-
-  --surface:       rgba(15,15,25,0.04);
-  --surface-hover: rgba(15,15,25,0.07);
-
-  --msg-self-bg:   #f1f1f3;
-  --msg-self-text: var(--text);
-  --msg-ai-bg:     transparent;
+  --border:        rgba(15,15,25,0.06);
+  --border-mid:    rgba(15,15,25,0.09);
+  --border-strong: rgba(15,15,25,0.16);
 
   --menu-bg: #ffffff;
 
   --shadow-sm:  0 0 #0000;
-  --shadow-md:  0 10px 32px rgba(15,15,25,0.12);
-  --shadow-lg:  0 18px 56px rgba(15,15,25,0.16);
+  --shadow-md:  0 8px 28px rgba(15,15,25,0.10), 0 2px 8px rgba(15,15,25,0.06);
+  --shadow-lg:  0 20px 60px rgba(15,15,25,0.14), 0 4px 16px rgba(15,15,25,0.08);
   --shadow-inset: 0 0 #0000;
   --shadow-accent: 0 0 #0000;
-
-  --clay-surface:   #f6f6f7;
-  --clay-btn:       #f2f2f4;
-  --clay-btn-hover: #e9e9ec;
-  --clay-inset:     #f4f4f6;
-  --clay-raised:    0 0 #0000;
-  --clay-raised-sm: 0 0 #0000;
-  --clay-pressed:   0 0 #0000;
-  --clay-flat:      0 0 #0000;
-
-  --glass-tint:        rgba(255, 255, 255, 0.5);
-  --glass-edge:        rgba(15, 15, 25, 0.1);
 
   /* Light mode gets the same hues at lower strength — on a near-white panel
      a little colour goes a long way, and dark text needs the room. */
@@ -167,6 +163,23 @@
   --glow-2: #b79ada;
   --glow-3: hsl(var(--accent-h) 80% 72%);
   --glow-opacity: 0.15;
+
+  /* These alias the ladder, and a custom property that references another one
+     is resolved where it is DECLARED, not where it is used. Declared only on
+     :root they would resolve against :root's dark surfaces and children would
+     inherit that already-resolved dark value — which is exactly what turned
+     the light-mode sidebar and user bubble black. Repeating them here re-runs
+     the same references against this block's light surfaces. */
+  --sidebar-bg:     var(--surface-1);
+  --surface:        var(--surface-2);
+  --surface-hover:  var(--surface-3);
+  --msg-self-bg:    var(--surface-2);
+  --msg-self-text:  var(--text);
+  --clay-surface:   var(--surface-1);
+  --clay-btn:       var(--surface-2);
+  --clay-btn-hover: var(--surface-3);
+  --clay-inset:     var(--surface-2);
+  --glass-tint:     var(--surface-1);
 }
 
 /* ── Reset ──────────────────────────────────────────────── */
@@ -225,9 +238,9 @@ body::before { content: none; }
   height: 38px;
   display: grid;
   place-items: center;
-  background: var(--glass-2);
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   cursor: pointer;
   transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
@@ -257,7 +270,7 @@ body::before { content: none; }
   height: calc(100% - var(--sidebar-inset) * 2);
   margin: var(--sidebar-inset) 0 var(--sidebar-inset) var(--sidebar-inset);
   background: var(--sidebar-bg);
-  border: 1px solid var(--border);
+  border: none;
   border-radius: var(--clay-radius);
   box-shadow: none;
   display: flex;
@@ -538,8 +551,8 @@ body::before { content: none; }
   flex-shrink: 0;
   display: grid;
   place-items: center;
-  background: var(--glass-3);
-  border: 1px solid var(--border-mid);
+  background: var(--surface-3);
+  border: none;
   color: var(--text-muted);
 }
 .account-nav-letter { font-size: 14px; font-weight: 700; line-height: 1; color: var(--text); display: none; }
@@ -696,7 +709,7 @@ body::before { content: none; }
   padding: 10px 12px;
   background: transparent;
   border: none;
-  border-radius: var(--clay-radius-sm);
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   font-family: inherit;
   font-size: 0.9rem;
@@ -719,21 +732,18 @@ body::before { content: none; }
    system it earns emphasis from weight and a hairline — not a coloured
    icon or a raised pad. */
 #resetChatBtn {
-  background: transparent;
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-md);
+  background: var(--surface-3);
+  border: none;
+  border-radius: var(--radius-lg);
   color: var(--text);
   font-weight: 500;
-  margin-bottom: 2px;
+  margin-bottom: 6px;
+  padding: 12px 14px;
   box-shadow: none;
-  transition: background 0.16s ease, border-color 0.16s ease;
+  transition: background 0.16s ease;
 }
 #resetChatBtn svg { color: var(--text); }
-#resetChatBtn:hover {
-  background: var(--glass-2);
-  border-color: var(--border-strong);
-  box-shadow: none;
-}
+#resetChatBtn:hover { background: var(--surface-4); box-shadow: none; }
 
 /* ── Chat main area ─────────────────────────────────────── */
 .chat-main {
@@ -803,9 +813,9 @@ body::before { content: none; }
   right: 0;
   min-width: 230px;
   background: var(--menu-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 5px;
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 6px;
   box-shadow: var(--shadow-md);
   z-index: 100;
 }
@@ -852,7 +862,7 @@ body::before { content: none; }
 .chat-item-wrap {
   display: flex;
   align-items: center;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-md);
   transition: background 0.13s;
 }
 .chat-item-wrap:hover { background: var(--glass-2); }
@@ -862,8 +872,8 @@ body::before { content: none; }
   min-width: 0;
   display: flex;
   align-items: center;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
   font-size: 13.5px;
   color: var(--text);
   background: transparent;
@@ -947,12 +957,12 @@ body::before { content: none; }
 .chat-menu {
   position: fixed;
   z-index: 350;
-  min-width: 196px;
+  min-width: 200px;
   background: var(--menu-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  padding: 5px;
+  padding: 6px;
   animation: menuIn 0.12s ease-out;
 }
 
@@ -1189,9 +1199,9 @@ main#messages {
    It marks who spoke without competing with the answer. */
 .self {
   align-self: flex-end;
-  max-width: 75%;
+  max-width: 78%;
   width: fit-content;
-  padding: 10px 16px;
+  padding: 13px 18px;
   border-radius: var(--radius-xl);
   background: var(--msg-self-bg);
   color: var(--msg-self-text);
@@ -1262,9 +1272,9 @@ main#messages {
 
 /* Plain solid type — no gradient fill. At this size the words carry it. */
 .empty-state h2 {
-  font-size: 1.85rem;
+  font-size: 2.15rem;
   font-weight: 600;
-  letter-spacing: -0.5px;
+  letter-spacing: -0.8px;
   max-width: 90vw;
   white-space: normal;
   color: var(--text);
@@ -1357,15 +1367,17 @@ main#messages {
   font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
 }
 .message pre {
-  background: var(--clay-inset);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 14px 16px;
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
   overflow-x: auto;
   margin: 14px 0;
   line-height: 1.6;
 }
 .message pre code { background: transparent; padding: 0; font-size: 0.855em; }
+/* Inside the wrapper the header already carries the card edge. */
+.code-block .message pre, .code-block pre { margin: 0; border-radius: 0; background: transparent; }
 
 /* Headings inside a reply: a clear step above body text. */
 .message h1, .message h2, .message h3 { margin: 22px 0 8px; font-weight: 600; line-height: 1.35; }
@@ -1393,22 +1405,26 @@ main#messages {
   display: block;
   overflow-x: auto;
 }
+.message table { border-radius: var(--radius-md); overflow: hidden; }
 .message th, .message td {
-  border: 1px solid var(--border);
-  padding: 8px 11px;
+  border: none;
+  border-bottom: 1px solid var(--border-mid);
+  padding: 10px 13px;
   text-align: left;
 }
-.message th { background: var(--glass-1); font-weight: 600; }
+.message tr:last-child td { border-bottom: none; }
+.message th { background: var(--surface-2); font-weight: 600; }
+.message td { background: var(--surface-1); }
 
 /* edit mode */
 .edit-textarea {
   width: 100%;
   min-height: 60px;
   resize: none;
-  background: transparent;
-  border: 1px solid var(--border-mid);
-  border-radius: 8px;
-  padding: 6px 10px;
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
   color: var(--text);
   font-size: inherit;
   font-family: inherit;
@@ -1568,15 +1584,15 @@ footer {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  background: var(--clay-surface);
-  border: 1px solid var(--border-mid);
-  border-radius: 24px;
-  padding: 12px 12px 10px 16px;
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-xl);
+  padding: 14px 14px 12px 18px;
   cursor: text;
   box-shadow: none;
-  transition: border-color 0.16s ease;
+  transition: background 0.16s ease, box-shadow 0.18s ease;
 }
-.footer-input-row:hover { border-color: var(--border-strong); }
+.footer-input-row:hover { background: var(--surface-3); }
 
 .composer-toolbar {
   display: flex;
@@ -1595,27 +1611,27 @@ footer {
   height: 32px;
   min-width: 32px;
   border-radius: 50%;
-  background: transparent;
-  border: 1px solid var(--border-mid);
+  background: var(--surface-3);
+  border: none;
   color: var(--text-muted);
   display: grid;
   place-items: center;
   cursor: pointer;
   flex-shrink: 0;
   box-shadow: none;
-  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+  transition: background 0.16s ease, color 0.16s ease;
 }
-.attach-btn:hover { background: var(--glass-2); color: var(--text); border-color: var(--border-strong); }
+.attach-btn:hover { background: var(--surface-4); color: var(--text); }
 .attach-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .file-preview {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px;
-  background: var(--glass-2);
-  border: 1px solid var(--border-mid);
-  border-radius: 10px;
+  padding: 8px 14px;
+  background: var(--surface-2);
+  border: none;
+  border-radius: var(--radius-md);
   font-size: 12.5px;
   color: var(--text-muted);
   margin: 0 2px;
@@ -1712,8 +1728,8 @@ footer {
 }
 
 .modal-box {
-  background: var(--clay-surface);
-  border: 1px solid var(--border);
+  background: var(--surface-1);
+  border: none;
   border-radius: var(--clay-radius);
   padding: 44px 32px 32px;
   width: 100%;
@@ -2057,11 +2073,11 @@ footer {
 /* ── Code blocks (highlighted, with copy button) ───────────── */
 .code-block {
   position: relative;
-  margin: 10px 0;
-  border: 1px solid var(--border);
-  border-radius: 10px;
+  margin: 16px 0;
+  border: none;
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: rgba(0,0,0,0.28);
+  background: var(--surface-2);
 }
 .self .code-block { background: rgba(0,0,0,0.18); }
 .light .other .code-block { background: rgba(0,0,0,0.05); }
@@ -2070,9 +2086,10 @@ footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 5px 8px 5px 12px;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.7rem;
+  padding: 7px 10px 7px 16px;
+  border-bottom: none;
+  background: var(--surface-3);
+  font-size: 0.72rem;
   color: var(--text-muted);
 }
 .code-lang { text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
@@ -2136,24 +2153,30 @@ footer {
 #sendBtn.generating { background: var(--clay-btn-hover); }
 
 /* ── Empty-state suggestion chips ──────────────────────────── */
+/* Two per row, so four chips read as a deliberate block rather than the
+   3-then-1 a free-wrapping flex row happens to produce. Collapses to one
+   column when there isn't room for two. */
 .suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  justify-items: stretch;
   gap: 10px;
-  margin-top: 24px;
+  margin-top: 28px;
   width: 100%;
-  max-width: 620px;
+  max-width: 520px;
+}
+.suggestions .chip { justify-content: center; }
+@media (max-width: 560px) {
+  .suggestions { grid-template-columns: minmax(0, 1fr); max-width: 320px; }
 }
 .chip {
   display: flex;
   align-items: center;
   gap: 7px;
   text-align: left;
-  padding: 10px 17px;
-  border-radius: 50px;
-  background: var(--clay-btn);
+  padding: 11px 19px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
   border: none;
   color: var(--text-muted);
   font-size: 0.82rem;
@@ -2604,8 +2627,8 @@ a:focus-visible,
   height: 36px;
   padding: 0 32px 0 34px;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background: var(--glass-2);
+  border: none;
+  background: var(--surface-3);
   color: var(--text);
   font-size: 13px;
   font-family: inherit;
@@ -2627,7 +2650,7 @@ a:focus-visible,
 }
 .chat-search { -webkit-appearance: none; appearance: none; }
 .chat-search::placeholder { color: var(--text-muted); }
-.chat-search:hover { background: var(--clay-surface); }
+.chat-search:hover { background: var(--surface-4); }
 .chat-search:focus {
   background: var(--glass-2);
   border-color: var(--accent-border);
@@ -3054,12 +3077,12 @@ a:focus-visible,
    look like they come from different apps. */
 .move-menu {
   position: fixed; z-index: 350;
-  min-width: 196px; max-height: 300px; overflow-y: auto;
+  min-width: 200px; max-height: 300px; overflow-y: auto;
   background: var(--menu-bg);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  padding: 5px;
+  padding: 6px;
 }
 .move-menu-label {
   font-size: 11.5px; font-weight: 600; text-transform: none;
