@@ -1,8 +1,8 @@
 # Almail AI
 
 A clean, fast, sleek AI chatbot — vanilla HTML/CSS/JS with Firebase (Auth +
-Firestore) and Google's Gemini API (via a Cloudflare Worker proxy). Liquid-glass
-monochrome UI with dark/light themes, a collapsible multi-chat sidebar, and
+Firestore) and Google's Gemini API (via a Cloudflare Worker proxy). A rail, a
+chat index, a reading column and a workbench for code — dark/light themes and
 streaming replies.
 
 ![Almail AI](assets/images/AlmailAIWhite.png)
@@ -16,7 +16,7 @@ streaming replies.
 - 🎛️ **Personalization** — custom instructions + creativity (temperature) level
 - 🎤 **Voice input** & 🔊 **read-aloud** replies (Web Speech APIs)
 - ⌨️ **Keyboard shortcuts** with a help overlay (`?`)
-- 🎨 **Liquid-glass UI** — dark / light themes, responsive, swipe gestures, ambient orbs
+- 🎨 **Dark / light themes** — responsive, swipe gestures, no decoration
 - ✨ **First-run experience** — splash screen, welcome tour, personalized greeting
 - 🧠 **Rich Markdown** — tables, lists, links, **syntax-highlighted** code, and LaTeX math
 - 📋 **Copy / regenerate / edit & resubmit** messages
@@ -31,7 +31,7 @@ streaming replies.
 - 📱 **Installable** (PWA web manifest)
 - 🛠️ **Workbench panel** — code from the reply gets a tabbed home on the right
 - 🪶 **Workbench design system** — slate surfaces, amber accent, monospace chrome
-- 🌅 **Animated sidebar** — soft colour fields drifting behind the chat list
+- 🗒️ **Sidebar as an index** — full-bleed rows, search in the header, hairline sections
 
 ## Layout
 
@@ -42,7 +42,8 @@ sidebar and a chat.
   chat, chats, temporary chat, account. Icons only.
 - **Chat list as an overlay panel.** Summoned from the rail, it slides over the
   conversation and dismisses on backdrop click or Escape. It is not a column,
-  so the reading measure sits on the true centre of the window.
+  so the reading measure sits on the true centre of the window. Its contents
+  are an index rather than a menu — see below.
 - **Turns as a document.** No bubbles on either side. Each turn carries a small
   label and is separated by space and a hairline; the user's own words read a
   shade quieter than the answer. Opposing bubbles are a messaging idiom and
@@ -83,66 +84,40 @@ active and opens the panel.
 Everything in the panel is written with `textContent`: it is model output, and
 the transcript's own sanitizing doesn't reach here.
 
-## Sidebar backdrop
+## Sidebar: the index
 
-`.sidebar-glow` in `src/css/style.css`: three soft colour fields — Gemini blue,
-violet, and the app's own rose — drifting slowly behind the panel.
+The panel was a menu — a wordmark, two actions, a projects box with its own
+empty-state sentence, a search field, the list, an upgrade card, an account
+card and a settings row. Nine zones in one column, four of which the rail
+already owns.
 
-Pure CSS, static markup, no JavaScript, so there is nothing that can fail to
-load. Three radial gradients animated on `transform` alone, which the
-compositor handles without repainting and without a blur filter; the gradients'
-own falloff is the softness. Honours `prefers-reduced-motion`.
+It is one thing now: an index of conversations.
 
-This replaced a WebGL port of Silk Aurora that ran five octaves of fbm per
-fragment per frame, and needed a layout-shaped scrim, forced-dark text tokens
-and text shadows just to keep the chat list readable against its own
-highlights. The fields here never get bright enough to fight the text, so all
-of that is gone: measured worst case across the whole panel, dark mode is
-11.5:1 primary / 4.9:1 muted and light is 15.5:1 / 5.6:1, all clear of WCAG AA
-with no scrim at all.
+- **Search is the header.** No wordmark: the rail is the brand anchor and the
+  topbar carries the title. The header is 46px, the same as the topbar and the
+  workbench head, so one chrome line runs unbroken across all three columns.
+  The field has no box of its own — a control that *is* the header doesn't
+  also need a container drawn round it. Focus turns the header's own rule
+  amber and the magnifier with it; there is no ring.
+- **Rows are full-bleed index entries**, 30px, no pills. The open conversation
+  is marked by a 2px amber bar in the gutter as well as a fill, because at
+  this density a fill on its own reads as hover.
+- **Section labels are rules**, not headings: `TODAY` in small-caps monospace
+  followed by a hairline to the panel edge, so the eye catches a boundary when
+  scrolling past at speed. Projects use the same treatment, with the `+` at
+  the far end of the rule.
+- **Actions sit above the list, not in it.** New chat is an outlined monospace
+  button; temporary chat is the ghost icon beside it.
+- **The footer is one strip** — upgrade, then the account row with settings as
+  an icon button in the same line.
 
-Colours and pace live in four variables (`--glow-1..3`, `--glow-opacity`) and
-the three `glowDrift` keyframes.
-
-## Liquid glass
-
-The glass material is still in `src/js/liquid-glass.js`, but it is **currently
-dormant**: it stands down whenever `.sidebar-glow` is in the panel, because a
-backdrop painted over it hides any backdrop-filter beneath, and a displacement
-filter nobody can see still costs a full re-filter on every repaint. Delete that
-element from `index.html` and the glass takes over again on the next load.
-
-It frosts and tints the page behind the panel and — in Chromium — bends the live
-page through an SVG displacement map with chromatic aberration at the edges.
-
-`src/js/liquid-glass.js` is a from-scratch port of the SDF displacement-map
-technique from [samasante/liquid-glass](https://github.com/samasante/liquid-glass)
-(MIT, © 2026 Sam Asante). That library is React-only and this app has no build
-step, so the technique is reimplemented in plain ES modules rather than added as
-a dependency.
-
-Three things worth knowing:
-
-- **No specular.** The technique can bake a directional rim shine and a soft
-  inner glow into the displacement map's blue channel, and layer a sheen over
-  the panel in CSS. Both are switched off (`sheen: 0`, `glow: 0`, no
-  `box-shadow`), because they read as a luminous haze this design doesn't want.
-  The filter skips the specular pass entirely rather than running it as a
-  no-op, and the panel is defined by its 1px border alone.
-- **Bending the live page is Chromium-only.** `backdrop-filter: url()` ships in
-  Chrome/Edge; Safari and Firefox support `backdrop-filter: blur()` but not
-  `url()`, and a value they can't parse drops the *whole* declaration. So the
-  engine is sniffed, biased toward a false negative, and those browsers get
-  frost + saturate + tint instead.
-- **Glass needs something behind it.** On a pure black or pure white ground
-  there is nothing to refract, so the bend only shows where real content sits
-  behind the panel — which today means mobile, where the sidebar overlays the
-  conversation. An ambient gradient behind the panel would make it visible on
-  desktop too, but it reads as a glow, so the ground stays flat.
-
-The whole effect is additive — the `.glass` class is applied by JS, never in the
-markup, so if the script fails to load the sidebar is simply the opaque flat
-panel it was before.
+The animated `.sidebar-glow` backdrop is gone. So is `src/js/liquid-glass.js`,
+a from-scratch port of the SDF displacement-map technique from
+[samasante/liquid-glass](https://github.com/samasante/liquid-glass) (MIT,
+© 2026 Sam Asante), which had been dormant behind a check for that same glow
+element. Deleting the glow would have switched the glass back on, and a
+Chromium-only refraction filter under a flat tool panel is decoration this
+design spent two rounds removing — so both went.
 
 ## Project structure
 

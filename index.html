@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/css/style.css?v=118" />
+  <link rel="stylesheet" href="src/css/style.css?v=119" />
   <!-- Markdown (pinned) + HTML sanitizer. Deferred: neither is needed before
        first paint, and deferred classic scripts still run in document order
        ahead of the module scripts at the end of <body> that consume them.
@@ -96,50 +96,11 @@
 
   <!-- Sidebar -->
   <aside id="sidebar">
-    <!-- Animated backdrop: three soft colour fields drifting behind the
-         panel. Pure CSS, so there is nothing here that can fail to load. -->
-    <div class="sidebar-glow" aria-hidden="true"><i></i><i></i><i></i></div>
-
+    <!-- The header is the filter. There is no wordmark here: the rail is the
+         brand anchor and the topbar carries the title, so this row's 46px —
+         the same height as the topbar and the workbench head — is spent on
+         the one control that earns it. -->
     <div class="sidebar-header">
-      <!-- Both wordmarks ship; CSS picks one by theme so the logo is correct
-           on the very first paint instead of after JS swaps the src. -->
-      <div class="brand">
-        <img src="assets/images/AlmailAIWhite.png" alt="Almail AI" class="brand-logo logo-dark" />
-        <img src="assets/images/AlmailAIBlack.png" alt="Almail AI" class="brand-logo logo-light" />
-      </div>
-      <button id="sidebarClose" title="Close sidebar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="3" width="18" height="18" rx="2"/>
-          <path d="M9 3v18"/>
-          <path d="m16 15-3-3 3-3"/>
-        </svg>
-      </button>
-    </div>
-
-    <nav class="sidebar-nav">
-      <button id="resetChatBtn" class="nav-item">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-        </svg>
-        <span>New chat</span>
-      </button>
-      <button id="tempChatBtn" class="nav-item">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M5 21V10a7 7 0 0 1 14 0v11l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/><circle cx="9.5" cy="11" r="0.6" fill="currentColor"/><circle cx="14.5" cy="11" r="0.6" fill="currentColor"/>
-        </svg>
-        <span>Temporary chat</span>
-      </button>
-
-      <div id="projectsSection" class="projects-section">
-        <div class="projects-header">
-          <button id="openProjectsBtn" class="projects-title-btn" title="Open Projects">Projects</button>
-          <button id="newProjectBtn" class="projects-add" title="New project" aria-label="New project">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          </button>
-        </div>
-        <div id="projectList" class="project-list"></div>
-      </div>
-
       <div class="chat-search-wrap" id="chatSearchWrap">
         <svg class="chat-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -149,41 +110,71 @@
              <form> around the real credential fields below: this field is
              never a username, whatever a browser's heuristics decide. -->
         <input id="chatSearch" class="chat-search" type="search" name="chat-search"
-               placeholder="Search chats" autocomplete="off" spellcheck="false"
+               placeholder="filter" autocomplete="off" spellcheck="false"
                data-form-type="other" data-lpignore="true" data-1p-ignore />
         <button id="chatSearchClear" class="chat-search-clear" title="Clear search" aria-label="Clear search">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
+      <button id="sidebarClose" title="Close sidebar" aria-label="Close sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 5 8 12l7 7"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Actions, not index entries — so they sit above the list, not in it. -->
+    <div class="sidebar-actions">
+      <button id="resetChatBtn" class="sb-new">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        <span>new chat</span>
+      </button>
+      <button id="tempChatBtn" class="sb-ghost" title="Temporary chat" aria-label="Temporary chat">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M5 21V10a7 7 0 0 1 14 0v11l-2.5-1.5L14 21l-2-1.5L10 21l-2.5-1.5L5 21z"/><circle cx="9.5" cy="11" r="0.6" fill="currentColor"/><circle cx="14.5" cy="11" r="0.6" fill="currentColor"/>
+        </svg>
+      </button>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div id="projectsSection" class="projects-section">
+        <div class="projects-header">
+          <button id="openProjectsBtn" class="projects-title-btn" title="Open Projects">projects</button>
+          <button id="newProjectBtn" class="projects-add" title="New project" aria-label="New project">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
+        </div>
+        <div id="projectList" class="project-list"></div>
+      </div>
+
       <!-- Chat history list populated by JS, grouped by date -->
       <div id="chatList" class="chat-list"></div>
     </nav>
 
-    <div class="sidebar-account-wrap">
+    <div class="sidebar-foot">
       <button id="upgradeBtn" class="upgrade-nav" title="Upgrade plan">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7 5.7 1.9-5.7 1.9L12 18.4l-1.9-5.9-5.7-1.9 5.7-1.9z"/><path d="M19 15l.9 2.6L22.5 18l-2.6.9L19 21.5l-.9-2.6-2.6-.9 2.6-.9z"/></svg>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.7 5.7 1.9-5.7 1.9L12 18.4l-1.9-5.9-5.7-1.9 5.7-1.9z"/></svg>
         <span id="upgradeNavLabel">Upgrade plan</span>
       </button>
-      <button id="accountBtn" class="account-nav" title="Account">
-        <span class="account-nav-avatar" id="accountNavAvatar">
-          <svg class="account-nav-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-          <span class="account-nav-letter"></span>
-        </span>
-        <span class="account-nav-text">
-          <span class="account-nav-name" id="accountNavName">Sign in</span>
-          <span class="account-nav-sub" id="accountNavSub">Save &amp; sync your chats</span>
-        </span>
-        <svg class="account-nav-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-      </button>
-    </div>
-
-    <div class="sidebar-settings-wrap">
-      <button id="settingsBtn" class="nav-item" title="Settings">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-        </svg>
-        <span>Settings</span>
-      </button>
+      <div class="sidebar-foot-row">
+        <button id="accountBtn" class="account-nav" title="Account">
+          <span class="account-nav-avatar" id="accountNavAvatar">
+            <svg class="account-nav-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <span class="account-nav-letter"></span>
+          </span>
+          <span class="account-nav-text">
+            <span class="account-nav-name" id="accountNavName">Sign in</span>
+            <span class="account-nav-sub" id="accountNavSub">Save &amp; sync your chats</span>
+          </span>
+        </button>
+        <button id="settingsBtn" class="sb-ghost" title="Settings" aria-label="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   </aside>
 
@@ -709,12 +700,8 @@
   </div>
 </div>
 
-<!-- Sidebar liquid-glass material. Additive: if it fails to load the sidebar
-     is simply the plain panel. It stands down while the CSS backdrop owns the
-     sidebar — see the note in liquid-glass.js. -->
-<script type="module" src="src/js/liquid-glass.js?v=4"></script>
 <script type="module" src="src/js/firebase.js"></script>
-<script type="module" src="src/js/chat.js?v=118"></script>
+<script type="module" src="src/js/chat.js?v=119"></script>
 
 </body>
 </html>

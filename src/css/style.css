@@ -102,10 +102,6 @@
   --col: 768px;
 
   /* Sidebar backdrop — Gemini blue, violet, and the app's own rose. */
-  --glow-1: #4285f4;
-  --glow-2: #9b72cb;
-  --glow-3: hsl(var(--accent-h) 84% 62%);
-  --glow-opacity: 0.30;
 
   --glass-tint: var(--surface-1);
   --glass-edge: transparent;
@@ -159,10 +155,6 @@
 
   /* Light mode gets the same hues at lower strength — on a near-white panel
      a little colour goes a long way, and dark text needs the room. */
-  --glow-1: #7aa9f7;
-  --glow-2: #b79ada;
-  --glow-3: hsl(var(--accent-h) 80% 72%);
-  --glow-opacity: 0.15;
 
   /* These alias the ladder, and a custom property that references another one
      is resolved where it is DECLARED, not where it is used. Declared only on
@@ -281,164 +273,6 @@ body::before { content: none; }
   z-index: 50;
 }
 
-/* ── Liquid glass ───────────────────────────────────────────
-   `.glass` is added by src/js/liquid-glass.js once it knows the engine can
-   carry the material. It is never in the markup, so if that script fails to
-   load the sidebar simply stays the opaque flat panel — the glass is additive,
-   never load-bearing.
-
-   The JS writes `backdrop-filter` itself (it has to: the SVG filter id changes
-   whenever the panel's shape does). These variables are what it interpolates,
-   so the frost can be tuned here alongside the rest of the design tokens. */
-#sidebar.glass {
-  --glass-blur: 22px;
-  --glass-saturate: 1.9;
-  /* Translucent, or there is no backdrop to filter. The tint is what gives the
-     glass its body — pure transparency reads as a hole, not a pane. */
-  background: var(--glass-tint);
-  border-color: var(--glass-edge);
-  /* No rim highlight, no outer lift, no sheen — every luminous layer is gone
-     deliberately. The panel is defined by its 1px border alone, the same way
-     every other surface in this flat system is. */
-  box-shadow: none;
-}
-
-/* Engines without `backdrop-filter: url()` (Safari, Firefox) never get the
-   bend, so they lean a little harder on frost and tint to read as glass. */
-#sidebar.glass.glass-no-bend {
-  --glass-blur: 26px;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-}
-
-/* The specular sheen layer that used to live here is gone — see above. */
-
-/* ── Sidebar backdrop ───────────────────────────────────────
-   Three soft colour fields drifting behind the panel — the Gemini look:
-   quiet, blurred, slow, no texture or grain.
-
-   Deliberately not a shader. This is three radial gradients animated on
-   `transform` alone, which the compositor handles without repainting and
-   without a blur filter — the gradients' own falloff is the softness. It
-   replaced a WebGL version that cost five octaves of fbm per fragment per
-   frame, and needed a scrim, forced-dark text tokens and text shadows to
-   keep the chat list readable against its own highlights. None of that is
-   needed here: the fields never get bright enough to fight the text.
-
-   Static markup, no JS — it can't fail to load. */
-.sidebar-glow {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: inherit;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.sidebar-glow i {
-  position: absolute;
-  display: block;
-  left: 50%;
-  width: 190%;
-  aspect-ratio: 1;
-  margin-left: -95%;
-  border-radius: 50%;
-  opacity: var(--glow-opacity);
-  will-change: transform;
-}
-
-/* Gemini blue → violet → the app's own rose, so the panel still reads as
-   Almail rather than as someone else's brand. */
-.sidebar-glow i:nth-child(1) {
-  top: -34%;
-  background: radial-gradient(circle closest-side, var(--glow-1), transparent 72%);
-  animation: glowDriftA 13s ease-in-out infinite alternate;
-}
-.sidebar-glow i:nth-child(2) {
-  top: 14%;
-  background: radial-gradient(circle closest-side, var(--glow-2), transparent 70%);
-  animation: glowDriftB 16s ease-in-out infinite alternate;
-}
-.sidebar-glow i:nth-child(3) {
-  top: 52%;
-  background: radial-gradient(circle closest-side, var(--glow-3), transparent 74%);
-  animation: glowDriftC 11s ease-in-out infinite alternate;
-}
-
-/* Translate + scale only: no layout, no paint, no filter. */
-@keyframes glowDriftA {
-  from { transform: translate3d(-14%, -6%, 0) scale(1);    }
-  to   { transform: translate3d(12%, 8%, 0)  scale(1.18); }
-}
-@keyframes glowDriftB {
-  from { transform: translate3d(16%, 6%, 0)  scale(1.12); }
-  to   { transform: translate3d(-12%, -8%, 0) scale(0.94); }
-}
-@keyframes glowDriftC {
-  from { transform: translate3d(-10%, 10%, 0) scale(0.96); }
-  to   { transform: translate3d(14%, -8%, 0)  scale(1.2);  }
-}
-
-/* A drifting background is decoration; hold it still when asked. */
-@media (prefers-reduced-motion: reduce) {
-  .sidebar-glow i { animation: none; }
-}
-
-/* Light mode's muted grey was already marginal on a plain panel (4.55:1) and
-   the backdrop's colour pushes it under 4.5. Darkened here, where the glow
-   actually is, rather than thinning the glow further. */
-.light #sidebar { --text-muted: #5a5a66; }
-
-/* The glow is absolutely positioned, so lift the panel's content above it. */
-#sidebar > *:not(.sidebar-glow) {
-  position: relative;
-  z-index: 1;
-}
-
-
-/* Desktop collapsed: show mini strip */
-@media (min-width: 900px) {
-  #app:not(.sidebar-open) #sidebar { width: 64px; }
-
-  /* Hide text and nav/footer, but keep logo and button visible */
-  #app:not(.sidebar-open) .brand h2 { display: none; }
-
-  #app:not(.sidebar-open) .sidebar-nav,
-  #app:not(.sidebar-open) .sidebar-account-wrap {
-    display: none;
-  }
-
-  /* Collapsed header: logo only, no toggle button */
-  #app:not(.sidebar-open) .sidebar-header {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: center;
-    gap: 0;
-    padding: 16px 0 14px;
-    border-bottom: none;
-  }
-
-  #app:not(.sidebar-open) #sidebarClose { display: none; }
-
-  #app:not(.sidebar-open) .brand {
-    justify-content: center;
-  }
-
-  /* Smaller logo in collapsed state */
-  #app:not(.sidebar-open) .brand-logo {
-    width: 36px;
-    height: 36px;
-    border-radius: 8px;
-  }
-
-  /* Flip icon to point right when collapsed */
-  #app:not(.sidebar-open) #sidebarClose svg {
-    transform: scaleX(-1);
-  }
-
-  /* Hide fixed toggle on desktop — mini strip handles it */
-  #sidebarToggle { display: none !important; }
-}
 
 /* Mobile: fully hide sidebar (handled via transform in mobile block below) */
 
@@ -452,9 +286,6 @@ body::before { content: none; }
   padding: 18px 16px 14px;
   border-bottom: none;
 }
-
-.brand { display: flex; align-items: center; gap: 9px; }
-
 /* A wide wordmark logo — sized by height with the width following its
    natural aspect ratio, instead of forcing it into a square icon box. */
 .brand-logo {
@@ -464,14 +295,6 @@ body::before { content: none; }
   object-fit: contain;
   flex-shrink: 0;
 }
-
-.brand h2 {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 0.3px;
-  color: var(--text);
-}
-
 #sidebarClose {
   width: 30px;
   height: 30px;
@@ -510,13 +333,6 @@ body::before { content: none; }
 .sidebar-nav:hover::-webkit-scrollbar-thumb { background: var(--border-mid); }
 .sidebar-nav { scrollbar-width: thin; scrollbar-color: transparent transparent; }
 .sidebar-nav:hover { scrollbar-color: var(--border-mid) transparent; }
-
-/* ── Account tab (sits above Settings) ──────────────────── */
-.sidebar-account-wrap {
-  margin-top: auto;
-  padding: 12px 10px 2px;
-  border-top: none;
-}
 
 .account-nav {
   display: flex;
@@ -572,22 +388,6 @@ body::before { content: none; }
   font-size: 0.72rem; color: var(--text-muted);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.account-nav-chevron { color: var(--text-muted); flex-shrink: 0; }
-
-/* ── Settings wrap — always visible in mini strip too ───── */
-.sidebar-settings-wrap {
-  padding: 6px 10px 12px;
-}
-
-/* In collapsed state: center icon only */
-#app:not(.sidebar-open) .sidebar-settings-wrap {
-  padding: 6px 0 12px;
-  display: flex;
-  justify-content: center;
-}
-#app:not(.sidebar-open) .sidebar-settings-wrap .nav-item span { display: none; }
-#app:not(.sidebar-open) .sidebar-settings-wrap .nav-item { justify-content: center; width: 36px; padding: 0; }
-
 /* ── Settings popup ─────────────────────────────────────── */
 .settings-popup {
   display: none;
@@ -701,49 +501,9 @@ body::before { content: none; }
 
 #toggleAuthMode:hover { color: var(--text); }
 
-.nav-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  width: 100%;
-  padding: 10px 12px;
-  background: transparent;
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: 0.9rem;
-  font-weight: 500;
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease, box-shadow 0.18s var(--ease);
-}
-
-.nav-item svg { flex-shrink: 0; transition: color 0.14s; }
-
-/* Hover is a fill change and nothing else. */
-.nav-item:hover {
-  background: var(--glass-2);
-  color: var(--text);
-  box-shadow: none;
-}
-
-/* "New chat" is the sidebar's primary action, but in a flat monochrome
+/* Hover is a fill change and nothing else. *//* "New chat" is the sidebar's primary action, but in a flat monochrome
    system it earns emphasis from weight and a hairline — not a coloured
    icon or a raised pad. */
-#resetChatBtn {
-  background: var(--surface-3);
-  border: none;
-  border-radius: var(--radius-lg);
-  color: var(--text);
-  font-weight: 500;
-  margin-bottom: 6px;
-  padding: 12px 14px;
-  box-shadow: none;
-  transition: background 0.16s ease;
-}
-#resetChatBtn svg { color: var(--text); }
-#resetChatBtn:hover { background: var(--surface-4); box-shadow: none; }
 
 /* ── Chat main area ─────────────────────────────────────── */
 .chat-main {
@@ -3728,10 +3488,6 @@ a:focus-visible,
   /* The dialogue column is narrower because the panel takes the other half. */
   --col: 680px;
 
-  --glow-1: #E0A030;
-  --glow-2: #5A6472;
-  --glow-3: #C8861B;
-  --glow-opacity: 0.16;
 }
 
 .light {
@@ -3764,7 +3520,6 @@ a:focus-visible,
   --glass-4: rgba(21,26,33,0.11);
 
   --menu-bg: #FFFFFF;
-  --glow-opacity: 0.1;
 }
 
 /* ── Chrome reads as a tool: monospace, small, quiet ─────── */
@@ -3919,3 +3674,292 @@ a:focus-visible,
   }
   #app.wb-open .wb-scrim { display: block; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   SIDEBAR — THE INDEX
+   ══════════════════════════════════════════════════════════════════════
+   The panel was a menu: a wordmark, two actions, a projects box with its own
+   empty-state sentence, a search field, the list, an upgrade card, an account
+   card and a settings row — nine zones in a 300px column, four of which the
+   rail already owns.
+
+   It is one thing now: an index of conversations. Search is the header,
+   the list is the body, everything else is a footer. The chrome matches the
+   workbench — monospace, lowercase, hairlines instead of pills — and the
+   header is exactly as tall as the topbar and the workbench head, so one
+   chrome line runs unbroken across all three columns.
+   ══════════════════════════════════════════════════════════════════════ */
+
+#sidebar {
+  width: 296px;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-mid);
+  box-shadow: none;
+}
+/* The glow is gone, so nothing needs lifting above it and light mode's muted
+   grey can go back to the token instead of a local override. */
+
+/* ── Header: the filter ───────────────────────────────────── */
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 46px;
+  flex-shrink: 0;
+  padding: 0 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+.chat-search-icon {
+  position: static;
+  transform: none;
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+.chat-search-wrap:focus-within .chat-search-icon { color: var(--accent); }
+
+/* No box. A field that is already the whole header does not also need a
+   container drawn around it. */
+.chat-search,
+.chat-search:hover,
+.chat-search:focus {
+  height: 32px;
+  padding: 0 24px 0 8px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--text);
+}
+.chat-search::placeholder { color: var(--text-faint); }
+
+.chat-search-clear {
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--text-faint);
+}
+.chat-search-clear:hover { background: var(--glass-2); color: var(--text); }
+
+#sidebarClose {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  color: var(--text-faint);
+}
+#sidebarClose:hover { background: var(--glass-2); color: var(--text); }
+
+/* ── Actions ──────────────────────────────────────────────── */
+.sidebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  padding: 10px 10px 8px;
+}
+.sb-new {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+}
+.sb-new:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+.sb-new svg { flex-shrink: 0; }
+
+.sb-ghost {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-faint);
+  cursor: pointer;
+  transition: background 0.14s ease, color 0.14s ease;
+}
+.sb-ghost:hover { background: var(--glass-2); color: var(--text); }
+
+/* ── The list ─────────────────────────────────────────────── */
+.sidebar-nav {
+  gap: 0;
+  padding: 0 0 8px;
+  /* The list is a list. It ends where it ends — no melt at the bottom. */
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Section rules, not headings: the label, then a hairline to the edge. So
+   the eye reads a boundary even when scrolling fast past the words. */
+.chat-group-label,
+.projects-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 12px 6px;
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.chat-group-label::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.chat-list > .chat-group-label:first-child { padding-top: 8px; }
+
+.projects-section { margin-top: 0; }
+.projects-header { justify-content: flex-start; padding-right: 8px; }
+.projects-title-btn {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.projects-header::before {
+  content: "";
+  order: 2;
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.projects-add { order: 3; width: 20px; height: 20px; border-radius: var(--radius-sm); }
+.project-hint {
+  padding: 4px 12px 8px;
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+
+/* Rows are full-bleed index entries, not floating pills. The open one is
+   marked by a bar in the gutter — a fill alone reads as hover on a list this
+   dense, and the bar survives being scrolled past at speed. */
+.chat-item-wrap,
+.project-row {
+  border-radius: 0;
+  padding-left: 2px;
+  box-shadow: inset 2px 0 0 transparent;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+}
+.chat-item-wrap:hover,
+.project-row:hover { background: var(--glass-1); }
+
+.chat-item {
+  padding: 7px 10px;
+  border-radius: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+.chat-item-wrap:hover .chat-item { color: var(--text); }
+
+.chat-item.active { background: transparent; color: var(--text); font-weight: 500; }
+.chat-item-wrap:has(.chat-item.active) {
+  background: var(--glass-2);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+.chat-action-btn { width: 24px; height: 24px; }
+
+/* ── Footer ───────────────────────────────────────────────── */
+.sidebar-foot {
+  margin-top: auto;
+  flex-shrink: 0;
+  padding: 6px;
+  border-top: 1px solid var(--border);
+}
+.sidebar-foot-row { display: flex; align-items: center; gap: 4px; }
+
+.upgrade-nav {
+  gap: 8px;
+  padding: 7px 8px;
+  margin-bottom: 2px;
+  border-radius: var(--radius-sm);
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.upgrade-nav:hover { background: var(--glass-2); color: var(--text); }
+
+.account-nav {
+  flex: 1;
+  min-width: 0;
+  gap: 9px;
+  padding: 6px 8px;
+  background: transparent;
+  border-radius: var(--radius-sm);
+}
+.account-nav:hover { background: var(--glass-2); }
+.account-nav-avatar { width: 26px; height: 26px; border-radius: var(--radius-sm); }
+.account-nav-avatar.has-user { box-shadow: none; }
+.account-nav-letter { font-size: 12px; }
+.account-nav-name {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+.account-nav-sub {
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  color: var(--text-faint);
+}
+
+/* ── The rail owns the collapsed state now ────────────────── */
+/* The old desktop mini-strip rules referenced markup this panel no longer
+   has (.brand h2, .sidebar-account-wrap). Nothing to hide: when the panel is
+   shut it is translated off-screen entirely. */
+#app:not(.sidebar-open) .chat-search-wrap,
+#app:not(.sidebar-open) .projects-section { display: flex; }
+
+@media (max-width: 480px) {
+  #sidebar { width: calc(100vw - 64px); }
+}
+
+/* Project rows sit directly above the chat rows, so they take the same
+   metrics — otherwise the list reads as two lists that happen to touch. */
+.project-item {
+  padding: 7px 10px;
+  border-radius: 0;
+  font-size: 0.8rem;
+}
+.project-name { font-weight: 400; }
+.project-chats { margin-left: 16px; padding-left: 0; }
+
+/* Focus is a hairline, not a ring: the header's own rule goes amber. The
+   magnifier follows it, so there are two cues and neither is a box. */
+.sidebar-header:focus-within { border-bottom-color: var(--accent-border); }
