@@ -818,6 +818,15 @@ function buildChatItem(chat) {
   // One "⋯" button opening a menu, rather than a row of five icons. Five
   // icons ate most of the row's width, so titles were truncated to make
   // room for controls that are used rarely.
+  // The card's own affordance: open. The ⋯ still handles rename/pin/delete
+  // and still only appears on hover, so a resting card shows one control.
+  const openBtn = document.createElement("button");
+  openBtn.className = "chat-open-btn";
+  openBtn.title = "Open chat";
+  openBtn.setAttribute("aria-label", `Open ${chat.title}`);
+  openBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>`;
+  openBtn.onclick = (e) => { e.stopPropagation(); switchToChat(chat.id); };
+
   const actions = document.createElement("div");
   actions.className = "chat-item-actions";
 
@@ -833,7 +842,7 @@ function buildChatItem(chat) {
   };
 
   actions.append(moreBtn);
-  wrap.append(btn, actions);
+  wrap.append(btn, actions, openBtn);
   return wrap;
 }
 
@@ -2164,6 +2173,18 @@ function renderStreamingBubble() {
     const meta = document.createElement("div");
     meta.className = "meta";
     meta.textContent = "Almail AI";
+    // The answer speaks from a face; the person's own words don't need one,
+    // so both sit on the same margin with one column for the eye to follow.
+    if (!isOwn) {
+      const av = document.createElement("div");
+      av.className = "message-avatar";
+      const img = document.createElement("img");
+      img.src = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";
+      img.alt = "";
+      av.appendChild(img);
+      div.appendChild(av);
+    }
+
     div.append(textDiv, meta);
     messagesEl.appendChild(div);
     // A full re-render wiped the bubble — rehydrate the finished part.
@@ -2218,12 +2239,16 @@ function renderMessages(list = currentMessages) {
   if (list.length === 0) {
     const logoSrc = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";
     const name = friendlyName(currentUser);
-    const heading = name ? `${timeGreeting()}, ${name}` : timeGreeting();
+    const heading = name ? `Hi, ${name}!` : "Hi there!";
     messagesEl.innerHTML = `
       <div class="empty-state">
-        <img src="${logoSrc}" alt="Almail AI" class="empty-logo" />
-        <h2 id="greetingText"></h2>
-        <p>How can I help you today?</p>
+        <div class="greeting-row">
+          <div class="greeting-avatar"><img src="${logoSrc}" alt="Almail AI" /></div>
+          <div>
+            <div class="greeting-hi" id="greetingText"></div>
+            <div class="greeting-ask">How can I help you?</div>
+          </div>
+        </div>
         <div class="suggestions" id="suggestionRow"></div>
       </div>`;
     const row = document.getElementById("suggestionRow");
@@ -3160,6 +3185,77 @@ if (wbCopyEl) wbCopyEl.onclick = () => {
   navigator.clipboard.writeText(item.code);
   wbCopyEl.textContent = "Copied";
   setTimeout(() => { wbCopyEl.textContent = "Copy"; }, 1400);
+};
+
+// ── Tool tiles ────────────────────────────────────────────
+// The four quick actions above the composer. Every one of them drives a
+// feature the app already has — none is a placeholder, and none opens a
+// screen that doesn't exist.
+// The picker's own accept list, kept so the Images tile can narrow it and
+// the Files tile can put it back.
+const FILE_ACCEPT = fileInput.getAttribute("accept") || "";
+
+const TOOL_TILES = [
+  {
+    id: "files",
+    label: "Chat Files",
+    icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+    art: `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>`,
+    run: () => { fileInput.setAttribute("accept", FILE_ACCEPT); fileInput.click(); },
+  },
+  {
+    id: "images",
+    label: "Images",
+    icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>`,
+    art: `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>`,
+    run: () => { fileInput.setAttribute("accept", "image/*"); fileInput.click(); },
+  },
+  {
+    id: "translate",
+    label: "Translate",
+    icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h11"/><path d="M9 3v2c0 4.4-2.2 8-5 8"/><path d="M5 9c0 2.8 2.7 5 6 5"/><path d="m12 20 4.5-10 4.5 10"/><path d="M14 17h5"/></svg>`,
+    art: `<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h11"/><path d="M9 3v2c0 4.4-2.2 8-5 8"/><path d="M5 9c0 2.8 2.7 5 6 5"/><path d="m12 20 4.5-10 4.5 10"/><path d="M14 17h5"/></svg>`,
+    // Seeds the composer and puts the caret where the text goes, rather than
+    // sending a half-written instruction on the user's behalf.
+    run: () => {
+      inputEl.value = "Translate the following into English:\n\n";
+      inputEl.focus();
+      inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+      inputEl.dispatchEvent(new Event("input"));
+    },
+  },
+  {
+    id: "audio",
+    label: "Audio Chat",
+    icon: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>`,
+    art: `<svg width="34" height="24" viewBox="0 0 48 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="9" x2="4" y2="15"/><line x1="10" y1="5" x2="10" y2="19"/><line x1="16" y1="8" x2="16" y2="16"/><line x1="22" y1="2" x2="22" y2="22"/><line x1="28" y1="7" x2="28" y2="17"/><line x1="34" y1="4" x2="34" y2="20"/><line x1="40" y1="9" x2="40" y2="15"/><line x1="46" y1="6" x2="46" y2="18"/></svg>`,
+    run: () => micBtn.click(),
+  },
+];
+
+const toolTilesEl = document.getElementById("toolTiles");
+function renderToolTiles() {
+  if (!toolTilesEl || toolTilesEl.childElementCount) return;
+  TOOL_TILES.forEach(t => {
+    const btn = document.createElement("button");
+    btn.className = "tool-tile";
+    btn.type = "button";
+    btn.title = t.label;
+    // All three strings are developer-authored SVG, never model output.
+    btn.innerHTML =
+      `<span class="tool-tile-art">${t.art}</span>` +
+      `<span class="tool-tile-label">${t.icon}<span>${t.label}</span></span>`;
+    btn.onclick = () => { if (currentUser && !isResponding) t.run(); };
+    toolTilesEl.appendChild(btn);
+  });
+}
+renderToolTiles();
+
+// The chat pane's top-left control opens the output panel, matching the
+// expand glyph in the header.
+const wbToggleBtn = document.getElementById("wbToggleBtn");
+if (wbToggleBtn) wbToggleBtn.onclick = () => {
+  appEl.classList.contains("wb-open") ? closeWorkbench() : openWorkbench();
 };
 
 // ── Chat titles ───────────────────────────────────────────

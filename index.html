@@ -20,8 +20,8 @@
   <meta name="apple-mobile-web-app-title" content="Almail AI" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="src/css/style.css?v=119" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="src/css/style.css?v=120" />
   <!-- Markdown (pinned) + HTML sanitizer. Deferred: neither is needed before
        first paint, and deferred classic scripts still run in document order
        ahead of the module scripts at the end of <body> that consume them.
@@ -101,6 +101,15 @@
          the same height as the topbar and the workbench head — is spent on
          the one control that earns it. -->
     <div class="sidebar-header">
+      <button id="sidebarClose" title="Close sidebar" aria-label="Close sidebar">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </button>
+      <div class="zone-title">Chat Results</div>
+    </div>
+
+    <div class="sidebar-search-row">
       <div class="chat-search-wrap" id="chatSearchWrap">
         <svg class="chat-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
@@ -116,11 +125,6 @@
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <button id="sidebarClose" title="Close sidebar" aria-label="Close sidebar">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M15 5 8 12l7 7"/>
-        </svg>
-      </button>
     </div>
 
     <!-- Actions, not index entries — so they sit above the list, not in it. -->
@@ -141,7 +145,7 @@
     <nav class="sidebar-nav">
       <div id="projectsSection" class="projects-section">
         <div class="projects-header">
-          <button id="openProjectsBtn" class="projects-title-btn" title="Open Projects">projects</button>
+          <button id="openProjectsBtn" class="projects-title-btn" title="Open Projects">Projects</button>
           <button id="newProjectBtn" class="projects-add" title="New project" aria-label="New project">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
@@ -244,7 +248,12 @@
 
     <!-- Top bar: current chat title + model picker -->
     <div class="topbar" id="topbar">
-      <div class="topbar-title" id="topbarTitle">Almail AI</div>
+      <button class="topbar-icon" id="wbToggleBtn" title="Output panel" aria-label="Output panel">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+        </svg>
+      </button>
+      <div class="topbar-title" id="topbarTitle">New Chat</div>
       <div class="model-switcher-wrap">
         <button class="model-switcher" id="modelSwitcherBtn" title="Choose AI model">
           <span id="modelSwitcherName">Gemini</span>
@@ -296,6 +305,8 @@
         <span class="typing-shimmer">Thinking…</span>
       </div>
     </div>
+
+    <div class="tool-tiles" id="toolTiles"></div>
 
     <footer>
       <div id="filePreview" class="file-preview" style="display:none">
@@ -701,7 +712,7 @@
 </div>
 
 <script type="module" src="src/js/firebase.js"></script>
-<script type="module" src="src/js/chat.js?v=119"></script>
+<script type="module" src="src/js/chat.js?v=120"></script>
 
 </body>
 </html>

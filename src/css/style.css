@@ -3358,50 +3358,6 @@ a:focus-visible,
 .chat-main { width: 100%; min-width: 0; }
 :root { --col: 820px; }
 
-/* ── Conversation as a document ───────────────────────────── */
-/* Both turns are plain text in the same column. Who is speaking is carried by
-   a label, which is cheaper than a shape and does not halve the line length. */
-.message {
-  display: flex;
-  flex-direction: column;
-  align-self: stretch !important;
-  max-width: 100% !important;
-  width: 100% !important;
-  background: transparent !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-}
-
-.message .meta {
-  display: block !important;
-  position: static !important;
-  order: -1;            /* chat.js appends meta last; show it as the label */
-  opacity: 1 !important;
-  margin-bottom: 8px;
-  font-size: 0.75rem !important;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-faint);
-  pointer-events: auto !important;
-}
-.self .meta  { color: var(--text-faint); }
-.other .meta { color: var(--text-muted); }
-
-/* Space and a hairline carry the turn boundary instead of a bubble edge. */
-.self:not(.grouped),
-.other:not(.grouped) { margin-top: 34px; padding-top: 34px !important; }
-.self.grouped, .other.grouped { margin-top: 18px; }
-#messages > .message:first-child { margin-top: 6px; padding-top: 0 !important; }
-.message + .message:not(.grouped) { border-top: 1px solid var(--border); }
-
-/* The user's own words read a touch quieter than the answer. */
-.self .message-text { color: var(--text-muted); font-size: 1rem; }
-.other .message-text { color: var(--text); }
-
-.msg-actions { margin-top: 14px; }
-
 /* ── Empty state: the composer is the hero ────────────────── */
 /* With no conversation there is nothing to dock the composer to, so it moves
    to the centre of the screen under the greeting, and slides back down to the
@@ -3432,120 +3388,129 @@ a:focus-visible,
 }
 
 /* ══════════════════════════════════════════════════════════════════════
-   WORKBENCH — the split canvas
+   AURORA — the current design system
+   ══════════════════════════════════════════════════════════════════════
+   Light-first. The app is one rounded surface carrying a soft mesh of
+   lilac, mint and blush; the panes are zones inside it rather than
+   detached cards, and only the content — chat cards, tool tiles, the
+   composer — actually floats.
 
-   Dialogue on the left, a persistent output panel on the right. Code and
-   other artifacts are lifted out of the reply and land in the panel, so an
-   answer has somewhere to live instead of scrolling away up the transcript.
-
-   Palette shifts with it: slate rather than pure black, amber rather than
-   rose. Chrome and labels are monospace; prose stays sans. The panel is
-   collapsed until something is routed into it, so short conversations do not
-   sit next to an empty box.
+   Dark mode is the same geometry with the mesh dropped to a whisper over
+   a deep neutral, so the layout never changes with the theme.
    ══════════════════════════════════════════════════════════════════════ */
 :root {
-  --bg:        #0E1116;
-  --surface-1: #141920;
-  --surface-2: #1A202A;
-  --surface-3: #232B36;
-  --surface-4: #2E3845;
+  /* Dark. The mesh survives as a tint, not a glow. */
+  --bg:        #0B0B0F;
+  --surface-1: #15151B;
+  --surface-2: #1C1C24;
+  --surface-3: #24242E;
+  --surface-4: #2E2E3A;
 
-  --text:       #D7DEE8;
-  --text-muted: #8B96A5;
-  --text-faint: #5A6472;
+  --text:       #F2F2F5;
+  --text-muted: #A2A2B0;
+  --text-faint: #71717F;
 
-  --accent:        #E0A030;
-  --accent-hover:  #EFB54E;
-  --accent-strong: #C8861B;
-  --accent-text:   #0E1116;
-  --accent-soft:   rgba(224, 160, 48, 0.14);
-  --accent-border: rgba(224, 160, 48, 0.42);
-  --accent-ring:   rgba(224, 160, 48, 0.26);
-  --accent-gradient: #E0A030;
+  --accent:        #2684FC;
+  --accent-hover:  #4D9BFD;
+  --accent-strong: #0C6BE8;
+  --accent-text:   #FFFFFF;
+  --accent-soft:   rgba(38, 132, 252, 0.16);
+  --accent-border: rgba(38, 132, 252, 0.4);
+  --accent-ring:   rgba(38, 132, 252, 0.26);
+  --accent-gradient: #2684FC;
 
-  --border:        rgba(215, 222, 232, 0.07);
-  --border-mid:    rgba(215, 222, 232, 0.12);
-  --border-strong: rgba(215, 222, 232, 0.22);
+  --border:        rgba(242, 242, 245, 0.07);
+  --border-mid:    rgba(242, 242, 245, 0.11);
+  --border-strong: rgba(242, 242, 245, 0.2);
 
-  --glass-1: rgba(215,222,232,0.035);
-  --glass-2: rgba(215,222,232,0.06);
-  --glass-3: rgba(215,222,232,0.10);
-  --glass-4: rgba(215,222,232,0.15);
+  --glass-1: rgba(242,242,245,0.035);
+  --glass-2: rgba(242,242,245,0.06);
+  --glass-3: rgba(242,242,245,0.1);
+  --glass-4: rgba(242,242,245,0.15);
 
-  --menu-bg: #1A202A;
+  --menu-bg: #1C1C24;
 
-  /* Quieter, squarer — a tool, not a card deck. */
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 12px;
-  --clay-radius:    10px;
-  --clay-radius-sm: 8px;
-  --clay-radius-xs: 6px;
+  /* The mesh: lilac, mint, blush. Placed, never animated. */
+  --mesh-lilac: rgba(218, 212, 226, 0.16);
+  --mesh-mint:  rgba(195, 220, 168, 0.11);
+  --mesh-blush: rgba(38, 132, 252, 0.1);
+  --mesh-warm:  rgba(255, 255, 255, 0.035);
+
+  /* Floating content: panels, cards, tiles, the composer. */
+  --pane:       rgba(28, 28, 36, 0.5);
+  --pane-line:  rgba(242, 242, 245, 0.08);
+  --card:       rgba(36, 36, 46, 0.62);
+  --card-hover: rgba(46, 46, 58, 0.72);
+  --card-line:  rgba(242, 242, 245, 0.08);
+  --bubble:     rgba(36, 36, 46, 0.6);
+  --tile:       rgba(36, 36, 46, 0.55);
+  --mint-chip:  rgba(112, 176, 120, 0.18);
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.28);
+  --shadow-pop:  0 2px 6px rgba(0,0,0,0.34), 0 18px 50px rgba(0,0,0,0.42);
+
+  /* Soft and generous — nothing in this design has a sharp corner. */
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 26px;
+  --radius-pill: 999px;
+  --clay-radius:    20px;
+  --clay-radius-sm: 16px;
+  --clay-radius-xs: 12px;
 
   --mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
-
-  /* The dialogue column is narrower because the panel takes the other half. */
-  --col: 680px;
-
+  --col: 700px;
 }
 
 .light {
-  --bg:        #FBFBFC;
-  --surface-1: #F2F3F5;
-  --surface-2: #E9EBEF;
-  --surface-3: #DFE2E8;
-  --surface-4: #D2D7DF;
+  --bg:        #FFFFFF;
+  --surface-1: #FFFFFF;
+  --surface-2: #F4F3F8;
+  --surface-3: #ECEBF2;
+  --surface-4: #E1E0EA;
 
-  --text:       #151A21;
-  --text-muted: #5B6673;
-  --text-faint: #8D97A4;
+  --text:       #000000;
+  --text-muted: #5E5E68;
+  --text-faint: #96969F;
 
-  --accent:        #A96A08;
-  --accent-hover:  #C07C10;
-  --accent-strong: #8A5606;
+  --accent:        #2684FC;
+  --accent-hover:  #0C6BE8;
+  --accent-strong: #0A5AC4;
   --accent-text:   #FFFFFF;
-  --accent-soft:   rgba(169, 106, 8, 0.11);
-  --accent-border: rgba(169, 106, 8, 0.34);
-  --accent-ring:   rgba(169, 106, 8, 0.2);
-  --accent-gradient: #A96A08;
+  --accent-soft:   rgba(38, 132, 252, 0.1);
+  --accent-border: rgba(38, 132, 252, 0.3);
+  --accent-ring:   rgba(38, 132, 252, 0.2);
+  --accent-gradient: #2684FC;
 
-  --border:        rgba(21, 26, 33, 0.07);
-  --border-mid:    rgba(21, 26, 33, 0.11);
-  --border-strong: rgba(21, 26, 33, 0.2);
+  --border:        rgba(20, 20, 26, 0.06);
+  --border-mid:    rgba(20, 20, 26, 0.1);
+  --border-strong: rgba(20, 20, 26, 0.18);
 
-  --glass-1: rgba(21,26,33,0.025);
-  --glass-2: rgba(21,26,33,0.045);
-  --glass-3: rgba(21,26,33,0.075);
-  --glass-4: rgba(21,26,33,0.11);
+  --glass-1: rgba(20,20,26,0.022);
+  --glass-2: rgba(20,20,26,0.042);
+  --glass-3: rgba(20,20,26,0.07);
+  --glass-4: rgba(20,20,26,0.1);
 
   --menu-bg: #FFFFFF;
-}
 
-/* ── Chrome reads as a tool: monospace, small, quiet ─────── */
-.topbar-title,
-.chat-group-label,
-.message .meta,
-.model-switcher,
-.footer-disclaimer,
-#rail .si-btn {
-  font-family: var(--mono);
+  --mesh-lilac: rgba(218, 212, 226, 0.95);
+  --mesh-mint:  rgba(195, 220, 168, 0.55);
+  --mesh-blush: rgba(218, 212, 226, 0.6);
+  --mesh-warm:  rgba(255, 255, 255, 0.86);
+
+  --pane:       rgba(255, 255, 255, 0.4);
+  --pane-line:  rgba(20, 20, 26, 0.06);
+  --card:       rgba(255, 255, 255, 0.72);
+  --card-hover: rgba(255, 255, 255, 0.92);
+  --card-line:  rgba(255, 255, 255, 0.8);
+  --bubble:     rgba(255, 255, 255, 0.66);
+  --tile:       rgba(255, 255, 255, 0.6);
+  --mint-chip:  rgba(195, 220, 168, 0.5);
+
+  --shadow-card: 0 1px 2px rgba(23, 20, 44, 0.05), 0 8px 24px rgba(23, 20, 44, 0.06);
+  --shadow-pop:  0 2px 6px rgba(23, 20, 44, 0.07), 0 18px 50px rgba(23, 20, 44, 0.12);
 }
-.topbar-title {
-  font-size: 0.82rem;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--text-muted);
-}
-.topbar { height: 46px; border-bottom: 1px solid var(--border); }
-.message .meta {
-  text-transform: lowercase;
-  letter-spacing: 0;
-  font-size: 0.74rem !important;
-  font-weight: 500;
-}
-.self .meta  { color: var(--accent); }
-.other .meta { color: var(--text-faint); }
 
 /* ── The split ────────────────────────────────────────────── */
 #workbench {
@@ -3675,291 +3640,664 @@ a:focus-visible,
   #app.wb-open .wb-scrim { display: block; }
 }
 
-/* ══════════════════════════════════════════════════════════════════════
-   SIDEBAR — THE INDEX
-   ══════════════════════════════════════════════════════════════════════
-   The panel was a menu: a wordmark, two actions, a projects box with its own
-   empty-state sentence, a search field, the list, an upgrade card, an account
-   card and a settings row — nine zones in a 300px column, four of which the
-   rail already owns.
 
-   It is one thing now: an index of conversations. Search is the header,
-   the list is the body, everything else is a footer. The chrome matches the
-   workbench — monospace, lowercase, hairlines instead of pills — and the
-   header is exactly as tall as the topbar and the workbench head, so one
-   chrome line runs unbroken across all three columns.
+
+/* ══════════════════════════════════════════════════════════════════════
+   AURORA — structure
    ══════════════════════════════════════════════════════════════════════ */
 
-#sidebar {
-  width: 296px;
-  background: var(--surface-1);
-  border-right: 1px solid var(--border-mid);
-  box-shadow: none;
-}
-/* The glow is gone, so nothing needs lifting above it and light mode's muted
-   grey can go back to the token instead of a local override. */
-
-/* ── Header: the filter ───────────────────────────────────── */
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  height: 46px;
-  flex-shrink: 0;
-  padding: 0 6px 0 10px;
-  border-bottom: 1px solid var(--border);
+body {
+  font-family: 'Plus Jakarta Sans', Inter, -apple-system, BlinkMacSystemFont,
+               'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
 }
 
-.chat-search-wrap {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  margin: 0;
-  display: flex;
-  align-items: center;
+/* The mesh. Four placed radial fields, fixed and still — the softness is
+   the gradients' own falloff, so there is no blur filter and nothing moves.
+   It sits behind everything, including the rail, so the whole app reads as
+   one surface rather than a set of panels on a backdrop. */
+#app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 8% -10%,  var(--mesh-lilac), transparent 62%),
+    radial-gradient(90% 80% at -8% 108%,  var(--mesh-mint),  transparent 60%),
+    radial-gradient(110% 95% at 108% 96%, var(--mesh-blush), transparent 62%),
+    radial-gradient(70% 60% at 62% 26%,   var(--mesh-warm),  transparent 70%);
 }
-.chat-search-icon {
-  position: static;
-  transform: none;
-  flex-shrink: 0;
-  color: var(--text-faint);
-}
-.chat-search-wrap:focus-within .chat-search-icon { color: var(--accent); }
+#app > * { position: relative; z-index: 1; }
 
-/* No box. A field that is already the whole header does not also need a
-   container drawn around it. */
-.chat-search,
-.chat-search:hover,
-.chat-search:focus {
-  height: 32px;
-  padding: 0 24px 0 8px;
-  border: none;
-  border-radius: 0;
+/* ── Rail: circular buttons floating on the mesh ──────────── */
+#rail {
+  width: 60px;
   background: transparent;
-  box-shadow: none;
-  outline: none;
-  font-family: var(--mono);
-  font-size: 0.76rem;
-  color: var(--text);
-}
-.chat-search::placeholder { color: var(--text-faint); }
-
-.chat-search-clear {
-  right: 2px;
-  width: 18px;
-  height: 18px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-faint);
-}
-.chat-search-clear:hover { background: var(--glass-2); color: var(--text); }
-
-#sidebarClose {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  color: var(--text-faint);
-}
-#sidebarClose:hover { background: var(--glass-2); color: var(--text); }
-
-/* ── Actions ──────────────────────────────────────────────── */
-.sidebar-actions {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  padding: 10px 10px 8px;
-}
-.sb-new {
-  flex: 1;
-  display: flex;
-  align-items: center;
+  border-right: none;
+  padding: 14px 0 12px;
   gap: 8px;
-  height: 32px;
-  padding: 0 10px;
-  border: 1px solid var(--border-mid);
-  border-radius: var(--radius-sm);
+}
+.rail-mark { display: none; }
+#rail .si-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-muted);
-  font-family: var(--mono);
-  font-size: 0.74rem;
-  text-align: left;
-  cursor: pointer;
-  transition: border-color 0.14s ease, color 0.14s ease, background 0.14s ease;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
 }
-.sb-new:hover {
-  border-color: var(--accent-border);
-  color: var(--accent);
-  background: var(--accent-soft);
+#rail .si-btn:hover { background: var(--glass-2); color: var(--text); }
+#rail .si-btn:active { transform: scale(0.94); }
+/* The open section is a filled disc, the way the reference marks it. */
+#app.sidebar-open #rail #si-chats,
+#rail .si-btn.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 12px var(--accent-ring);
 }
-.sb-new svg { flex-shrink: 0; }
+.sidebar-icon-nav { gap: 8px; border-top: none; padding: 0; }
 
-.sb-ghost {
-  width: 32px;
-  height: 32px;
+/* ── The two zones ────────────────────────────────────────── */
+/* One surface, split by a hairline. Not two detached cards: the mesh has to
+   run across the seam or the app stops reading as a single object. */
+#sidebar {
+  background: transparent;
+  border-right: 1px solid var(--pane-line);
+  box-shadow: none;
+  width: 330px;
+}
+.chat-main { background: transparent; }
+
+/* Wide enough for both: the index stops being an overlay and takes its
+   place in the row, so the conversation is never covered to browse. */
+@media (min-width: 1180px) {
+  #sidebar {
+    position: static;
+    transform: none;
+    height: auto;
+    flex-shrink: 0;
+    box-shadow: none;
+  }
+  #app:not(.sidebar-open) #sidebar { display: none; }
+  #sidebarBackdrop { display: none !important; }
+}
+
+/* ── Zone headers ─────────────────────────────────────────── */
+.sidebar-header,
+.topbar {
+  height: 62px;
+  flex-shrink: 0;
+  border-bottom: none;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sidebar-header { justify-content: flex-start; }
+.zone-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+.sidebar-header .zone-title { margin-left: 4px; }
+
+/* Round chrome buttons, one shape for every header control. */
+.round-btn,
+#sidebarClose,
+#wbClose,
+.topbar-icon {
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
   border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--text-faint);
+  border-radius: var(--radius-pill);
+  background: var(--glass-1);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+.round-btn:hover,
+#sidebarClose:hover,
+#wbClose:hover,
+.topbar-icon:hover { background: var(--glass-3); color: var(--text); }
+.round-btn:active,
+#sidebarClose:active,
+.topbar-icon:active { transform: scale(0.93); }
+
+.topbar { justify-content: space-between; }
+.topbar-title {
+  flex: 1;
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+
+/* ── Search ───────────────────────────────────────────────── */
+.chat-search-wrap { position: relative; margin: 2px 14px 10px; display: flex; align-items: center; }
+.chat-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-faint); }
+.chat-search,
+.chat-search:hover,
+.chat-search:focus {
+  width: 100%;
+  height: 40px;
+  padding: 0 34px 0 38px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.86rem;
+  box-shadow: none;
+  outline: none;
+}
+.chat-search:focus { border-color: var(--accent-border); }
+.chat-search::placeholder { color: var(--text-faint); }
+.chat-search-clear { right: 10px; background: var(--glass-2); box-shadow: none; }
+
+/* ── The index: date groups of cards ──────────────────────── */
+.sidebar-nav { padding: 0 14px 14px; gap: 0; -webkit-mask-image: none; mask-image: none; }
+
+.chat-group-label {
+  display: block;
+  padding: 16px 4px 10px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
+}
+.chat-list > .chat-group-label:first-child { padding-top: 6px; }
+
+/* Each conversation is a card, not a row — the reference's "Chat Results".
+   The ⋯ menu is the same one the rows had; only the frame changed. */
+.chat-item-wrap,
+.project-row {
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  margin-bottom: 8px;
+  padding: 2px 4px 2px 2px;
+  transition: background 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+.chat-item-wrap:hover,
+.project-row:hover { background: var(--card-hover); transform: translateY(-1px); }
+.chat-item-wrap:has(.chat-item.active) {
+  background: var(--card-hover);
+  border-color: var(--accent-border);
+  box-shadow: var(--shadow-card), inset 0 0 0 1px var(--accent-border);
+}
+
+.chat-item {
+  padding: 12px 10px 12px 12px;
+  border-radius: var(--radius-lg);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+}
+.chat-item.active { background: transparent; font-weight: 600; }
+.chat-item span {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+
+/* The card's own affordance is a round ↗, matching the reference; the ⋯
+   still appears on hover for rename / pin / delete. */
+.chat-open-btn {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  margin-right: 4px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--glass-2);
+  color: var(--text-muted);
   cursor: pointer;
   transition: background 0.14s ease, color 0.14s ease;
 }
-.sb-ghost:hover { background: var(--glass-2); color: var(--text); }
+.chat-item-wrap:hover .chat-open-btn { background: var(--glass-3); color: var(--text); }
+.chat-action-btn { width: 30px; height: 30px; border-radius: var(--radius-pill); }
 
-/* ── The list ─────────────────────────────────────────────── */
-.sidebar-nav {
-  gap: 0;
-  padding: 0 0 8px;
-  /* The list is a list. It ends where it ends — no melt at the bottom. */
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-
-/* Section rules, not headings: the label, then a hairline to the edge. So
-   the eye reads a boundary even when scrolling fast past the words. */
-.chat-group-label,
 .projects-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 16px 12px 6px;
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--text-faint);
+  justify-content: space-between;
+  padding: 14px 4px 8px;
 }
-.chat-group-label::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-.chat-list > .chat-group-label:first-child { padding-top: 8px; }
-
-.projects-section { margin-top: 0; }
-.projects-header { justify-content: flex-start; padding-right: 8px; }
 .projects-title-btn {
   font-family: inherit;
-  font-size: inherit;
-  font-weight: inherit;
-  letter-spacing: inherit;
-  text-transform: inherit;
-  color: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  color: var(--text);
 }
-.projects-header::before {
-  content: "";
-  order: 2;
+.projects-add { width: 28px; height: 28px; border-radius: var(--radius-pill); background: var(--glass-2); }
+.project-item { padding: 12px; border-radius: var(--radius-lg); font-size: 0.88rem; }
+.project-hint { padding: 2px 4px 10px; font-family: inherit; font-size: 0.8rem; color: var(--text-faint); }
+.project-chats { margin-left: 10px; padding-left: 0; border-left: none; }
+
+/* ── Actions above the index ──────────────────────────────── */
+.sidebar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding: 4px 14px 8px; }
+.sb-new {
   flex: 1;
-  height: 1px;
-  background: var(--border);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 42px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.16s ease, transform 0.16s ease;
 }
-.projects-add { order: 3; width: 20px; height: 20px; border-radius: var(--radius-sm); }
-.project-hint {
-  padding: 4px 12px 8px;
-  font-family: var(--mono);
-  font-size: 0.68rem;
-  color: var(--text-faint);
-}
-
-/* Rows are full-bleed index entries, not floating pills. The open one is
-   marked by a bar in the gutter — a fill alone reads as hover on a list this
-   dense, and the bar survives being scrolled past at speed. */
-.chat-item-wrap,
-.project-row {
-  border-radius: 0;
-  padding-left: 2px;
-  box-shadow: inset 2px 0 0 transparent;
-  transition: background 0.12s ease, box-shadow 0.12s ease;
-}
-.chat-item-wrap:hover,
-.project-row:hover { background: var(--glass-1); }
-
-.chat-item {
-  padding: 7px 10px;
-  border-radius: 0;
-  font-size: 0.8rem;
+.sb-new:hover { background: var(--card-hover); transform: translateY(-1px); }
+.sb-ghost {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
   color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
 }
-.chat-item-wrap:hover .chat-item { color: var(--text); }
-
-.chat-item.active { background: transparent; color: var(--text); font-weight: 500; }
-.chat-item-wrap:has(.chat-item.active) {
-  background: var(--glass-2);
-  box-shadow: inset 2px 0 0 var(--accent);
-}
-
-.chat-action-btn { width: 24px; height: 24px; }
+.sb-ghost:hover { background: var(--card-hover); color: var(--text); }
 
 /* ── Footer ───────────────────────────────────────────────── */
-.sidebar-foot {
-  margin-top: auto;
-  flex-shrink: 0;
-  padding: 6px;
-  border-top: 1px solid var(--border);
-}
-.sidebar-foot-row { display: flex; align-items: center; gap: 4px; }
-
+.sidebar-foot { margin-top: auto; flex-shrink: 0; padding: 10px 14px 14px; border-top: none; }
+.sidebar-foot-row { display: flex; align-items: center; gap: 8px; }
 .upgrade-nav {
-  gap: 8px;
-  padding: 7px 8px;
-  margin-bottom: 2px;
-  border-radius: var(--radius-sm);
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 400;
+  gap: 9px;
+  padding: 9px 12px;
+  margin-bottom: 6px;
+  border-radius: var(--radius-pill);
+  font-family: inherit;
+  font-size: 0.83rem;
+  font-weight: 500;
   color: var(--text-muted);
 }
 .upgrade-nav:hover { background: var(--glass-2); color: var(--text); }
-
-.account-nav {
-  flex: 1;
-  min-width: 0;
-  gap: 9px;
-  padding: 6px 8px;
-  background: transparent;
-  border-radius: var(--radius-sm);
-}
+.account-nav { flex: 1; min-width: 0; gap: 10px; padding: 8px 10px; background: transparent; border-radius: var(--radius-pill); }
 .account-nav:hover { background: var(--glass-2); }
-.account-nav-avatar { width: 26px; height: 26px; border-radius: var(--radius-sm); }
-.account-nav-avatar.has-user { box-shadow: none; }
-.account-nav-letter { font-size: 12px; }
-.account-nav-name {
-  font-size: 0.78rem;
-  font-weight: 500;
-}
-.account-nav-sub {
-  font-family: var(--mono);
-  font-size: 0.66rem;
-  color: var(--text-faint);
-}
+.account-nav-avatar { width: 30px; height: 30px; border-radius: var(--radius-pill); }
+.account-nav-name { font-size: 0.83rem; font-weight: 600; }
+.account-nav-sub { font-family: inherit; font-size: 0.72rem; color: var(--text-faint); }
 
-/* ── The rail owns the collapsed state now ────────────────── */
-/* The old desktop mini-strip rules referenced markup this panel no longer
-   has (.brand h2, .sidebar-account-wrap). Nothing to hide: when the panel is
-   shut it is translated off-screen entirely. */
-#app:not(.sidebar-open) .chat-search-wrap,
-#app:not(.sidebar-open) .projects-section { display: flex; }
+/* ══ The conversation ═════════════════════════════════════ */
+#messages { padding: 8px 0 12px; }
 
-@media (max-width: 480px) {
-  #sidebar { width: calc(100vw - 64px); }
+/* Assistant turns carry an avatar in a left gutter; the person's don't, so
+   both speak from the same margin and the eye has one column to follow. */
+.message {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 0 12px;
+  align-items: start;
+  border: none;
+  padding: 14px 0;
+  margin: 0;
 }
-
-/* Project rows sit directly above the chat rows, so they take the same
-   metrics — otherwise the list reads as two lists that happen to touch. */
-.project-item {
-  padding: 7px 10px;
-  border-radius: 0;
+.message .meta { display: none; }
+.message-avatar {
+  grid-column: 1;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
   font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent);
 }
-.project-name { font-weight: 400; }
-.project-chats { margin-left: 16px; padding-left: 0; }
+.message-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.message-text { grid-column: 2; min-width: 0; }
 
-/* Focus is a hairline, not a ring: the header's own rule goes amber. The
-   magnifier follows it, so there are two cues and neither is a box. */
-.sidebar-header:focus-within { border-bottom-color: var(--accent-border); }
+/* The person's turn is a soft bubble that stops well short of the measure. */
+.self .message-text {
+  max-width: 72%;
+  padding: 13px 17px;
+  border-radius: var(--radius-lg);
+  background: var(--bubble);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+}
+/* The answer is a card too, just a quieter one — it has to hold lists,
+   tables and code without looking like a chat bubble. */
+.other .message-text {
+  padding: 16px 20px;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+}
+.message-text p { line-height: 1.62; }
+
+/* Row actions become the reference's vertical stack of round buttons. */
+.message-actions {
+  grid-column: 2;
+  display: flex;
+  gap: 6px;
+  padding: 8px 0 0 4px;
+}
+.msg-action-btn {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-1);
+}
+.msg-action-btn:hover { background: var(--glass-3); }
+
+/* ── Greeting ─────────────────────────────────────────────── */
+.greeting-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 0 12px;
+  align-items: start;
+  padding: 8px 0 22px;
+}
+.greeting-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  display: grid;
+  place-items: center;
+}
+.greeting-avatar img { width: 72%; height: 72%; object-fit: contain; }
+.greeting-hi {
+  font-size: 1.28rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: -0.015em;
+}
+.greeting-ask {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.025em;
+  margin-top: 2px;
+}
+
+/* ── Tool tiles ───────────────────────────────────────────── */
+.tool-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  width: min(var(--col), 100% - 32px);
+  margin: 0 auto 10px;
+}
+.tool-tile {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 92px;
+  padding: 10px 12px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-lg);
+  background: var(--tile);
+  box-shadow: var(--shadow-card);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+.tool-tile:hover { background: var(--card-hover); transform: translateY(-2px); }
+.tool-tile-art {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent);
+}
+.tool-tile-label { display: flex; align-items: center; gap: 7px; }
+.tool-tile-label svg { flex-shrink: 0; color: var(--text-muted); }
+
+/* ── Composer ─────────────────────────────────────────────── */
+footer { padding: 0 16px 14px; background: transparent; border: none; }
+.footer-input-row {
+  width: min(var(--col), 100%);
+  margin: 0 auto;
+  border-radius: var(--radius-xl);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-pop);
+  padding: 6px 6px 6px 8px;
+  display: flex;
+  align-items: flex-end;
+  gap: 4px;
+}
+#messageInput {
+  flex: 1;
+  min-height: 40px;
+  padding: 11px 6px;
+  background: transparent;
+  border: none;
+  font-family: inherit;
+  font-size: 0.92rem;
+}
+.composer-toolbar { padding: 0; gap: 4px; border: none; flex-shrink: 0; }
+.composer-spacer { display: none; }
+.attach-btn,
+.mic-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+}
+.attach-btn:hover,
+.mic-btn:hover { background: var(--glass-2); color: var(--text); }
+#sendBtn {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+}
+#sendBtn:hover:not(:disabled) { background: var(--accent-hover); }
+.footer-disclaimer { margin-top: 8px; font-family: inherit; font-size: 0.7rem; color: var(--text-faint); }
+
+/* ── Workbench, in the same material ──────────────────────── */
+#workbench { background: transparent; border-left: 1px solid var(--pane-line); }
+.wb-head { height: 62px; border-bottom: none; padding: 0 10px 0 18px; font-family: inherit; }
+.wb-tab { border-radius: var(--radius-pill); font-family: inherit; font-size: 0.78rem; font-weight: 600; padding: 7px 14px; }
+.wb-tab.active { background: var(--card); color: var(--text); box-shadow: var(--shadow-card); }
+.wb-btn { border-radius: var(--radius-pill); font-family: inherit; font-size: 0.78rem; font-weight: 500; padding: 7px 12px; }
+.wb-body { padding: 4px 18px 18px; font-size: 0.78rem; }
+.code-block.wb-linked { border-radius: var(--radius-lg); }
+
+/* ── Mobile: the rail becomes a floating bar ──────────────── */
+@media (max-width: 760px) {
+  #rail {
+    position: fixed;
+    left: 50%;
+    bottom: 14px;
+    top: auto;
+    transform: translateX(-50%);
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 6px;
+    border-radius: var(--radius-pill);
+    background: var(--card);
+    border: 1px solid var(--card-line);
+    box-shadow: var(--shadow-pop);
+    z-index: 60;
+  }
+  .rail-spacer { display: none; }
+  .sidebar-icon-nav { flex-direction: row; gap: 4px; }
+  .sidebar-icon-account { display: none !important; }
+  .sidebar-icon-profile { padding: 0; border: none; }
+  #sidebar { left: 0; width: 100vw; }
+  .chat-main, #app { padding-left: 0; }
+  footer { padding-bottom: 76px; }
+  .tool-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .self .message-text { max-width: 86%; }
+  .message { grid-template-columns: 38px minmax(0, 1fr); gap: 0 8px; }
+}
+
+
+/* ── Aurora: corrections from the first render ────────────── */
+
+/* The reading column. Turns are constrained and centred in the pane instead
+   of running the full width of a 1440px window. */
+#messages > .message,
+#messages > .msg-actions,
+#messages > .date-sep,
+.empty-state {
+  width: min(var(--col), 100% - 40px);
+  margin-left: auto;
+  margin-right: auto;
+}
+#messages { display: flex; flex-direction: column; }
+
+/* The document layout's label is gone: who spoke is carried by the avatar
+   and the bubble now, so the row is one grid cell of content. */
+.message .meta { display: none; }
+.message + .message:not(.grouped) { border-top: none; }
+.self:not(.grouped),
+.other:not(.grouped) { margin-top: 0; padding-top: 0; }
+.self.grouped, .other.grouped { margin-top: 0; }
+.self, .other {
+  align-self: auto;
+  width: auto;
+  max-width: none;
+  padding: 10px 0;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+.self .message-text { color: var(--text); font-size: 0.95rem; }
+.other .message-text { color: var(--text); font-size: 0.95rem; }
+
+/* A wordmark in a 36px disc has to be contained, not cropped. */
+.message-avatar img,
+.greeting-avatar img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.msg-actions { width: min(var(--col), 100% - 40px); margin: 0 auto; padding: 0 0 6px 56px; }
+
+/* Composer: one slim pill, controls on the baseline of the text. */
+.footer-input-row { align-items: center; padding: 5px 6px 5px 18px; }
+#messageInput { min-height: 30px; max-height: 180px; padding: 8px 0; line-height: 1.5; }
+
+/* The model picker is a real control, so it stays — as a quiet pill rather
+   than a second title competing with the one in the middle. */
+.model-switcher {
+  padding: 7px 12px;
+  border-radius: var(--radius-pill);
+  background: var(--glass-1);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+.model-switcher:hover { background: var(--glass-3); color: var(--text); }
+
+/* Section headings in the index all read the same, whatever they list. */
+.projects-header { padding-bottom: 6px; }
+.suggestions { justify-content: flex-start; }
+.chip { border-radius: var(--radius-pill); background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--shadow-card); }
+
+/* The tiles belong to the composer, so they share its measure and gutters. */
+.tool-tiles { width: min(var(--col), 100% - 40px); }
+
+/* The composer was a column (text above, toolbar below); in this design it
+   is one row, so the controls sit on the text's own baseline at the end. */
+.footer-input-row { flex-direction: row; }
+.footer-input-row:hover { background: var(--card); }
+.footer-input-row:focus-within { border-color: var(--accent-border); box-shadow: var(--shadow-pop); }
+
+/* The brand asset is a wordmark and turns to mush at 36px, so the assistant's
+   avatar is a mark of its own: a white disc with the accent glyph. */
+.message-avatar,
+.greeting-avatar { background: var(--surface-1); }
+.message-avatar img,
+.greeting-avatar img { display: none; }
+.message-avatar::after,
+.greeting-avatar::after {
+  content: "";
+  width: 17px;
+  height: 17px;
+  background: var(--accent);
+  -webkit-mask: var(--spark) center / contain no-repeat;
+          mask: var(--spark) center / contain no-repeat;
+}
+.greeting-avatar::after { width: 19px; height: 19px; }
+:root {
+  --spark: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2.6l2.1 6.4 6.4 2.1-6.4 2.1L12 19.6l-2.1-6.4L3.5 11.1l6.4-2.1z'/%3E%3Cpath d='M18.6 15.2l.9 2.7 2.7.9-2.7.9-.9 2.7-.9-2.7-2.7-.9 2.7-.9z'/%3E%3C/svg%3E");
+}
+
+/* The greeting addresses you from the same margin the conversation uses, so
+   the first turn doesn't jump left when it arrives. */
+.empty-state { align-items: flex-start; text-align: left; gap: 14px; }
+.empty-state .suggestions { justify-content: flex-start; }
+
+/* ── Mobile fixes ─────────────────────────────────────────── */
+@media (max-width: 760px) {
+  /* The index takes the whole screen; an older rule still capped it at 340px
+     and left the conversation showing as a dead sliver beside it. */
+  #sidebar { left: 0 !important; width: 100vw !important; max-width: none !important; }
+  #sidebarBackdrop { display: none; }
+
+  /* One row, no wrapping — the bar is a pill, not a blob. */
+  #rail {
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+  }
+  /* #rail .sidebar-icon-* is column at higher specificity than the class on
+     its own, so the bar has to be turned by the same selector. */
+  #rail .sidebar-icon-nav,
+  #rail .sidebar-icon-profile {
+    flex-direction: row;
+    width: auto;
+    gap: 4px;
+    padding: 0;
+    border: none;
+    margin: 0;
+    flex: none;
+  }
+  /* Clear of the floating bar. */
+  .sidebar-foot { padding-bottom: 76px; }
+  #rail .si-btn { width: 40px; height: 40px; }
+}
