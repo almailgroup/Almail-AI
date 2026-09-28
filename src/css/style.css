@@ -3656,11 +3656,15 @@ body {
    the gradients' own falloff, so there is no blur filter and nothing moves.
    It sits behind everything, including the rail, so the whole app reads as
    one surface rather than a set of panels on a backdrop. */
+#app { isolation: isolate; }
 #app::before {
   content: "";
   position: absolute;
   inset: 0;
-  z-index: 0;
+  /* Behind every child, without making the children stacking contexts —
+     `isolation: isolate` on #app keeps a negative index from falling behind
+     the page itself. */
+  z-index: -1;
   pointer-events: none;
   border-radius: inherit;
   background:
@@ -3669,7 +3673,6 @@ body {
     radial-gradient(110% 95% at 108% 96%, var(--mesh-blush), transparent 62%),
     radial-gradient(70% 60% at 62% 26%,   var(--mesh-warm),  transparent 70%);
 }
-#app > * { position: relative; z-index: 1; }
 
 /* ── Rail: circular buttons floating on the mesh ──────────── */
 #rail {
@@ -4300,4 +4303,222 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
   /* Clear of the floating bar. */
   .sidebar-foot { padding-bottom: 76px; }
   #rail .si-btn { width: 40px; height: 40px; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   AURORA — the parts the drive-through found
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Cards: title on its own line, controls in their own column ─────────
+   The ⋯ and ↗ were laid over the title, which the fade mask hid rather
+   than fixed. They get a column now, so a long title ends before them. */
+.chat-item-wrap { align-items: stretch; }
+.chat-item {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  justify-content: center;
+  padding: 11px 6px 11px 14px;
+}
+.chat-item span.chat-title {
+  width: 100%;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+.chat-card-meta {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.chat-item-actions { align-self: center; padding-right: 0; }
+.chat-open-btn { align-self: center; }
+
+/* ── Turn actions: the reference's stack, in the turn's own gutter ────── */
+.message { grid-template-columns: 44px minmax(0, 1fr) auto; }
+.msg-actions {
+  grid-column: 3;
+  grid-row: 1;
+  width: auto;
+  margin: 0;
+  padding: 0 0 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-self: start;
+  opacity: 0;
+  transition: opacity 0.16s ease;
+}
+.message:hover .msg-actions,
+.message:focus-within .msg-actions { opacity: 1; }
+/* No hover on touch, so they stay put rather than being unreachable. */
+@media (hover: none) { .msg-actions { opacity: 1; } }
+.msg-action-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-muted);
+}
+.msg-action-btn:hover { background: var(--card-hover); color: var(--text); }
+.self .message-text { grid-column: 2; }
+
+/* ── Day separator inside the conversation ───────────────────────────── */
+.date-sep { margin: 18px 0 10px; }
+.date-sep::before, .date-sep::after { background: var(--border); }
+.date-sep span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text-faint);
+}
+
+/* ── Modals in the same material as everything else ──────────────────── */
+/* The scrim was flat black at 72%, which blanked the mesh the moment any
+   dialog opened — including the welcome, which is the first thing a new
+   account sees. */
+.modal {
+  background: rgba(20, 20, 26, 0.32);
+  backdrop-filter: blur(14px) saturate(1.4);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+.light .modal { background: rgba(20, 20, 26, 0.22); }
+.modal-box {
+  background: var(--surface-1);
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-pop);
+  padding: 34px 28px 26px;
+}
+.modal-box h2, .modal-box h3 { letter-spacing: -0.02em; }
+/* The wordmark carried a drop-shadow tuned for a dark panel; on white it
+   reads as a halo. */
+.modal-box img { filter: none !important; }
+
+/* Primary and secondary buttons follow the composer's send disc. */
+.auth-continue, .pv-new, .edit-save, .upgrade-cta, .confirm-delete {
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+.auth-continue:hover, .pv-new:hover, .edit-save:hover, .upgrade-cta:hover { background: var(--accent-hover); }
+.edit-cancel, .cancel-delete { border-radius: var(--radius-pill); }
+
+/* ── Menus and popups ────────────────────────────────────────────────── */
+.chat-menu, .menu, .model-menu, .attach-popup, .settings-popup {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-pop);
+}
+
+/* ── Odds and ends ───────────────────────────────────────────────────── */
+/* A leftover rule gave the rail a hairline above the first icon whenever the
+   index was shut — a rule with nothing left to separate. */
+#app:not(.sidebar-open) .sidebar-icon-nav { border-top: none !important; }
+
+.temp-banner {
+  border-bottom: none;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  width: min(var(--col), 100% - 40px);
+  margin: 4px auto 0;
+  padding: 9px 16px;
+}
+.typing-inline { gap: 10px; }
+.typing-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+}
+.scroll-bottom-btn {
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-pop);
+}
+.file-preview { border-radius: var(--radius-pill); background: var(--card); border: 1px solid var(--card-line); }
+
+/* Projects dashboard, same surface as the rest. */
+.pv-title { letter-spacing: -0.025em; }
+.pv-search input, .pv-tab, .pv-card {
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+}
+.pv-card { border-radius: var(--radius-lg); box-shadow: var(--shadow-card); }
+.pv-tab.active { background: var(--accent); color: #fff; border-color: transparent; }
+
+/* ── Three panes don't fit ────────────────────────────────────────────
+   Index + conversation + workbench at 1440px left the reading column at
+   ~400px, wrapping every third word. The index is the one that yields:
+   it goes back to being an overlay whenever the panel is out, and only a
+   very wide window gets to keep all three side by side. */
+/* Nothing to do in CSS: openWorkbench() shuts the index below this width,
+   because stacking an overlay index over the panel puts its backdrop on top
+   of the very thing being opened. The panel just needs to out-rank the
+   backdrop whenever both are up. */
+#app.wb-open #workbench { position: relative; z-index: 56; }
+
+/* Tile labels must not wrap — two lines turns a 92px tile into a stack of
+   text with no room for the art. */
+.tool-tile-label { min-width: 0; }
+.tool-tile-label > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The card's date line lives in the same column as the title, so it takes
+   the same fade rather than being cut mid-word by the button column. */
+.chat-card-meta {
+  max-width: 100%;
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 16px), transparent);
+}
+
+/* Popups keep an opaque fill of their own — they float over the mesh, and a
+   translucent menu on a translucent surface reads as a rendering fault. */
+.settings-popup, .chat-menu, .menu, .model-menu, .attach-popup {
+  background: var(--menu-bg);
+}
+
+/* Only the title needs the overflow fade; the date line underneath is short,
+   and the shared `.chat-item span` mask was clipping it mid-word. */
+.chat-item span { -webkit-mask-image: none; mask-image: none; }
+.chat-item span.chat-title {
+  -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+          mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+.chat-card-meta {
+  -webkit-mask-image: none;
+  mask-image: none;
+  width: 100%;
+  text-overflow: ellipsis;
+}
+
+/* ── The index needs a fill only when it covers something ─────────────
+   As a pinned zone it is part of the one surface and stays transparent so
+   the mesh runs across the seam. As an overlay it sits over the
+   conversation, so it carries its own slice of the same mesh — without
+   this it was see-through and the two panes read on top of each other. */
+#sidebar {
+  background:
+    radial-gradient(130% 55% at 0% 0%,   var(--mesh-lilac), transparent 72%),
+    radial-gradient(110% 45% at 0% 100%, var(--mesh-mint),  transparent 70%),
+    var(--bg);
+}
+/* Above this width it is never an overlay — it is a zone in the row. */
+@media (min-width: 1180px) {
+  #sidebar { background: transparent; }
 }

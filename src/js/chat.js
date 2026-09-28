@@ -807,12 +807,21 @@ function buildChatItem(chat) {
   btn.className = `chat-item${chat.id === currentChatId ? " active" : ""}${chat.pinned ? " pinned" : ""}`;
   btn.dataset.chatId = chat.id;
 
-  // Text-only rows — no per-row icon; a clean list reads faster and quieter.
   const titleSpan = document.createElement("span");
   titleSpan.className = "chat-title";
   titleSpan.textContent = chat.title;
 
-  btn.appendChild(titleSpan);
+  // Which day it belongs to, and the date — the group heading above already
+  // says the first, but a card has to stand on its own once it is scrolled
+  // away from its heading.
+  const metaSpan = document.createElement("span");
+  metaSpan.className = "chat-card-meta";
+  if (chat.ts) {
+    const d = new Date(chat.ts);
+    metaSpan.textContent = `${chatGroupLabel(chat.ts)} · ${d.toLocaleDateString(undefined, { day: "numeric", month: "long" })}`;
+  }
+
+  btn.append(titleSpan, metaSpan);
   btn.onclick = (e) => { e.stopPropagation(); switchToChat(chat.id); };
 
   // One "⋯" button opening a menu, rather than a row of five icons. Five
@@ -2163,6 +2172,7 @@ function renderStreamingBubble() {
     div = document.createElement("div");
     div.className = "message other group-tail";
     div.id = "streamingMsg";
+    div.appendChild(assistantAvatar());
     const textDiv = document.createElement("div");
     textDiv.className = "message-text";
     const stableDiv = document.createElement("div");
@@ -2173,18 +2183,6 @@ function renderStreamingBubble() {
     const meta = document.createElement("div");
     meta.className = "meta";
     meta.textContent = "Almail AI";
-    // The answer speaks from a face; the person's own words don't need one,
-    // so both sit on the same margin with one column for the eye to follow.
-    if (!isOwn) {
-      const av = document.createElement("div");
-      av.className = "message-avatar";
-      const img = document.createElement("img");
-      img.src = isLight ? "assets/images/AlmailAIBlack.png" : "assets/images/AlmailAIWhite.png";
-      img.alt = "";
-      av.appendChild(img);
-      div.appendChild(av);
-    }
-
     div.append(textDiv, meta);
     messagesEl.appendChild(div);
     // A full re-render wiped the bubble — rehydrate the finished part.
@@ -2224,6 +2222,14 @@ function scheduleStreamRender(stick) {
 }
 
 // ── Render messages ───────────────────────────────────────
+// The mark in the gutter of every assistant turn, streaming or settled.
+function assistantAvatar() {
+  const av = document.createElement("div");
+  av.className = "message-avatar";
+  av.setAttribute("aria-hidden", "true");
+  return av;
+}
+
 function renderMessages(list = currentMessages) {
   // Remember which IDs are already rendered so we don't re-animate them
   const alreadyRendered = new Set(
@@ -2310,6 +2316,10 @@ function renderMessages(list = currentMessages) {
     meta.className = "meta";
     meta.textContent = `${isOwn ? "You" : "Almail AI"} · ${relativeTime(msg.timestamp)}`;
     if (msg.timestamp) meta.title = formatTime(msg.timestamp);
+
+    // The answer speaks from a face; the person's own words don't need one,
+    // so both sit on the same margin with one column for the eye to follow.
+    if (!isOwn) div.appendChild(assistantAvatar());
 
     div.append(textDiv, meta);
 
@@ -2460,7 +2470,7 @@ function renderMessages(list = currentMessages) {
       };
       actions.append(upBtn, downBtn);
 
-      messagesEl.appendChild(actions);
+      div.appendChild(actions);
     }
   });
 
@@ -3111,7 +3121,13 @@ let wbItems = [];      // { id, label, code }
 let wbActive = null;
 let wbSeq = 0;         // ids must stay unique after the cap drops the oldest
 
-function openWorkbench() { appEl.classList.add("wb-open"); }
+// Three panes need a very wide window. Below that the index yields, because
+// a 400px reading column between two panels is worse than either alone.
+const WB_THREE_PANE = "(min-width: 1601px)";
+function openWorkbench() {
+  appEl.classList.add("wb-open");
+  if (!window.matchMedia(WB_THREE_PANE).matches) closeSidebar();
+}
 function closeWorkbench() { appEl.classList.remove("wb-open"); }
 
 // Cleared whenever the conversation changes — the panel belongs to the chat
