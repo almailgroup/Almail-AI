@@ -4060,8 +4060,8 @@ body {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
-  width: min(var(--col), 100% - 32px);
-  margin: 0 auto 10px;
+  width: 100%;
+  margin: 0 0 10px;
 }
 .tool-tile {
   display: flex;
@@ -4184,13 +4184,17 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
 
 /* The reading column. Turns are constrained and centred in the pane instead
    of running the full width of a 1440px window. */
+/* #messages already centres the reading column with its own padding
+   (`calc((100% - var(--col)) / 2)`), so its children only need to fill it.
+   Constraining them again here made every turn — and the whole home screen —
+   40px narrower than the composer and the tiles below. */
 #messages > .message,
 #messages > .msg-actions,
 #messages > .date-sep,
 .empty-state {
-  width: min(var(--col), 100% - 40px);
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
 }
 #messages { display: flex; flex-direction: column; }
 
@@ -4221,7 +4225,7 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
   object-fit: contain;
 }
 
-.msg-actions { width: min(var(--col), 100% - 40px); margin: 0 auto; padding: 0 0 6px 56px; }
+.msg-actions { width: 100%; margin: 0; padding: 0 0 6px 56px; }
 
 /* Composer: one slim pill, controls on the baseline of the text. */
 .footer-input-row { align-items: center; padding: 5px 6px 5px 18px; }
@@ -4245,7 +4249,7 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
 .chip { border-radius: var(--radius-pill); background: var(--card); border: 1px solid var(--card-line); box-shadow: var(--shadow-card); }
 
 /* The tiles belong to the composer, so they share its measure and gutters. */
-.tool-tiles { width: min(var(--col), 100% - 40px); }
+.tool-tiles { width: 100%; padding: 0 max(16px, calc((100% - var(--col)) / 2)); }
 
 /* The composer was a column (text above, toolbar below); in this design it
    is one row, so the controls sit on the text's own baseline at the end. */
@@ -4573,4 +4577,136 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
    live in the panel footer, which is a tap away. */
 @media (max-width: 760px) {
   #rail #si-upload, #rail #si-settings { display: none; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE HOME SCREEN, WITH ROOM TO BREATHE
+   ══════════════════════════════════════════════════════════════════════
+   Greeting, suggestions, tiles and composer were four bands stacked almost
+   edge to edge, so on a white ground they read as one grey mass. Each band
+   now gets a gap wider than the gap inside it, which is what lets the eye
+   tell them apart without a rule between them. */
+
+#app.is-empty .empty-state {
+  gap: 30px;
+  padding-bottom: 30px;
+}
+
+/* ── Suggestions ──────────────────────────────────────────── */
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-start;
+  width: 100%;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 48px;
+  padding: 0 22px;
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: background 0.16s ease, transform 0.16s ease, color 0.16s ease;
+}
+.chip:hover {
+  background: var(--card-hover);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+
+/* ── Tool tiles ───────────────────────────────────────────── */
+.tool-tiles {
+  gap: 18px;
+  margin-bottom: 22px;
+}
+.tool-tile {
+  height: 132px;
+  padding: 18px 20px;
+  gap: 14px;
+  /* Rounder than a card, because a tile is the biggest soft shape on the
+     screen and the composer under it is a full pill. */
+  border-radius: 28px;
+  box-shadow: var(--shadow-card);
+}
+.tool-tile:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-pop);
+}
+/* Art top-left, label bottom-left — the reference's arrangement, and it
+   stops the icon and the words fighting for the middle. */
+.tool-tile-art {
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+.tool-tile-art svg { width: 34px; height: 34px; }
+.tool-tile-label { font-size: 0.84rem; gap: 8px; }
+
+/* ── The composer ─────────────────────────────────────────── */
+footer { padding: 0 16px 18px; }
+.footer-input-row {
+  min-height: 68px;
+  padding: 9px 9px 9px 26px;
+  border-radius: 34px;
+  gap: 8px;
+  box-shadow: var(--shadow-pop);
+}
+#messageInput {
+  font-size: 1rem;
+  line-height: 1.5;
+  padding: 12px 0;
+  min-height: 26px;
+}
+#messageInput::placeholder { color: var(--text-faint); }
+.attach-btn,
+.mic-btn { width: 42px; height: 42px; }
+#sendBtn {
+  width: 46px;
+  height: 46px;
+  box-shadow: 0 4px 14px var(--accent-ring);
+}
+#sendBtn:disabled { box-shadow: none; }
+.footer-disclaimer { margin-top: 12px; }
+
+/* Narrow: two tiles a row, and the chips stack rather than squeeze. */
+@media (max-width: 760px) {
+  .tool-tiles { gap: 14px; margin-bottom: 18px; }
+  .tool-tile { height: 118px; padding: 16px; border-radius: 24px; }
+  .chip { height: 44px; padding: 0 18px; font-size: 0.85rem; }
+  .footer-input-row { min-height: 60px; padding: 8px 8px 8px 20px; border-radius: 30px; }
+  #app.is-empty .empty-state { gap: 22px; }
+}
+
+/* One left edge for the whole home screen. The greeting, the suggestions,
+   the tiles and the composer were each inset by a different amount, so the
+   column looked ragged even once the vertical rhythm was right. */
+#app.is-empty .empty-state { padding: 40px 0; width: 100%; }
+#app.is-empty .suggestions { padding: 0; margin: 0; width: 100%; }
+#app.is-empty .greeting-row { width: 100%; padding-left: 0; }
+
+/* ── Mobile, last word ───────────────────────────────────────────────
+   Both of these were later rules quietly undoing earlier ones: the rail
+   block re-stated a width and padding meant for the vertical rail, and the
+   composer block dropped the bottom clearance that keeps the floating bar
+   off the send button. Restated here, after everything. */
+@media (max-width: 760px) {
+  #rail {
+    width: auto;
+    height: auto;
+    padding: 6px;
+    gap: 4px;
+    border-radius: var(--radius-pill);
+  }
+  #rail .si-btn { width: 40px; height: 40px; }
+  footer { padding: 0 16px 96px; }
+  #app.is-empty footer { padding-bottom: 96px; }
+  .tool-tiles { padding: 0 16px; }
+  #app.is-empty .empty-state { padding: 24px 0; }
 }
