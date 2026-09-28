@@ -859,6 +859,9 @@ body::before { content: none; }
   display: none;
 }
 
+/* Hidden by default in CSS rather than by an inline style, which no rule
+   could beat — that is why the initial never appeared on the account disc. */
+.si-avatar-letter { display: none; }
 .si-btn.has-avatar .si-avatar-letter { display: block; }
 .si-btn.has-avatar #si-account-icon  { display: none; }
 .si-btn.has-avatar {
@@ -4521,4 +4524,53 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
 /* Above this width it is never an overlay — it is a zone in the row. */
 @media (min-width: 1180px) {
   #sidebar { background: transparent; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE RAIL, AS DRAWN
+   ══════════════════════════════════════════════════════════════════════
+   Five circular buttons at the top, three at the foot, the open section a
+   filled blue disc and the account a photo. Every one of them drives
+   something the app already has — new chat, the index, pinned chats,
+   projects, the output panel; then upload, settings, account. */
+
+#rail { width: 62px; padding: 12px 0 14px; gap: 0; }
+#rail .sidebar-icon-nav,
+#rail .sidebar-icon-profile { gap: 7px; }
+#rail .si-btn { width: 38px; height: 38px; }
+
+/* One rule for "this is the section you are in". */
+#app.sidebar-open:not(.pinned-view) #rail #si-chats,
+#app.pinned-view   #rail #si-pinned,
+#app.projects-page #rail #si-projects,
+#app.wb-open       #rail #si-panel {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 4px 12px var(--accent-ring);
+}
+
+/* The account sits as a disc, the way a photo would — and when there is a
+   photo or an initial, it fills the whole button. */
+/* The class chat.js actually sets is `has-avatar` — `has-user` was a guess,
+   which left the signed-in account as an empty circle in the rail. */
+#rail .si-avatar { overflow: hidden; }
+#rail .si-avatar.has-avatar {
+  background: var(--accent);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 2px 8px var(--accent-ring);
+}
+#rail .si-avatar.has-photo { background-size: cover; background-position: center; box-shadow: none; }
+#rail .si-avatar .si-avatar-letter { font-size: 0.82rem; font-weight: 700; color: #fff; }
+
+/* Signed out, three of the five have nothing to act on. */
+#app:not(.signed-in) #rail #si-pinned,
+#app:not(.signed-in) #rail #si-projects,
+#app:not(.signed-in) #rail #si-upload { opacity: 0.4; pointer-events: none; }
+
+/* On the phone bar only the four navigation icons fit; upload and settings
+   live in the panel footer, which is a tap away. */
+@media (max-width: 760px) {
+  #rail #si-upload, #rail #si-settings { display: none; }
 }

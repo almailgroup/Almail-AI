@@ -57,9 +57,15 @@ Type is Plus Jakarta Sans.
 
 ## Layout
 
-- **Rail.** Circular icon buttons on the bare mesh — new chat, chats,
-  temporary chat, account. The open section is a filled blue disc. Under
-  760px it leaves the edge and becomes a floating pill bar at the foot.
+- **Rail.** Circular icon buttons on the bare mesh: new chat, chat results,
+  pinned, projects and the output panel at the top; upload, settings and the
+  account disc at the foot. The section you are in is a filled blue disc, and
+  the three that need an account are dimmed without one. Under 760px it
+  leaves the edge and becomes a floating pill bar (navigation only — upload
+  and settings are a tap away in the panel footer).
+- **Pinned.** The rail's star is the same index narrowed to pinned chats, not
+  a second panel: search still applies on top of it, and dismissing the panel
+  clears it.
 - **Chat Results.** The history, as cards grouped by day. Each card carries
   its title and a round ↗ to open it; the ⋯ menu (rename, pin, export,
   delete) still appears on hover. Above 1180px it takes its place in the row

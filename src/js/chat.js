@@ -572,17 +572,31 @@ function touchChat(chatId) {
 }
 
 let chatFilter = "";
+// The rail's star narrows the index to pinned conversations. It is a view of
+// the same list, not a second list, so search still applies on top of it.
+let pinnedOnly = false;
 
 function renderChatList() {
   const chatList = document.getElementById("chatList");
   if (!chatList) return;
   chatList.innerHTML = "";
 
-  const all = loadChats();
+  const all = pinnedOnly ? loadChats().filter(c => c.pinned) : loadChats();
   const q   = chatFilter.trim().toLowerCase();
 
   const projectsSection = document.getElementById("projectsSection");
-  if (projectsSection) projectsSection.style.display = q ? "none" : "";
+  if (projectsSection) projectsSection.style.display = (q || pinnedOnly) ? "none" : "";
+
+  const zoneTitle = document.querySelector("#sidebar .zone-title");
+  if (zoneTitle) zoneTitle.textContent = pinnedOnly ? "Pinned" : "Chat Results";
+
+  if (pinnedOnly && !all.length) {
+    const empty = document.createElement("div");
+    empty.className = "chat-empty-hint";
+    empty.textContent = "Nothing pinned yet — pin a chat from its \u22ef menu.";
+    chatList.appendChild(empty);
+    return;
+  }
 
   // While searching, show a flat, filtered list across all chats.
   if (q) {
@@ -1264,7 +1278,11 @@ const sidebarBackdrop = document.getElementById("sidebarBackdrop");
 const isDesktop = () => window.matchMedia("(min-width: 900px)").matches;
 
 function openSidebar()  { appEl.classList.add("sidebar-open"); localStorage.setItem("sidebar", "open"); }
-function closeSidebar() { appEl.classList.remove("sidebar-open"); localStorage.setItem("sidebar", "closed"); }
+function closeSidebar() {
+  appEl.classList.remove("sidebar-open");
+  localStorage.setItem("sidebar", "closed");
+  if (pinnedOnly) setPinnedView(false);
+}
 
 // The chat list is an overlay panel now, not a permanent column, so it starts
 // closed on every size — the conversation owns the window until you ask for it.
@@ -1330,8 +1348,46 @@ document.addEventListener("touchmove", (e) => {
 // Action buttons stopPropagation so the strip's expand-on-click handler
 // doesn't also pop the sidebar open underneath them.
 document.getElementById("si-new").onclick    = (e) => { e.stopPropagation(); document.getElementById("resetChatBtn").click(); };
-document.getElementById("si-chats").onclick  = openSidebar;
+document.getElementById("si-chats").onclick  = (e) => {
+  e.stopPropagation();
+  setPinnedView(false);
+  appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
+};
 document.getElementById("si-expand").onclick = openSidebar;
+
+// The rail's star is the same index narrowed to pinned chats, so it shares
+// the panel rather than opening a second one.
+function setPinnedView(on) {
+  pinnedOnly = on;
+  appEl.classList.toggle("pinned-view", on);
+  renderChatList();
+}
+document.getElementById("si-pinned").onclick = (e) => {
+  e.stopPropagation();
+  if (pinnedOnly && appEl.classList.contains("sidebar-open")) { setPinnedView(false); return; }
+  setPinnedView(true);
+  openSidebar();
+};
+document.getElementById("si-projects").onclick = (e) => {
+  e.stopPropagation();
+  if (!currentUser) return;
+  openProjectsView();
+};
+document.getElementById("si-panel").onclick = (e) => {
+  e.stopPropagation();
+  appEl.classList.contains("wb-open") ? closeWorkbench() : openWorkbench();
+};
+document.getElementById("si-upload").onclick = (e) => {
+  e.stopPropagation();
+  if (!currentUser) return;
+  fileInput.click();
+};
+document.getElementById("si-settings").onclick = (e) => {
+  e.stopPropagation();
+  settingsPopup.classList.contains("open")
+    ? settingsPopup.classList.remove("open")
+    : openSettingsPopup(e.currentTarget);
+};
 document.getElementById("si-account").onclick = (e) => {
   e.stopPropagation();
   currentUser ? openAccountModal() : openAuthModal();
@@ -1655,15 +1711,21 @@ redeemInput.addEventListener("keydown", e => { if (e.key === "Enter") applyRedee
 updatePlanUI();
 
 // ── Settings popup ────────────────────────────────────────
-function openSettingsPopup() {
-  const rect = settingsBtn.getBoundingClientRect();
-  settingsPopup.style.left   = `${rect.left}px`;
-  settingsPopup.style.bottom = `${window.innerHeight - rect.top + 8}px`;
-  settingsPopup.classList.add("open");
+function openSettingsPopup(anchor = settingsBtn) {
+  const rect = anchor.getBoundingClientRect();
+  settingsPopup.classList.add("open");                 // measurable before placing
+  const w = settingsPopup.offsetWidth || 220;
+  // Clamp to the window: from the rail the popup opens to the right of a
+  // button that is only 60px from the edge, and from the panel footer it
+  // opens above one near the bottom.
+  settingsPopup.style.left   = `${Math.min(rect.left, window.innerWidth - w - 12)}px`;
+  settingsPopup.style.bottom = `${Math.max(12, window.innerHeight - rect.top + 8)}px`;
 }
 settingsBtn.onclick = (e) => {
   e.stopPropagation();
-  settingsPopup.classList.contains("open") ? settingsPopup.classList.remove("open") : openSettingsPopup();
+  settingsPopup.classList.contains("open")
+    ? settingsPopup.classList.remove("open")
+    : openSettingsPopup(settingsBtn);
 };
 
 // ── Theme ─────────────────────────────────────────────────
@@ -2633,6 +2695,8 @@ onAuthStateChanged(auth, user => {
   if (uid === lastUserId) return;
   lastUserId = uid;
   currentUser = user;
+  // Drives the rail: the actions that need an account are dimmed without one.
+  appEl.classList.toggle("signed-in", !!user);
   // The signed-in user changed, so the cached chat/project lists belong to
   // someone else now. Drop them before anything reads them again.
   resetStoreCaches();
