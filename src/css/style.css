@@ -4710,3 +4710,49 @@ footer { padding: 0 16px 18px; }
   .tool-tiles { padding: 0 16px; }
   #app.is-empty .empty-state { padding: 24px 0; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   HOME SCREEN ON THE CENTRE LINE
+   ══════════════════════════════════════════════════════════════════════
+   The four bands shared a left edge, which read as left-heavy on a wide
+   empty pane. They share a centre line instead: greeting, suggestions,
+   tiles and composer all balance on the same axis, and each tile centres
+   its own icon and label rather than pinning them to its corners. */
+
+#app.is-empty .empty-state {
+  align-items: center;
+  text-align: center;
+}
+
+/* The avatar and the two lines stay a pair; the pair is what centres, so
+   the greeting still reads as one thing addressing you. */
+#app.is-empty .greeting-row {
+  width: auto;
+  justify-self: center;
+  text-align: left;
+}
+
+#app.is-empty .suggestions { justify-content: center; }
+
+/* Icon over label, both on the tile's own centre. */
+.tool-tile {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.tool-tile-art {
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+.tool-tile-label { justify-content: center; }
+
+/* In the empty state the block is centred by auto margins, so a padding on
+   the composer guarantees nothing: the block can settle anywhere, including
+   under the floating bar. Shrinking the box the centring happens in is what
+   actually keeps them apart. */
+@media (max-width: 760px) {
+  #app.is-empty .chat-main { padding-bottom: 84px; }
+  #app.is-empty footer { padding-bottom: 12px; }
+}
