@@ -4756,3 +4756,89 @@ footer { padding: 0 16px 18px; }
   #app.is-empty .chat-main { padding-bottom: 84px; }
   #app.is-empty footer { padding-bottom: 12px; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   PHONE: NOTHING ON TOP OF ANYTHING ELSE
+   ══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 760px) {
+  /* The floating bar is fixed, so only space reserved inside the pane keeps
+     it off the composer. Reserving it on .chat-main covers every state —
+     the earlier padding was on the footer, and on the empty screen the
+     auto-margin centring ignored it. */
+  #app .chat-main { padding-bottom: 84px; }
+  #app footer { padding-bottom: 10px; }
+  #app.is-empty footer { padding-bottom: 10px; }
+
+  /* Five round buttons stacked in the gutter took 174px of height and a
+     column of width from a 390px screen. Under the answer, in a row. */
+  .message { grid-template-columns: 34px minmax(0, 1fr); gap: 0 8px; }
+  .msg-actions {
+    grid-column: 2;
+    grid-row: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 10px 0 0;
+    opacity: 1;
+  }
+  .msg-action-btn { width: 34px; height: 34px; }
+  .message-avatar { width: 30px; height: 30px; }
+  .message-avatar::after { width: 15px; height: 15px; }
+
+  /* The tiles are a launchpad for an empty screen. Once there is a
+     conversation they are 500px of chrome between the answer and the reply
+     box, so they stand down. */
+  #app:not(.is-empty) .tool-tiles { display: none; }
+
+  /* More of the width goes to the words. */
+  .other .message-text { padding: 14px 16px; }
+  .self .message-text { max-width: 88%; padding: 12px 15px; }
+  #messages > .message { padding: 8px 0; }
+}
+
+/* The bubble is a grid cell, so it stretched to the cell's full width and a
+   one-word message read as an empty slab. It hugs its text now, up to the
+   measure it is allowed. */
+.self .message-text { justify-self: start; }
+
+/* ── The empty screen has to fit a phone ─────────────────────────────
+   Greeting + four chips + four tiles + composer overran a 730px viewport,
+   and auto-margin centring clips the top when its content is taller than
+   the box — so the greeting slid under the topbar. Two chips instead of
+   four, and tighter bands. `safe center` is the belt: if it ever overflows
+   again it scrolls from the top rather than hiding the first line. */
+@media (max-width: 760px) {
+  #app.is-empty #messages { justify-content: safe center; }
+  #app.is-empty .empty-state { gap: 18px; padding: 16px 0; }
+  .suggestions .chip:nth-child(n + 3) { display: none; }
+  .tool-tiles { gap: 12px; margin-bottom: 16px; }
+  .tool-tile { height: 106px; padding: 14px; border-radius: 22px; gap: 10px; }
+  .tool-tile-art svg { width: 28px; height: 28px; }
+}
+
+/* The auto margins that centre the empty screen live on #messages, inside
+   .chat-main — so `safe center` within #messages never got a say, and on a
+   short phone the block was pushed off the top and clipped. On mobile
+   #messages takes the space and scrolls instead, centring its own content
+   only while there is room for it. */
+@media (max-width: 760px) {
+  #app.is-empty #messages {
+    margin-top: 0;
+    flex: 1 1 auto;
+    overflow-y: auto;
+    justify-content: safe center;
+  }
+  #app.is-empty footer { margin-bottom: 0; }
+}
+
+/* On a short phone the home screen still did not fit, so it opened scrolled
+   past its own greeting. The suggestions are the band that yields: the tiles
+   below them are the same kind of entry point and are the ones the design
+   leads with. */
+@media (max-width: 760px) and (max-height: 720px) {
+  #app.is-empty .suggestions { display: none; }
+  .tool-tile { height: 96px; padding: 12px; }
+  .tool-tile-art svg { width: 26px; height: 26px; }
+  .tool-tiles { gap: 10px; margin-bottom: 14px; }
+  #app.is-empty .empty-state { padding: 10px 0; }
+}
