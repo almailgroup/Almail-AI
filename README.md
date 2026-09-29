@@ -81,7 +81,11 @@ Type is Plus Jakarta Sans.
   caret where the text goes, Audio Chat starts voice input. None is a
   placeholder.
 - **Composer.** One pill: the field, then attach, mic and a blue send disc on
-  the text's own baseline.
+  the text's own baseline. The disc is disabled until there is text or an
+  attachment, and doubles as Stop while a reply streams.
+- **Touch parity.** Every menu opens on a tap, not a hover: the own-message
+  menu, the theme list, and the row menus. Temporary chat can be left from
+  the banner that announces it, because entering it closes the index.
 
 ## Workbench
 

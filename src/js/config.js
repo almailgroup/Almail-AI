@@ -20,6 +20,10 @@ export const AI_CONFIG = {
   // worse than the big products.
   historyLimit: 40,
 
+  // Where Settings → Send feedback opens a message to. Change this to
+  // whichever inbox should receive it.
+  feedbackEmail: "admin@almailgroup.com",
+
   // Assistant persona / behaviour. Specific instructions beat adjectives —
   // "be helpful" changes little, but telling the model how to structure an
   // answer, when to ask instead of guess, and not to pad, visibly does.

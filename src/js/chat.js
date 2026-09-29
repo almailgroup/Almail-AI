@@ -1221,7 +1221,7 @@ document.getElementById("settingsWhatsNew").onclick = () => {
 
 document.getElementById("settingsFeedbackBtn").onclick = () => {
   settingsPopup.classList.remove("open");
-  window.location.href = "mailto:shelbysog@gmail.com?subject=" + encodeURIComponent("Almail AI feedback");
+  window.location.href = `mailto:${AI_CONFIG.feedbackEmail}?subject=` + encodeURIComponent("Almail AI feedback");
 };
 
 document.getElementById("settingsHelpBtn").onclick = () => {
@@ -1272,7 +1272,6 @@ document.getElementById("personalizeSave").onclick = () => {
 };
 
 // ── Sidebar ───────────────────────────────────────────────
-const sidebarToggle   = document.getElementById("sidebarToggle");
 const sidebarClose    = document.getElementById("sidebarClose");
 const sidebarBackdrop = document.getElementById("sidebarBackdrop");
 const isDesktop = () => window.matchMedia("(min-width: 900px)").matches;
@@ -1294,7 +1293,6 @@ if (isDesktop() && localStorage.getItem("sidebar") === "open") {
   appEl.classList.remove("sidebar-open");
 }
 
-sidebarToggle.onclick   = openSidebar;
 sidebarClose.onclick    = (e) => { e.stopPropagation(); closeSidebar(); };
 sidebarBackdrop.onclick = closeSidebar;
 
@@ -1353,7 +1351,6 @@ document.getElementById("si-chats").onclick  = (e) => {
   setPinnedView(false);
   appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
 };
-document.getElementById("si-expand").onclick = openSidebar;
 
 // The rail's star is the same index narrowed to pinned chats, so it shares
 // the panel rather than opening a second one.
@@ -1764,6 +1761,23 @@ function setTheme(light) {
 }
 
 applyLogoTheme();
+// The theme list used to open on :hover alone, so on a touch screen there
+// was no way to reach it at all. It is a tap now, on every device.
+const settingsThemeBtn = document.getElementById("settingsTheme");
+const settingsThemeWrap = settingsThemeBtn.closest(".settings-item-wrap");
+settingsThemeBtn.onclick = (e) => {
+  e.stopPropagation();
+  const open = settingsThemeWrap.classList.toggle("open");
+  settingsThemeBtn.setAttribute("aria-expanded", String(open));
+};
+// Closing the popup closes the list with it, so it never reopens half-open.
+new MutationObserver(() => {
+  if (!settingsPopup.classList.contains("open")) {
+    settingsThemeWrap.classList.remove("open");
+    settingsThemeBtn.setAttribute("aria-expanded", "false");
+  }
+}).observe(settingsPopup, { attributes: true, attributeFilter: ["class"] });
+
 document.getElementById("themeDarkBtn").onclick  = () => setTheme(false);
 document.getElementById("themeLightBtn").onclick = () => setTheme(true);
 
@@ -1782,9 +1796,14 @@ document.querySelector(".footer-input-row").addEventListener("click", (e) => {
   if (!e.target.closest("button") && !inputEl.disabled) inputEl.focus();
 });
 
-// Light up the send button only when there's something to send.
+// Light up the send button only when there's something to send — and make it
+// actually unclickable, not just dimmer. sendMessage() already returned early
+// on an empty composer, so the button looked live and did nothing.
 function updateSendState() {
-  sendBtn.classList.toggle("has-text", inputEl.value.trim().length > 0 && !isResponding);
+  const ready = inputEl.value.trim().length > 0 || !!pendingAttachment;
+  sendBtn.classList.toggle("has-text", ready && !isResponding);
+  // While a reply streams it is the Stop button, so it stays live.
+  sendBtn.disabled = !currentUser || (!isResponding && !ready);
 }
 
 inputEl.addEventListener("input", () => { autoResize(); updateSendState(); });
@@ -1887,12 +1906,14 @@ async function handleAttachedFile(file) {
     const scaled = await downscaleImage(file);
     if (scaled) {
       pendingAttachment = { type: "image", data: scaled.split(",")[1], mimeType: "image/jpeg", name: file.name };
+      updateSendState();
       showAttachmentPreview(file.name, scaled);
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
       pendingAttachment = { type: "image", data: reader.result.split(",")[1], mimeType: file.type, name: file.name };
+      updateSendState();
       showAttachmentPreview(file.name, reader.result);
     };
     reader.readAsDataURL(file);
@@ -1904,8 +1925,10 @@ async function handleAttachedFile(file) {
     let text = await file.text();
     if (text.length > MAX_ATTACH_TEXT) text = text.slice(0, MAX_ATTACH_TEXT) + "\n…(truncated)";
     pendingAttachment = { type: "text", content: text, name: file.name };
+    updateSendState();
   } else {
     pendingAttachment = { type: "note", name: file.name }; // filename referenced, content not read
+    updateSendState();
   }
   showAttachmentPreview(file.name);
 }
@@ -1915,7 +1938,11 @@ fileInput.onchange = () => {
   fileInput.value = "";
   handleAttachedFile(file);
 };
-document.getElementById("fileRemoveBtn").onclick = () => { pendingAttachment = null; filePreview.style.display = "none"; };
+document.getElementById("fileRemoveBtn").onclick = () => {
+  pendingAttachment = null;
+  filePreview.style.display = "none";
+  updateSendState();
+};
 
 // ── Drag-and-drop & paste to attach ───────────────────────
 const dropOverlay = document.getElementById("dropOverlay");
@@ -2431,6 +2458,9 @@ function renderMessages(list = currentMessages) {
         textDiv.replaceWith(editor);
         editArea.focus();
         editArea.setSelectionRange(editArea.value.length, editArea.value.length);
+        // On a phone the editor and its Save/Cancel row can open below the
+        // fold, leaving an edit you cannot finish. Bring the whole thing in.
+        editor.scrollIntoView({ block: "nearest", behavior: "smooth" });
 
         const cancel = () => editor.replaceWith(textDiv);
         const save = () => {
@@ -2697,6 +2727,7 @@ onAuthStateChanged(auth, user => {
   currentUser = user;
   // Drives the rail: the actions that need an account are dimmed without one.
   appEl.classList.toggle("signed-in", !!user);
+  updateSendState();
   // The signed-in user changed, so the cached chat/project lists belong to
   // someone else now. Drop them before anything reads them again.
   resetStoreCaches();
@@ -2752,6 +2783,12 @@ resetBtn.onclick = () => {
 
 const tempChatBtn = document.getElementById("tempChatBtn");
 if (tempChatBtn) tempChatBtn.onclick = toggleTempChat;
+// The only way out used to be the ghost button in the index — and entering
+// temporary chat closes the index, so on a phone there was no way back at
+// all. The banner that announces the mode now also ends it.
+const tempExitBtn = document.getElementById("tempExitBtn");
+if (tempExitBtn) tempExitBtn.onclick = (e) => { e.stopPropagation(); exitTempChat(); };
+
 const siTempBtn = document.getElementById("si-temp");
 if (siTempBtn) siTempBtn.onclick = (e) => { e.stopPropagation(); toggleTempChat(); };
 
@@ -2891,7 +2928,6 @@ async function sendMessage() {
 function setResponding(on) {
   isResponding       = on;
   attachBtn.disabled = on;
-  sendBtn.disabled   = false;          // stays clickable so it can act as Stop
   sendBtn.classList.toggle("generating", on);
   sendBtn.title = on ? "Stop generating" : "Send";
   if (!on) typingEl.classList.remove("active");

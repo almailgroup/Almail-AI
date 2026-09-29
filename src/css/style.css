@@ -222,26 +222,6 @@ body::before { content: none; }
 }
 
 /* ── Sidebar toggle — always top-left corner ────────────── */
-#sidebarToggle {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  width: 38px;
-  height: 38px;
-  display: grid;
-  place-items: center;
-  background: var(--surface-2);
-  border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-muted);
-  cursor: pointer;
-  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
-  z-index: 200;
-  box-shadow: var(--shadow-inset), var(--shadow-sm);
-}
-
-#sidebarToggle:hover { background: var(--glass-3); color: var(--text); transform: scale(1.04); }
-#app.sidebar-open #sidebarToggle { display: none; }
 #sidebarClose { transition: background 0.14s ease, color 0.14s ease; }
 
 /* ── Sidebar ────────────────────────────────────────────── */
@@ -3299,10 +3279,6 @@ a:focus-visible,
   gap: 6px;
   width: 100%;
 }
-/* si-expand duplicates si-chats now; the element stays so chat.js still binds
-   to it, but it has nothing to show. !important because the old collapsed-strip
-   rules are `#app:not(.sidebar-open) .sidebar-icon-*`, which outranks this. */
-#rail .sidebar-icon-account { display: none !important; }
 #rail .sidebar-icon-nav,
 #rail .sidebar-icon-profile { display: flex !important; }
 
@@ -3353,8 +3329,6 @@ a:focus-visible,
 }
 #app.sidebar-open #sidebarBackdrop { opacity: 1; pointer-events: auto; }
 
-/* The rail is the toggle now, so the old floating button is redundant. */
-#sidebarToggle { display: none !important; }
 
 /* The chat area is no longer squeezed by a column, so the reading measure can
    widen and sit on the real centre of the window. */
@@ -4809,7 +4783,7 @@ footer { padding: 0 16px 18px; }
    again it scrolls from the top rather than hiding the first line. */
 @media (max-width: 760px) {
   #app.is-empty #messages { justify-content: safe center; }
-  #app.is-empty .empty-state { gap: 18px; padding: 16px 0; }
+  #app.is-empty .empty-state { gap: 16px; padding: 10px 0; }
   .suggestions .chip:nth-child(n + 3) { display: none; }
   .tool-tiles { gap: 12px; margin-bottom: 16px; }
   .tool-tile { height: 106px; padding: 14px; border-radius: 22px; gap: 10px; }
@@ -4841,4 +4815,116 @@ footer { padding: 0 16px 18px; }
   .tool-tile-art svg { width: 26px; height: 26px; }
   .tool-tiles { gap: 10px; margin-bottom: 14px; }
   #app.is-empty .empty-state { padding: 10px 0; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   THE OWN-MESSAGE MENU
+   ══════════════════════════════════════════════════════════════════════
+   It was a dark square pinned to the corner of the row, revealed only on
+   :hover — so on a phone there was no way at all to copy, edit or delete
+   your own message. It is a round button in the row's own gutter now,
+   matching the answer's action buttons, and touch gets it permanently. */
+.menu-btn {
+  position: static;
+  grid-column: 3;
+  grid-row: 1;
+  align-self: start;
+  width: 30px;
+  height: 30px;
+  margin-left: 8px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-pill);
+  background: var(--card);
+  box-shadow: var(--shadow-card);
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.menu-btn:hover { background: var(--card-hover); color: var(--text); opacity: 1; }
+.self:hover .menu-btn,
+.self:focus-within .menu-btn { opacity: 1; }
+.other:hover .menu-btn { opacity: 1; }
+@media (hover: none) { .menu-btn { opacity: 1; } }
+
+/* The dropdown hangs off the row, so it needs the row's own corner. */
+.menu {
+  top: auto;
+  bottom: auto;
+  right: 0;
+  transform: translateY(34px);
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-pop);
+  min-width: 170px;
+}
+
+@media (max-width: 760px) {
+  /* Two columns on a phone, so the button joins the actions row instead of
+     hanging off a third column that does not exist. */
+  .menu-btn { grid-column: 2; grid-row: 2; justify-self: start; margin: 8px 0 0; }
+  .menu { right: auto; left: 0; transform: translateY(34px); }
+}
+
+/* ── Settings: the theme list ────────────────────────────────────────
+   It opened on :hover and flew out sideways — unreachable on touch, and
+   off the edge of a phone. It opens on a tap and drops inline instead. */
+.settings-item-wrap:hover .settings-submenu { display: none; }
+.settings-item-wrap.open .settings-submenu {
+  display: block;
+  position: static;
+  margin: 4px 0 2px;
+  padding: 4px;
+  background: var(--glass-1);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  min-width: 0;
+}
+.settings-item-wrap.open > .settings-item .settings-item-arrow { transform: rotate(90deg); }
+.settings-item-arrow { transition: transform 0.16s ease; }
+
+/* The inline editor replaces .message-text in the DOM, so it has to take the
+   same place in the grid. Without this it auto-placed into the avatar
+   gutter — a 34px column — and its Save/Cancel row rendered off the left
+   edge of the screen, leaving an edit you could neither finish nor cancel. */
+.edit-wrap {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+}
+.edit-textarea {
+  width: 100%;
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  padding: 12px 15px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--text);
+  resize: vertical;
+}
+.edit-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+.edit-cancel, .edit-save { padding: 8px 16px; font-size: 0.83rem; font-weight: 600; }
+
+/* The temporary-chat banner carries its own way out. */
+.temp-banner { justify-content: center; }
+.temp-banner span { min-width: 0; }
+.temp-exit {
+  flex-shrink: 0;
+  margin-left: 4px;
+  padding: 5px 12px;
+  border: none;
+  border-radius: var(--radius-pill);
+  background: var(--glass-2);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.14s ease;
+}
+.temp-exit:hover { background: var(--glass-3); }
+@media (max-width: 760px) {
+  .temp-banner { font-size: 0.72rem; padding: 8px 10px; gap: 6px; }
+  .temp-exit { padding: 5px 10px; font-size: 0.7rem; }
 }
