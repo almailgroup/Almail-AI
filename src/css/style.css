@@ -3297,7 +3297,6 @@ a:focus-visible,
   transition: background 0.14s ease, color 0.14s ease;
 }
 #rail .si-btn:hover { background: var(--surface-3); color: var(--text); }
-#app.sidebar-open #rail #si-chats { background: var(--surface-3); color: var(--text); }
 
 /* ── Chat list as an overlay panel ────────────────────────── */
 #sidebar {
@@ -3671,7 +3670,6 @@ body {
 #rail .si-btn:hover { background: var(--glass-2); color: var(--text); }
 #rail .si-btn:active { transform: scale(0.94); }
 /* The open section is a filled disc, the way the reference marks it. */
-#app.sidebar-open #rail #si-chats,
 #rail .si-btn.active {
   background: var(--accent);
   color: #fff;
@@ -4518,11 +4516,13 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
 #rail .sidebar-icon-profile { gap: 7px; }
 #rail .si-btn { width: 38px; height: 38px; }
 
-/* One rule for "this is the section you are in". */
-#app.sidebar-open:not(.pinned-view) #rail #si-chats,
-#app.pinned-view   #rail #si-pinned,
-#app.projects-page #rail #si-projects,
-#app.wb-open       #rail #si-panel {
+/* One rule, one current section. `data-section` is derived in syncSection()
+   from the state that is actually on screen, so the rail can never light two
+   places at once the way four independent class rules could. */
+#app[data-section="chats"]    #rail #si-chats,
+#app[data-section="pinned"]   #rail #si-pinned,
+#app[data-section="projects"] #rail #si-projects,
+#app[data-section="panel"]    #rail #si-panel {
   background: var(--accent);
   color: #fff;
   box-shadow: 0 4px 12px var(--accent-ring);
@@ -4533,14 +4533,19 @@ footer { padding: 0 16px 14px; background: transparent; border: none; }
 /* The class chat.js actually sets is `has-avatar` — `has-user` was a guess,
    which left the signed-in account as an empty circle in the rail. */
 #rail .si-avatar { overflow: hidden; }
+/* The avatar was an accent-filled disc, which read as a fifth selected
+   item beside the section buttons. Blue means one thing in this rail —
+   "you are here" — so the account is a neutral disc with its initial in
+   the accent instead. */
 #rail .si-avatar.has-avatar {
-  background: var(--accent);
-  border-color: transparent;
-  color: #fff;
-  box-shadow: 0 2px 8px var(--accent-ring);
+  background: var(--card);
+  border: 1px solid var(--card-line);
+  box-shadow: var(--shadow-card);
+  color: var(--accent);
 }
+#rail .si-avatar.has-avatar:hover { background: var(--card-hover); }
 #rail .si-avatar.has-photo { background-size: cover; background-position: center; box-shadow: none; }
-#rail .si-avatar .si-avatar-letter { font-size: 0.82rem; font-weight: 700; color: #fff; }
+#rail .si-avatar .si-avatar-letter { font-size: 0.82rem; font-weight: 700; color: var(--accent); }
 
 /* Signed out, three of the five have nothing to act on. */
 #app:not(.signed-in) #rail #si-pinned,

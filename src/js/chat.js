@@ -338,13 +338,33 @@ function moveChatToProject(chatId, projectId) {
 let pvTab = "all";
 let pvSearchQ = "";
 
+// ── Where you are ─────────────────────────────────────────
+// The rail used to light each button off its own state class, so opening
+// Projects while the pinned filter and the panel were up lit four buttons at
+// once — and the panel still said "Pinned" over a Projects canvas. There is
+// one current section now, and it is *derived* from the state rather than
+// stored beside it, so the highlight cannot drift from what is on screen.
+function syncSection() {
+  const c = appEl.classList;
+  appEl.dataset.section =
+    c.contains("projects-page") ? "projects" :
+    c.contains("wb-open")       ? "panel"    :
+    c.contains("pinned-view")   ? "pinned"   :
+    c.contains("sidebar-open")  ? "chats"    : "";
+}
+
 function openProjectsView() {
   if (!currentUser) return;
+  // Leaving a section leaves it properly: the index goes back to all chats
+  // and the output panel closes, so nothing else still claims to be current.
+  if (typeof setPinnedView === "function") setPinnedView(false);
+  closeWorkbench();
   appEl.classList.add("projects-page");
   renderProjectsView();
   if (window.innerWidth < 900) closeSidebar();
+  syncSection();
 }
-function closeProjectsView() { appEl.classList.remove("projects-page"); }
+function closeProjectsView() { appEl.classList.remove("projects-page"); syncSection(); }
 function projectsViewOpen() { return appEl.classList.contains("projects-page"); }
 
 function renderProjectsView() {
@@ -1276,11 +1296,12 @@ const sidebarClose    = document.getElementById("sidebarClose");
 const sidebarBackdrop = document.getElementById("sidebarBackdrop");
 const isDesktop = () => window.matchMedia("(min-width: 900px)").matches;
 
-function openSidebar()  { appEl.classList.add("sidebar-open"); localStorage.setItem("sidebar", "open"); }
+function openSidebar()  { appEl.classList.add("sidebar-open"); localStorage.setItem("sidebar", "open"); syncSection(); }
 function closeSidebar() {
   appEl.classList.remove("sidebar-open");
   localStorage.setItem("sidebar", "closed");
   if (pinnedOnly) setPinnedView(false);
+  syncSection();
 }
 
 // The chat list is an overlay panel now, not a permanent column, so it starts
@@ -1292,6 +1313,7 @@ if (isDesktop() && localStorage.getItem("sidebar") === "open") {
 } else {
   appEl.classList.remove("sidebar-open");
 }
+syncSection();   // the rail has to agree with the state it starts in
 
 sidebarClose.onclick    = (e) => { e.stopPropagation(); closeSidebar(); };
 sidebarBackdrop.onclick = closeSidebar;
@@ -1348,8 +1370,13 @@ document.addEventListener("touchmove", (e) => {
 document.getElementById("si-new").onclick    = (e) => { e.stopPropagation(); document.getElementById("resetChatBtn").click(); };
 document.getElementById("si-chats").onclick  = (e) => {
   e.stopPropagation();
+  const wasChats = appEl.dataset.section === "chats";
+  closeProjectsView();
+  closeWorkbench();
   setPinnedView(false);
-  appEl.classList.contains("sidebar-open") ? closeSidebar() : openSidebar();
+  // Only a second tap on the section you are already in closes it; coming
+  // back from Projects or Pinned lands you here rather than shutting it.
+  wasChats ? closeSidebar() : openSidebar();
 };
 
 // The rail's star is the same index narrowed to pinned chats, so it shares
@@ -1358,10 +1385,13 @@ function setPinnedView(on) {
   pinnedOnly = on;
   appEl.classList.toggle("pinned-view", on);
   renderChatList();
+  syncSection();
 }
 document.getElementById("si-pinned").onclick = (e) => {
   e.stopPropagation();
   if (pinnedOnly && appEl.classList.contains("sidebar-open")) { setPinnedView(false); return; }
+  closeProjectsView();
+  closeWorkbench();
   setPinnedView(true);
   openSidebar();
 };
@@ -3225,10 +3255,14 @@ let wbSeq = 0;         // ids must stay unique after the cap drops the oldest
 // a 400px reading column between two panels is worse than either alone.
 const WB_THREE_PANE = "(min-width: 1601px)";
 function openWorkbench() {
+  closeProjectsView();
+  if (pinnedOnly) setPinnedView(false);
   appEl.classList.add("wb-open");
+  renderWorkbench();      // so an untouched panel says what it is for
   if (!window.matchMedia(WB_THREE_PANE).matches) closeSidebar();
+  syncSection();
 }
-function closeWorkbench() { appEl.classList.remove("wb-open"); }
+function closeWorkbench() { appEl.classList.remove("wb-open"); syncSection(); }
 
 // Cleared whenever the conversation changes — the panel belongs to the chat
 // on screen, not to the session.
