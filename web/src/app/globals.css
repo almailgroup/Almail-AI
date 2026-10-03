@@ -1,0 +1,122 @@
+@import "tailwindcss";
+
+/* Design tokens. Light is the primary theme; dark is the same geometry with
+   the surfaces inverted, so nothing about the layout changes with the theme. */
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --radius-pill: 999px;
+}
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+    --muted: 240 5% 96%;
+    --muted-foreground: 240 4% 42%;
+    --card: 0 0% 100%;
+    --border: 240 6% 90%;
+    --input: 240 6% 90%;
+    --ring: 214 97% 56%;
+    --primary: 214 97% 56%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 240 5% 96%;
+    --accent-foreground: 240 10% 4%;
+    --destructive: 0 72% 51%;
+  }
+
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 96%;
+    --muted: 240 6% 12%;
+    --muted-foreground: 240 5% 65%;
+    --card: 240 8% 8%;
+    --border: 240 6% 18%;
+    --input: 240 6% 18%;
+    --ring: 214 97% 62%;
+    --primary: 214 97% 56%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 240 6% 14%;
+    --accent-foreground: 0 0% 96%;
+    --destructive: 0 63% 51%;
+  }
+
+  * { border-color: hsl(var(--border)); }
+
+  body {
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible focus for keyboard users, invisible for pointer users. */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer utilities {
+  .bg-background { background-color: hsl(var(--background)); }
+  .bg-card { background-color: hsl(var(--card)); }
+  .bg-muted { background-color: hsl(var(--muted)); }
+  .bg-accent { background-color: hsl(var(--accent)); }
+  .bg-primary { background-color: hsl(var(--primary)); }
+  .bg-destructive { background-color: hsl(var(--destructive)); }
+  .text-foreground { color: hsl(var(--foreground)); }
+  .text-muted-foreground { color: hsl(var(--muted-foreground)); }
+  .text-primary { color: hsl(var(--primary)); }
+  .text-primary-foreground { color: hsl(var(--primary-foreground)); }
+  .text-destructive { color: hsl(var(--destructive)); }
+  .border-border { border-color: hsl(var(--border)); }
+  .ring-ring { --tw-ring-color: hsl(var(--ring)); }
+}
+
+/* Markdown ------------------------------------------------------------- */
+.prose-chat { line-height: 1.7; font-size: 0.95rem; }
+.prose-chat > * + * { margin-top: 0.85em; }
+.prose-chat h1, .prose-chat h2, .prose-chat h3 {
+  font-weight: 650; letter-spacing: -0.015em; margin-top: 1.4em;
+}
+.prose-chat h1 { font-size: 1.3rem; }
+.prose-chat h2 { font-size: 1.15rem; }
+.prose-chat h3 { font-size: 1.02rem; }
+.prose-chat ul { list-style: disc; padding-left: 1.4em; }
+.prose-chat ol { list-style: decimal; padding-left: 1.4em; }
+.prose-chat li + li { margin-top: 0.3em; }
+.prose-chat a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
+.prose-chat blockquote {
+  border-left: 3px solid hsl(var(--border)); padding-left: 1em;
+  color: hsl(var(--muted-foreground));
+}
+.prose-chat :not(pre) > code {
+  background: hsl(var(--muted)); padding: 0.15em 0.4em;
+  border-radius: 6px; font-size: 0.88em; font-family: var(--font-mono);
+}
+.prose-chat table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; }
+.prose-chat th, .prose-chat td {
+  border: 1px solid hsl(var(--border)); padding: 0.5em 0.7em; text-align: left; font-size: 0.9em;
+}
+.prose-chat th { background: hsl(var(--muted)); font-weight: 600; }
+
+/* A blinking caret while tokens stream, so a pause reads as "still going". */
+.stream-caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em; height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.15em;
+  background: hsl(var(--primary));
+  border-radius: 1px;
+  animation: caret 1s steps(2, start) infinite;
+}
+@keyframes caret { 0%, 50% { opacity: 1 } 50.01%, 100% { opacity: 0 } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

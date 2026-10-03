@@ -15,3 +15,10 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Next.js client (web/)
+web/node_modules/
+web/.next/
+web/out/
+web/next-env.d.ts
+web/*.tsbuildinfo
