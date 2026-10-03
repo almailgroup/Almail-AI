@@ -63,13 +63,19 @@ export function useMessages(uid: string | null, chatId: string | null) {
     return unsub;
   }, [uid, chatId]);
 
+  /**
+   * `into` names the thread explicitly. The first message of a brand-new
+   * conversation is written in the same tick the thread is created, before the
+   * `chatId` prop has caught up, so a send must not depend on that prop.
+   */
   const append = useCallback(
-    async (role: Role, content: string, attachments?: Attachment[]) => {
-      if (!uid || !chatId) return null;
+    async (role: Role, content: string, attachments?: Attachment[], into?: string) => {
+      const target = into ?? chatId;
+      if (!uid || !target) return null;
       const ref = await addDoc(collection(db, paths.messages(uid)), {
         role,
         content,
-        chatId,
+        chatId: target,
         timestamp: serverTimestamp(),
         ...(attachments?.length ? { attachments } : {}),
       });

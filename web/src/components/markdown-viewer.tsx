@@ -10,13 +10,29 @@ import { Check, Copy, PanelRightOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+/**
+ * The plain text of a React subtree.
+ *
+ * `rehype-highlight` replaces a code block's text with a tree of coloured
+ * `<span>`s, so `String(children)` yields "[object Object]". Copy, and the
+ * artifact panel, need the source back.
+ */
+function textOf(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(textOf).join("");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) return textOf(node.props.children);
+  return "";
+}
+
 interface CodeBlockProps {
   language: string;
   code: string;
+  children: React.ReactNode;
   onOpenArtifact?: (code: string, language: string) => void;
 }
 
-function CodeBlock({ language, code, onOpenArtifact }: CodeBlockProps) {
+function CodeBlock({ language, code, children, onOpenArtifact }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
   const copy = useCallback(async () => {
     try {
@@ -54,8 +70,9 @@ function CodeBlock({ language, code, onOpenArtifact }: CodeBlockProps) {
           </Button>
         </div>
       </div>
+      {/* The highlighted children render as they came, so the colours survive. */}
       <pre className="overflow-x-auto bg-card p-3 text-[0.82rem] leading-relaxed">
-        <code className={language ? `language-${language} hljs` : "hljs"}>{code}</code>
+        <code className={language ? `language-${language} hljs` : "hljs"}>{children}</code>
       </pre>
     </div>
   );
@@ -94,8 +111,12 @@ export const MarkdownViewer = memo(function MarkdownViewer({
               | undefined;
             const cls = child?.props?.className ?? "";
             const language = /language-(\w+)/.exec(cls)?.[1] ?? "";
-            const code = String(child?.props?.children ?? "").replace(/\n$/, "");
-            return <CodeBlock language={language} code={code} onOpenArtifact={onOpenArtifact} />;
+            const code = textOf(child?.props?.children).replace(/\n$/, "");
+            return (
+              <CodeBlock language={language} code={code} onOpenArtifact={onOpenArtifact}>
+                {child?.props?.children}
+              </CodeBlock>
+            );
           },
         }}
       >

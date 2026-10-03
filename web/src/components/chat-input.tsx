@@ -14,11 +14,14 @@ interface ChatInputProps {
   uid: string;
   disabled?: boolean;
   streaming?: boolean;
+  /** Text dropped in from elsewhere — a starter prompt — ready to edit or send. */
+  seed?: string | null;
+  onSeedUsed?: () => void;
   onSend: (text: string, attachments: Attachment[]) => void;
   onStop: () => void;
 }
 
-export function ChatInput({ uid, disabled, streaming, onSend, onStop }: ChatInputProps) {
+export function ChatInput({ uid, disabled, streaming, seed, onSeedUsed, onSend, onStop }: ChatInputProps) {
   const [value, setValue] = useState("");
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -34,6 +37,15 @@ export function ChatInput({ uid, disabled, streaming, onSend, onStop }: ChatInpu
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
   }, [value]);
+
+  // A starter prompt lands in the box rather than being sent, so it can be
+  // changed first — it is a starting point, not a decision.
+  useEffect(() => {
+    if (!seed) return;
+    setValue(seed);
+    textareaRef.current?.focus();
+    onSeedUsed?.();
+  }, [seed, onSeedUsed]);
 
   const upload = useCallback(
     async (files: FileList | File[]) => {

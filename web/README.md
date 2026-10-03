@@ -4,9 +4,9 @@ A rewrite of the app at the repository root as a Next.js 15 / React 19 /
 TypeScript client, talking to the same Firebase project and the same
 Cloudflare Worker.
 
-It lives in `web/` rather than replacing the root. The root is what GitHub
-Pages serves today, so the live app keeps working while this is built out;
-nothing here is on the critical path until a deploy step points at it.
+This is the site. The repository root holds its built export, because GitHub
+Pages serves the branch root; `../scripts/deploy.sh` builds this and lays it
+down there. The previous vanilla app is kept, working, under `../legacy/`.
 
 ```bash
 cd web
@@ -71,29 +71,33 @@ of truth, so a reload shows the same thing.
 
 ## Verified here
 
-- `npm run typecheck` — no errors.
-- `npm run build` — compiles and exports; first load 436 kB for `/`.
-- The export served and loaded at 1440×900 and 390×730: renders, no console
-  errors, auth gate blocking, every button carrying a label or text.
+`npm run typecheck` is clean, and `e2e/chat.e2e.mjs` drives the built client
+through sign-in, a send, a streamed reply, markdown, threads, message actions,
+the artifact panel, the model picker, the theme and sign-out — at 1440×900 and
+again at 390×730. See [`e2e/README.md`](e2e/README.md), including what that
+suite caught that reading the code did not.
+
+The deployed export was also loaded from the path Pages serves it at, with
+every same-origin asset checked for a 404, which is how a wrong `basePath`
+shows up before it is live rather than after.
 
 ## Not verified here, and why
 
 The sandbox's egress proxy blocks `googleapis.com` and the Worker host, so a
 real sign-in, a real Firestore round-trip and a real streamed reply have not
-been exercised against live services. The code paths are written against the
-same document shapes and the same SSE format the current app uses in
-production, but that is reasoning, not a test. Run `npm run dev` against the
-real project to confirm them.
+run against live services. Those paths are exercised end to end against the
+in-memory stand-ins, against the same document shapes and the same SSE wire
+format the previous app uses in production — but the live round trip itself is
+reasoning, not a test.
 
 ## Not built yet
 
-Relative to the brief, and to the app at the root:
+Relative to the brief, and to the app now under `../legacy/`:
 
 - `Cmd+K` is "new chat", not a command palette.
 - Projects/Gems, temporary chat, conversation export, voice input and
-  read-aloud exist in the root app and have no equivalent here yet.
-- No deploy step. Publishing this would mean a Pages workflow that builds
-  `web/` and serves `out/`, which also decides the fate of the root app.
+  read-aloud exist in the legacy app and have no equivalent here yet. That is
+  why it is still deployed.
 - The model list has the two Gemini models the Worker actually routes. Adding
   Claude or GPT is a Worker change plus one entry in `lib/models.ts`; listing
   them before that would put dead options in the picker.

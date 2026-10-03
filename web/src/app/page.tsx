@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Loader2, LogOut, Menu, Moon, PanelRight, Sparkles, Sun } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useThreads } from "@/hooks/use-threads";
@@ -15,6 +15,12 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
   DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+/** Tailwind's `lg`, where the sidebar stops being an overlay. */
+const BREAKPOINT = 1024;
+
+/** `useLayoutEffect` warns during the build's prerender; this one does not. */
+const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 export default function Page() {
   const auth = useAuth();
@@ -37,6 +43,13 @@ export default function Page() {
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [activeArtifactId, setActiveArtifactId] = useState<string | null>(null);
 
+  // On a narrow screen the sidebar is an overlay, so it must start out of the
+  // way — a persisted "open" from a desktop session would otherwise cover the
+  // whole phone. Done in a layout effect so the sidebar is gone before paint.
+  useIsomorphicLayoutEffect(() => {
+    if (window.innerWidth < BREAKPOINT) setSidebarOpen(false);
+  }, [setSidebarOpen]);
+
   // Land on the most recent conversation rather than an empty screen.
   useEffect(() => {
     if (!activeThreadId && threads.length) setActiveThreadId(threads[0]!.id);
@@ -52,7 +65,7 @@ export default function Page() {
   const newChat = useCallback(async () => {
     const id = await createThread();
     if (id) setActiveThreadId(id);
-    if (window.innerWidth < 1024) setSidebarOpen(false);
+    if (window.innerWidth < BREAKPOINT) setSidebarOpen(false);
   }, [createThread, setActiveThreadId, setSidebarOpen]);
 
   const ensureThread = useCallback(async () => {
@@ -80,10 +93,13 @@ export default function Page() {
       if (mod && e.key.toLowerCase() === "k") { e.preventDefault(); void newChat(); }
       else if (mod && e.key.toLowerCase() === "b") { e.preventDefault(); toggleSidebar(); }
       else if (e.key === "Escape" && artifactOpen) setArtifactOpen(false);
+      // Escape backs out of the overlay sidebar, which is the only thing on
+      // screen while it is open on a narrow viewport.
+      else if (e.key === "Escape" && sidebarOpen && window.innerWidth < BREAKPOINT) setSidebarOpen(false);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [newChat, toggleSidebar, artifactOpen, setArtifactOpen]);
+  }, [newChat, toggleSidebar, artifactOpen, setArtifactOpen, sidebarOpen, setSidebarOpen]);
 
   if (auth.loading) {
     return (
@@ -98,11 +114,13 @@ export default function Page() {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-background">
-      {/* Dismisses the overlay sidebar on small screens. */}
+      {/* Tap-anywhere dismissal for the overlay sidebar. Deliberately not a
+          control: the header's X and Escape are the accessible ways out, and a
+          second thing labelled "Close sidebar" only muddies the reading. */}
       {sidebarOpen && (
-        <button
+        <div
           onClick={() => setSidebarOpen(false)}
-          aria-label="Close sidebar"
+          aria-hidden
           className="fixed inset-0 z-30 bg-black/40 lg:hidden"
         />
       )}
@@ -116,7 +134,7 @@ export default function Page() {
         onSearch={setSearch}
         onSelect={(id) => {
           setActiveThreadId(id);
-          if (window.innerWidth < 1024) setSidebarOpen(false);
+          if (window.innerWidth < BREAKPOINT) setSidebarOpen(false);
         }}
         onNew={() => void newChat()}
         onRename={(id, title) => void patchThread(id, { title })}
@@ -134,18 +152,24 @@ export default function Page() {
             aria-label={sidebarOpen ? "Hide sidebar" : "Show sidebar"} aria-expanded={sidebarOpen}>
             <Menu className="h-4 w-4" aria-hidden />
           </Button>
-          <h1 className="min-w-0 flex-1 truncate px-2 text-center text-base font-semibold tracking-tight">
+          {/* A phone has no room for both the title and the model, and a title
+              cut to "New c…" tells nobody anything. The model wins there. */}
+          <h1 className="hidden min-w-0 flex-1 truncate px-2 text-base font-semibold tracking-tight sm:block">
             {activeThread?.title ?? "New chat"}
           </h1>
+          <div className="flex-1 sm:hidden" />
           <ModelSelector />
-          <Button
-            variant="ghost" size="icon"
-            onClick={() => setArtifactOpen(!artifactOpen)}
-            aria-label={artifactOpen ? "Hide artifact panel" : "Show artifact panel"}
-            aria-expanded={artifactOpen}
-          >
-            <PanelRight className="h-4 w-4" aria-hidden />
-          </Button>
+          {/* Only a control when there is something to show. */}
+          {!!artifacts.length && (
+            <Button
+              variant="ghost" size="icon"
+              onClick={() => setArtifactOpen(!artifactOpen)}
+              aria-label={artifactOpen ? "Hide artifact panel" : "Show artifact panel"}
+              aria-expanded={artifactOpen}
+            >
+              <PanelRight className="h-4 w-4" aria-hidden />
+            </Button>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" aria-label="Account">

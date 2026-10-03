@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import type { UIMessage } from "ai";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowDown, AlertTriangle, Sparkles } from "lucide-react";
+import { ArrowDown, AlertTriangle, Code2, Lightbulb, Mail, Sparkles, Text } from "lucide-react";
 import type { Attachment, ChatMessage } from "@/lib/types";
 import { useMessages } from "@/hooks/use-messages";
 import { useAutoScroll } from "@/hooks/use-auto-scroll";
@@ -18,6 +18,14 @@ import type { Artifact } from "@/components/artifact-panel";
 
 const textOf = (m: UIMessage) =>
   m.parts.map((p) => (p.type === "text" ? p.text : "")).join("");
+
+/** Openers for a blank conversation. Each fills the box rather than sending. */
+const STARTERS = [
+  { icon: Lightbulb, label: "Explain something simply", prompt: "Explain in simple terms: " },
+  { icon: Mail, label: "Draft an email", prompt: "Draft a short, professional email that " },
+  { icon: Code2, label: "Review my code", prompt: "Review this code and point out bugs:\n\n" },
+  { icon: Text, label: "Summarise a long text", prompt: "Summarise the key points of this text:\n\n" },
+] as const;
 
 interface ChatViewProps {
   uid: string;
@@ -43,13 +51,23 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
   const transport = useMemo(() => new WorkerChatTransport(() => settings.current), []);
 
   const [sendError, setSendError] = useState<string | null>(null);
+  const [seed, setSeed] = useState<string | null>(null);
+
+  // Which thread the turn in flight belongs to. Two reasons this is a ref and
+  // not the prop: a thread created by the send itself is not on the prop until
+  // the next render, and `useChat` may hold onto the first `onFinish` it was
+  // given, so that callback cannot read `chatId` from a closure.
+  const thread = useRef<string | null>(chatId);
+  if (chatId) thread.current = chatId;
+  const created = useRef<string | null>(null);
 
   const { messages: live, sendMessage, status, stop, setMessages } = useChat({
     transport,
     onError: (err) => setSendError(err.message || "The model didn't respond. Try again."),
     onFinish: ({ message }) => {
       const text = textOf(message).trim();
-      if (text && chatId) void append("assistant", text);
+      const into = thread.current;
+      if (text && into) void append("assistant", text, undefined, into);
     },
   });
 
@@ -72,8 +90,18 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
     pending ? pending.content : visible.length,
   );
 
-  // A new conversation starts with a clean slate on both sides.
+  // Switching conversations starts with a clean slate on both sides. A thread
+  // the send itself just created is not a switch — clearing there would throw
+  // away the reply streaming into it.
+  const settled = useRef<string | null>(chatId);
   useEffect(() => {
+    if (chatId === settled.current || chatId === created.current) {
+      settled.current = chatId;
+      created.current = null;   // consumed; a later return here is a real switch
+      return;
+    }
+    settled.current = chatId;
+    created.current = null;
     setMessages([]);
     setSendError(null);
   }, [chatId, setMessages]);
@@ -108,11 +136,16 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
   const handleSend = useCallback(
     async (text: string, attachments: Attachment[]) => {
       const targetId = chatId ?? (await onEnsureThread());
-      if (!targetId) return;
+      if (!targetId) {
+        setSendError("Couldn't start a conversation. Check your connection and try again.");
+        return;
+      }
+      thread.current = targetId;
+      created.current = targetId;
       if (!stored.length) onTitle(targetId, truncateAtWord(text, 45) || attachments[0]?.name || "New chat");
       onTouch(targetId);
 
-      await append("user", text, attachments);
+      await append("user", text, attachments, targetId);
       const next: ChatMessage[] = [
         ...stored,
         { id: `local-${Date.now()}`, chatId: targetId, role: "user", content: text, timestamp: Date.now(), attachments },
@@ -153,6 +186,8 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
     [onArtifact],
   );
 
+  const clearSeed = useCallback(() => setSeed(null), []);
+
   const empty = !loading && !visible.length;
 
   return (
@@ -167,7 +202,7 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
           )}
 
           {empty ? (
-            <div className="flex flex-col items-center gap-3 py-24 text-center">
+            <div className="flex min-h-[55vh] flex-col items-center justify-center gap-3 text-center">
               <div className="grid h-12 w-12 place-items-center rounded-full border border-border bg-card">
                 <Sparkles className="h-5 w-5 text-primary" aria-hidden />
               </div>
@@ -175,6 +210,19 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
               <p className="max-w-sm text-sm text-muted-foreground">
                 Ask a question, paste some code, or drop a file into the box below.
               </p>
+              <ul className="mt-5 grid w-full max-w-xl grid-cols-1 gap-3 sm:grid-cols-2">
+                {STARTERS.map(({ icon: Icon, label, prompt }) => (
+                  <li key={label}>
+                    <button
+                      onClick={() => setSeed(prompt)}
+                      className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-left text-sm transition-colors hover:bg-accent"
+                    >
+                      <Icon className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span>{label}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           ) : (
             visible.map((m) => (
@@ -221,7 +269,14 @@ export function ChatView({ uid, chatId, onTitle, onTouch, onEnsureThread, onArti
 
       <div className="flex-shrink-0 px-4 pb-4">
         <div className="mx-auto w-full max-w-3xl">
-          <ChatInput uid={uid} streaming={streaming} onSend={handleSend} onStop={stop} />
+          <ChatInput
+            uid={uid}
+            streaming={streaming}
+            seed={seed}
+            onSeedUsed={clearSeed}
+            onSend={handleSend}
+            onStop={stop}
+          />
           <p className="pt-2 text-center text-[0.7rem] text-muted-foreground">
             Almail AI can make mistakes.
           </p>
